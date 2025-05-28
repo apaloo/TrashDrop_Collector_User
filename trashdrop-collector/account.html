@@ -7,8 +7,13 @@
     <meta name="description" content="Manage your TrashDrop Collector account settings">
     <link rel="stylesheet" href="./src/styles/main.css">
     <link rel="stylesheet" href="./src/styles/navigation.css">
+    <link rel="stylesheet" href="./src/styles/account.css">
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#4CAF50">
+    
+    <!-- Preload key assets for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
     <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -21,6 +26,16 @@
     
     <!-- Authentication -->
     <script src="./src/js/auth.js"></script>
+    
+    <!-- Apply dark theme early to prevent flash of unstyled content -->
+    <script>
+        const savedMode = localStorage.getItem('darkMode');
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedMode === 'enabled' || (savedMode === null && prefersDark)) {
+            document.documentElement.classList.add('dark-theme');
+            document.body.classList.add('dark-theme');
+        }
+    </script>
 </head>
 <body>
     <div class="app-container">
@@ -50,82 +65,158 @@
                 </div>
             </div>
             
-            <div class="content-card">
-                <h3>Personal Information</h3>
-                <div class="info-list">
-                    <div class="info-item">
-                        <div class="info-label">Email</div>
-                        <div class="info-value" id="profileEmail">Loading...</div>
+            <!-- Tabs Container -->
+            <div class="content-card tab-container">
+                <div class="tabs">
+                    <div class="tab active" data-tab="account">Account</div>
+                    <div class="tab" data-tab="settings">Settings</div>
+                    <div class="tab" data-tab="support">Support</div>
+                </div>
+                
+                <!-- Account Tab Content -->
+                <div class="tab-content active" id="account-tab">
+                    <h3>Personal Information</h3>
+                    <form id="account-form">
+                        <div class="form-group">
+                            <label for="firstName">First Name</label>
+                            <input type="text" id="firstName" placeholder="First Name">
+                        </div>
+                        <div class="form-group">
+                            <label for="lastName">Last Name</label>
+                            <input type="text" id="lastName" placeholder="Last Name">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" placeholder="Email" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">Phone</label>
+                            <input type="tel" id="phone" placeholder="Phone Number">
+                        </div>
+                        <div class="form-group">
+                            <label for="company">Company</label>
+                            <input type="text" id="company" placeholder="Company Name">
+                        </div>
+                        <div class="form-group">
+                            <label for="vehicle">Vehicle Type</label>
+                            <input type="text" id="vehicle" placeholder="Vehicle Type">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Settings Tab Content -->
+                <div class="tab-content" id="settings-tab">
+                    <h3>Application Settings</h3>
+                    <div class="setting-item">
+                        <div>
+                            <div class="setting-label">Push Notifications</div>
+                            <div class="setting-description">Receive push notifications for new pickup requests</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="push-notifications" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">Phone</div>
-                        <div class="info-value" id="profilePhone">Loading...</div>
+                    
+                    <div class="setting-item">
+                        <div>
+                            <div class="setting-label">Email Notifications</div>
+                            <div class="setting-description">Receive email notifications for account updates</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="email-notifications" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">Company</div>
-                        <div class="info-value" id="profileCompany">Loading...</div>
+                    
+                    <div class="setting-item">
+                        <div>
+                            <div class="setting-label">Dark Mode</div>
+                            <div class="setting-description">Switch between light and dark theme</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="dark-mode">
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">Vehicle Type</div>
-                        <div class="info-value" id="profileVehicle">Loading...</div>
+                    
+                    <div class="setting-item">
+                        <div>
+                            <div class="setting-label">Location Services</div>
+                            <div class="setting-description">Enable precise location for better pickup coordination</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="location-services" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <div>
+                            <div class="setting-label">Data Saving Mode</div>
+                            <div class="setting-description">Reduce data usage when on cellular networks</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="data-saving">
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
                 </div>
-            </div>
-            
-            <div class="content-card">
-                <h3>Account Settings</h3>
-                <div class="settings-list">
-                    <a href="javascript:void(0)" class="settings-item">
-                        <div class="settings-icon">
-                            <span class="material-icons">notifications</span>
-                        </div>
-                        <div class="settings-content">
-                            <div class="settings-title">Notification Preferences</div>
-                            <div class="settings-subtitle">Manage how you receive notifications</div>
-                        </div>
-                        <div class="settings-action">
-                            <span class="material-icons">chevron_right</span>
-                        </div>
-                    </a>
+                
+                <!-- Support Tab Content -->
+                <div class="tab-content" id="support-tab">
+                    <h3>Help & Support</h3>
                     
-                    <a href="javascript:void(0)" class="settings-item">
-                        <div class="settings-icon">
-                            <span class="material-icons">lock</span>
+                    <div class="support-card">
+                        <h4>Contact Support</h4>
+                        <p>Having trouble with the app? Our support team is here to help.</p>
+                        <div class="support-contact">
+                            <span class="material-icons">email</span>
+                            support@trashdrop.com
                         </div>
-                        <div class="settings-content">
-                            <div class="settings-title">Password & Security</div>
-                            <div class="settings-subtitle">Update your password and security settings</div>
+                        <div class="support-contact">
+                            <span class="material-icons">phone</span>
+                            1-800-TRASHDROP
                         </div>
-                        <div class="settings-action">
-                            <span class="material-icons">chevron_right</span>
-                        </div>
-                    </a>
+                    </div>
                     
-                    <a href="javascript:void(0)" class="settings-item">
-                        <div class="settings-icon">
-                            <span class="material-icons">language</span>
-                        </div>
-                        <div class="settings-content">
-                            <div class="settings-title">Language & Region</div>
-                            <div class="settings-subtitle">Set your preferred language and region</div>
-                        </div>
-                        <div class="settings-action">
-                            <span class="material-icons">chevron_right</span>
-                        </div>
-                    </a>
+                    <div class="support-card">
+                        <h4>Submit a Support Ticket</h4>
+                        <form id="support-form">
+                            <div class="form-group">
+                                <label for="issue-type">Issue Type</label>
+                                <select id="issue-type" class="form-control">
+                                    <option value="">Select Issue Type</option>
+                                    <option value="app">App Issue</option>
+                                    <option value="account">Account Issue</option>
+                                    <option value="payment">Payment Issue</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="issue-description">Describe Your Issue</label>
+                                <textarea id="issue-description" class="support-textarea" placeholder="Please provide details about your issue..."></textarea>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Submit Ticket</button>
+                            </div>
+                        </form>
+                    </div>
                     
-                    <a href="javascript:void(0)" class="settings-item">
-                        <div class="settings-icon">
-                            <span class="material-icons">help</span>
-                        </div>
-                        <div class="settings-content">
-                            <div class="settings-title">Help & Support</div>
-                            <div class="settings-subtitle">Get assistance and contact support</div>
-                        </div>
-                        <div class="settings-action">
-                            <span class="material-icons">chevron_right</span>
-                        </div>
-                    </a>
+                    <div class="support-card">
+                        <h4>FAQ</h4>
+                        <p><strong>Q: How do I update my vehicle information?</strong><br>
+                        A: You can update your vehicle details in the Account tab.</p>
+                        
+                        <p><strong>Q: When do I get paid for pickups?</strong><br>
+                        A: Payments are processed every Friday for the previous week's work.</p>
+                        
+                        <p><strong>Q: How do I report an issue with a pickup?</strong><br>
+                        A: Use the support ticket form above to report any issues with pickups.</p>
+                    </div>
                 </div>
             </div>
             
@@ -136,30 +227,51 @@
     </div>
     
     <!-- Bottom Navigation Bar -->
-    <nav class="bottom-nav">
-        <a href="./map.html" class="nav-item">
-            <span class="material-icons nav-icon">map</span>
-            <span class="nav-label">Map</span>
+    <div style="position:fixed;bottom:0;left:0;right:0;height:60px;background-color:#fff;display:flex;justify-content:space-around;align-items:center;box-shadow:0 -2px 10px rgba(0,0,0,0.1);z-index:1001;">
+        <a href="./map.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
+            <i class="material-icons" style="font-size:24px;">map</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Map</span>
         </a>
-        <a href="./request.html" class="nav-item">
-            <span class="material-icons nav-icon">add_circle</span>
-            <span class="nav-label">Request</span>
+        <a href="./request.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
+            <i class="material-icons" style="font-size:24px;">add_circle</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Request</span>
         </a>
-        <a href="./assign.html" class="nav-item">
-            <span class="material-icons nav-icon">assignment</span>
-            <span class="nav-label">Assign</span>
+        <a href="./assign.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
+            <i class="material-icons" style="font-size:24px;">assignment</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Assign</span>
         </a>
-        <a href="./earnings.html" class="nav-item">
-            <span class="material-icons nav-icon">account_balance_wallet</span>
-            <span class="nav-label">Earnings</span>
+        <a href="./earnings.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
+            <i class="material-icons" style="font-size:24px;">account_balance_wallet</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Earnings</span>
         </a>
-        <a href="./account.html" class="nav-item active">
-            <span class="material-icons nav-icon">person</span>
-            <span class="nav-label">Account</span>
+        <a href="./account.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#4CAF50;">
+            <i class="material-icons" style="font-size:24px;">person</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Account</span>
         </a>
-    </nav>
+    </div>
+    
+    <!-- Add notification container for feedback -->
+    <div class="notifications-container" id="notifications-container"></div>
     
     <script>
+        // Helper function to show notifications
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notifications-container');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            container.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.classList.add('fade-out');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+        
         document.addEventListener('DOMContentLoaded', async () => {
             // Check if user is logged in
             const user = await getCurrentUser();
@@ -173,10 +285,11 @@
             // In a real app, this would fetch from Supabase
             // For now, we'll use onboarding data from localStorage if available
             const profileName = document.getElementById('profileName');
-            const profileEmail = document.getElementById('profileEmail');
-            const profilePhone = document.getElementById('profilePhone');
-            const profileCompany = document.getElementById('profileCompany');
-            const profileVehicle = document.getElementById('profileVehicle');
+            let firstName = '';
+            let lastName = '';
+            let phoneNumber = '';
+            let companyName = '';
+            let vehicleType = '';
             
             // Try to get onboarding data
             const onboardingData = localStorage.getItem('onboardingData');
@@ -184,20 +297,31 @@
                 const parsedData = JSON.parse(onboardingData);
                 
                 // Update profile with onboarding data
-                profileName.textContent = `${parsedData.personal.firstName} ${parsedData.personal.lastName}`;
-                profilePhone.textContent = parsedData.personal.phoneNumber;
-                profileCompany.textContent = parsedData.company.companyName;
-                profileVehicle.textContent = parsedData.vehicle.vehicleType;
+                firstName = parsedData.personal.firstName;
+                lastName = parsedData.personal.lastName;
+                phoneNumber = parsedData.personal.phoneNumber;
+                companyName = parsedData.company.companyName;
+                vehicleType = parsedData.vehicle.vehicleType;
+                
+                profileName.textContent = `${firstName} ${lastName}`;
             } else {
                 // Use fallback data if onboarding data is not available
-                profileName.textContent = user.email?.split('@')[0] || 'User';
-                profilePhone.textContent = 'Not provided';
-                profileCompany.textContent = 'Not provided';
-                profileVehicle.textContent = 'Not provided';
+                firstName = user.email?.split('@')[0] || 'User';
+                lastName = '';
+                phoneNumber = 'Not provided';
+                companyName = 'Not provided';
+                vehicleType = 'Not provided';
+                
+                profileName.textContent = firstName;
             }
             
-            // Set email from user object
-            profileEmail.textContent = user.email || 'No email provided';
+            // Populate account form
+            document.getElementById('firstName').value = firstName;
+            document.getElementById('lastName').value = lastName;
+            document.getElementById('email').value = user.email || '';
+            document.getElementById('phone').value = phoneNumber;
+            document.getElementById('company').value = companyName;
+            document.getElementById('vehicle').value = vehicleType;
             
             // Sign out button
             const signOutBtn = document.getElementById('signOutBtn');
@@ -211,19 +335,249 @@
                 }
             });
             
-            // Edit profile button (placeholder functionality)
-            const editProfileBtn = document.getElementById('editProfileBtn');
-            editProfileBtn.addEventListener('click', () => {
-                alert('Profile editing will be available soon');
-            });
+            // Tab switching functionality
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
             
-            // Settings items (placeholder functionality)
-            const settingsItems = document.querySelectorAll('.settings-item');
-            settingsItems.forEach(item => {
-                item.addEventListener('click', () => {
-                    alert('This feature is coming soon!');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remove active class from all tabs and contents
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    
+                    // Add active class to clicked tab
+                    tab.classList.add('active');
+                    
+                    // Show corresponding content
+                    const tabName = tab.getAttribute('data-tab');
+                    document.getElementById(`${tabName}-tab`).classList.add('active');
                 });
             });
+            
+            // Edit profile button functionality
+            const editProfileBtn = document.getElementById('editProfileBtn');
+            editProfileBtn.addEventListener('click', () => {
+                // Activate account tab
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+                
+                document.querySelector('[data-tab="account"]').classList.add('active');
+                document.getElementById('account-tab').classList.add('active');
+                
+                // Focus on first name field
+                document.getElementById('firstName').focus();
+            });
+            
+            // Account form validation and submission
+            const accountForm = document.getElementById('account-form');
+            accountForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Form validation
+                const firstName = document.getElementById('firstName').value.trim();
+                const lastName = document.getElementById('lastName').value.trim();
+                const phoneNumber = document.getElementById('phone').value.trim();
+                const companyName = document.getElementById('company').value.trim();
+                const vehicleType = document.getElementById('vehicle').value.trim();
+                
+                // Basic validation
+                if (!firstName || !lastName) {
+                    showNotification('First name and last name are required', 'error');
+                    return;
+                }
+                
+                if (phoneNumber && !/^[0-9()+\-\s]{10,15}$/.test(phoneNumber)) {
+                    showNotification('Please enter a valid phone number', 'error');
+                    return;
+                }
+                
+                // Get updated user data
+                const updatedData = {
+                    personal: {
+                        firstName,
+                        lastName,
+                        phoneNumber
+                    },
+                    company: {
+                        companyName
+                    },
+                    vehicle: {
+                        vehicleType
+                    }
+                };
+                
+                try {
+                    // Show loading indicator
+                    const submitBtn = accountForm.querySelector('button[type="submit"]');
+                    const originalBtnText = submitBtn.textContent;
+                    submitBtn.textContent = 'Saving...';
+                    submitBtn.disabled = true;
+                    
+                    // Simulate network delay for UX feedback
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    // In a real app, this would update data in Supabase
+                    // For now, just update localStorage
+                    if (onboardingData) {
+                        const currentData = JSON.parse(onboardingData);
+                        const mergedData = {
+                            ...currentData,
+                            personal: {
+                                ...currentData.personal,
+                                ...updatedData.personal
+                            },
+                            company: {
+                                ...currentData.company,
+                                ...updatedData.company
+                            },
+                            vehicle: {
+                                ...currentData.vehicle,
+                                ...updatedData.vehicle
+                            }
+                        };
+                        localStorage.setItem('onboardingData', JSON.stringify(mergedData));
+                    } else {
+                        localStorage.setItem('onboardingData', JSON.stringify(updatedData));
+                    }
+                    
+                    // Update profile display
+                    profileName.textContent = `${firstName} ${lastName}`;
+                    
+                    // Show success notification instead of alert
+                    showNotification('Profile updated successfully!', 'success');
+                } catch (error) {
+                    console.error('Update error:', error);
+                    showNotification('Failed to update profile. Please try again.', 'error');
+                } finally {
+                    // Reset button state
+                    submitBtn.textContent = originalBtnText;
+                    submitBtn.disabled = false;
+                }
+            });
+            
+            // Support form validation and submission
+            const supportForm = document.getElementById('support-form');
+            supportForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const issueType = document.getElementById('issue-type').value;
+                const issueDescription = document.getElementById('issue-description').value.trim();
+                
+                if (!issueType) {
+                    showNotification('Please select an issue type', 'error');
+                    return;
+                }
+                
+                if (!issueDescription) {
+                    showNotification('Please describe your issue', 'error');
+                    return;
+                }
+                
+                if (issueDescription.length < 10) {
+                    showNotification('Please provide more details about your issue', 'error');
+                    return;
+                }
+                
+                try {
+                    // Show loading indicator
+                    const submitBtn = supportForm.querySelector('button[type="submit"]');
+                    const originalBtnText = submitBtn.textContent;
+                    submitBtn.textContent = 'Submitting...';
+                    submitBtn.disabled = true;
+                    
+                    // Simulate network delay for UX feedback
+                    await new Promise(resolve => setTimeout(resolve, 800));
+                    
+                    // In a real app, this would submit to Supabase or an API
+                    const ticketData = { 
+                        issueType, 
+                        issueDescription,
+                        timestamp: new Date().toISOString(),
+                        userId: user.id || 'anonymous',
+                        status: 'open'
+                    };
+                    
+                    console.log('Support ticket submitted:', ticketData);
+                    
+                    // Store in localStorage for demo purposes
+                    const existingTickets = JSON.parse(localStorage.getItem('supportTickets') || '[]');
+                    existingTickets.push(ticketData);
+                    localStorage.setItem('supportTickets', JSON.stringify(existingTickets));
+                    
+                    showNotification('Support ticket submitted successfully! Our team will contact you soon.', 'success');
+                    
+                    // Reset form
+                    supportForm.reset();
+                } catch (error) {
+                    console.error('Ticket submission error:', error);
+                    showNotification('Failed to submit ticket. Please try again.', 'error');
+                } finally {
+                    // Reset button state
+                    submitBtn.textContent = originalBtnText;
+                    submitBtn.disabled = false;
+                }
+            });
+            
+            // Settings toggles functionality
+            const toggles = document.querySelectorAll('.toggle-switch input');
+            toggles.forEach(toggle => {
+                toggle.addEventListener('change', () => {
+                    const settingId = toggle.id;
+                    const isEnabled = toggle.checked;
+                    
+                    try {
+                        // Save setting to localStorage for persistence
+                        localStorage.setItem(`setting_${settingId}`, isEnabled ? 'enabled' : 'disabled');
+                        
+                        // In a real app, this would update user preferences in Supabase
+                        console.log(`Setting ${settingId} changed to ${isEnabled}`);
+                        
+                        // Display feedback notification
+                        showNotification('Setting updated successfully', 'success');
+                        
+                        // Special handling for dark mode
+                        if (settingId === 'dark-mode') {
+                            applyDarkMode(isEnabled);
+                        }
+                    } catch (error) {
+                        console.error('Error saving setting:', error);
+                        showNotification('Failed to save setting', 'error');
+                    }
+                });
+                
+                // Initialize toggle state from localStorage
+                const savedValue = localStorage.getItem(`setting_${toggle.id}`);
+                if (savedValue === 'enabled') {
+                    toggle.checked = true;
+                } else if (savedValue === 'disabled') {
+                    toggle.checked = false;
+                }
+            });
+            
+            // Apply dark mode on page load if previously enabled
+            const applyDarkMode = (enabled) => {
+                const darkModeToggle = document.getElementById('dark-mode');
+                if (!darkModeToggle) return;
+                
+                if (enabled) {
+                    document.body.classList.add('dark-theme');
+                    darkModeToggle.checked = true;
+                    localStorage.setItem('darkMode', 'enabled');
+                } else {
+                    document.body.classList.remove('dark-theme');
+                    darkModeToggle.checked = false;
+                    localStorage.setItem('darkMode', 'disabled');
+                }
+            };
+            
+            // Check user's preference from localStorage or system preference
+            const userPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const savedMode = localStorage.getItem('darkMode');
+            
+            // Apply dark mode based on saved preference or system preference
+            if (savedMode === 'enabled' || (savedMode === null && userPrefersDark)) {
+                applyDarkMode(true);
+            }
         });
     </script>
 </body>

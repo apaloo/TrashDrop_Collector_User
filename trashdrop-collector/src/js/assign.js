@@ -1,0 +1,1419 @@
+/**
+ * TrashDrop Collector - Assignment Module
+ * Handles assignment listing, acceptance, and completion functionality
+ */
+
+// Store assignments by status
+let availableAssignments = [];
+let acceptedAssignments = [];
+let completedAssignments = [];
+let currentAssignmentId = null;
+
+// DOM Elements
+let tabButtons;
+let tabContents;
+let availableAssignmentsElement;
+let acceptedAssignmentsElement;
+let completedAssignmentsElement;
+let assignmentModal;
+let markCompleteModal;
+let disposeModal;
+let captureButtons;
+let capturedPhotos = [];
+let submitCompleteBtn;
+
+// Camera elements and variables
+let cameraContainer;
+let cameraFeed;
+let captureCanvas;
+let takePictureBtn;
+let cancelCaptureBtn;
+let currentPhotoId = null;
+let cameraStream = null;
+
+// Location elements and variables
+let locationMap;
+let locationMarker;
+let capturedLocation = null;
+let useCurrentLocationBtn;
+let locationStatus;
+let locationAddress;
+let locationCoordinates;
+
+/**
+ * Initialize the assignment page
+ */
+async function initAssignPage() {
+    // Check if user is logged in
+    const user = await getCurrentUser();
+    
+    if (!user) {
+        window.location.href = './login.html';
+        return;
+    }
+    
+    // Get DOM elements
+    tabButtons = document.querySelectorAll('.tab');
+    tabContents = document.querySelectorAll('.tab-content');
+    availableAssignmentsElement = document.getElementById('availableAssignments');
+    acceptedAssignmentsElement = document.getElementById('acceptedAssignments');
+    completedAssignmentsElement = document.getElementById('completedAssignments');
+    assignmentModal = document.getElementById('assignmentModal');
+    markCompleteModal = document.getElementById('markCompleteModal');
+    disposeModal = document.getElementById('disposeModal');
+    photoUploads = document.querySelectorAll('.photo-upload');
+    submitCompleteBtn = document.getElementById('submitCompleteBtn');
+    
+    // Add event listeners for tabs
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Remove active class from all buttons and tabs
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabContents.forEach(tab => tab.classList.remove('active'));
+            
+            // Add active class to clicked button and its corresponding tab
+            button.classList.add('active');
+            const tabId = button.getAttribute('data-tab');
+            document.getElementById(tabId + 'Tab').classList.add('active');
+        });
+    });
+    
+    // Setup modal close functionality
+    setupModals();
+    
+    // Setup camera capture
+    setupCameraCapture();
+    
+    // Setup location elements
+    setupLocationElements();
+    
+    // Load assignments
+    loadAssignments();
+    
+    // Start geofencing check for completed assignments
+    startGeofencingCheck();
+}
+
+/**
+ * Setup modal close functionality
+ */
+function setupModals() {
+    // Assignment modal
+    const closeAssignmentModal = assignmentModal.querySelector('.close-modal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    
+    closeAssignmentModal.addEventListener('click', () => {
+        assignmentModal.style.display = 'none';
+    });
+    
+    closeModalBtn.addEventListener('click', () => {
+        assignmentModal.style.display = 'none';
+    });
+    
+    // Mark complete modal
+    const closeCompleteModal = markCompleteModal.querySelector('.close-modal');
+    const cancelCompleteBtn = document.getElementById('cancelCompleteBtn');
+    
+    closeCompleteModal.addEventListener('click', () => {
+        markCompleteModal.style.display = 'none';
+    });
+    
+    cancelCompleteBtn.addEventListener('click', () => {
+        markCompleteModal.style.display = 'none';
+    });
+    
+    // Dispose modal
+    const closeDisposeModal = disposeModal.querySelector('.close-modal');
+    const cancelDisposeBtn = document.getElementById('cancelDisposeBtn');
+    
+    closeDisposeModal.addEventListener('click', () => {
+        disposeModal.style.display = 'none';
+    });
+    
+    cancelDisposeBtn.addEventListener('click', () => {
+        disposeModal.style.display = 'none';
+    });
+    
+    // Global click event for modals
+    window.addEventListener('click', (event) => {
+        if (event.target === assignmentModal) {
+            assignmentModal.style.display = 'none';
+        } else if (event.target === markCompleteModal) {
+            markCompleteModal.style.display = 'none';
+        } else if (event.target === disposeModal) {
+            disposeModal.style.display = 'none';
+        }
+    });
+    
+    // Accept assignment button
+    const acceptAssignmentBtn = document.getElementById('acceptAssignmentBtn');
+    acceptAssignmentBtn.addEventListener('click', () => {
+        acceptAssignment(currentAssignmentId);
+        assignmentModal.style.display = 'none';
+    });
+    
+    // Submit complete button
+    submitCompleteBtn.addEventListener('click', () => {
+        completeAssignment(currentAssignmentId);
+    });
+    
+    // Confirm dispose button
+    const confirmDisposeBtn = document.getElementById('confirmDisposeBtn');
+    confirmDisposeBtn.addEventListener('click', () => {
+        processDisposal(currentAssignmentId);
+    });
+}
+
+/**
+ * Setup camera capture functionality
+ */
+function setupCameraCapture() {
+    // Get camera-related elements
+    cameraContainer = document.getElementById('cameraContainer');
+    cameraFeed = document.getElementById('cameraFeed');
+    captureCanvas = document.getElementById('captureCanvas');
+    takePictureBtn = document.getElementById('takePictureBtn');
+    cancelCaptureBtn = document.getElementById('cancelCaptureBtn');
+    
+    // Get photo capture buttons
+    captureButtons = document.querySelectorAll('.camera-capture-btn');
+    
+    // Add event listeners to camera capture buttons
+    captureButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            // Get the photo ID from the button's data attribute
+            currentPhotoId = button.getAttribute('data-photo-id');
+            
+            // Start the camera
+            startCamera();
+        });
+    });
+    
+    // Add event listener to take picture button
+    takePictureBtn.addEventListener('click', () => {
+        capturePhoto();
+    });
+    
+    // Add event listener to cancel button
+    cancelCaptureBtn.addEventListener('click', () => {
+        stopCamera();
+    });
+}
+
+/**
+ * Start the camera
+ */
+async function startCamera() {
+    try {
+        // Check if browser supports MediaDevices
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            showToast('Your device does not support camera access');
+            return;
+        }
+        
+        // Get access to the camera
+        const constraints = {
+            video: {
+                facingMode: 'environment', // Use back camera on mobile
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            }
+        };
+        
+        // Get the stream
+        cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+        
+        // Set the video source to the camera stream
+        cameraFeed.srcObject = cameraStream;
+        
+        // Show the camera container
+        cameraContainer.style.display = 'flex';
+        
+        // Add a class to the body to prevent scrolling
+        document.body.classList.add('camera-active');
+        
+    } catch (error) {
+        console.error('Error accessing camera:', error);
+        showToast('Could not access camera. Please ensure you have granted camera permissions.');
+    }
+}
+
+/**
+ * Stop the camera
+ */
+function stopCamera() {
+    // Hide the camera container
+    cameraContainer.style.display = 'none';
+    
+    // Stop all tracks in the stream
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+    }
+    
+    // Reset camera feed
+    cameraFeed.srcObject = null;
+    
+    // Remove the class from the body
+    document.body.classList.remove('camera-active');
+    
+    // Reset current photo ID
+    currentPhotoId = null;
+}
+
+/**
+ * Capture a photo from the camera feed
+ */
+function capturePhoto() {
+    if (!cameraStream || !currentPhotoId) return;
+    
+    // Set canvas dimensions to match the video
+    const width = cameraFeed.videoWidth;
+    const height = cameraFeed.videoHeight;
+    captureCanvas.width = width;
+    captureCanvas.height = height;
+    
+    // Draw the current video frame to the canvas
+    const context = captureCanvas.getContext('2d');
+    context.drawImage(cameraFeed, 0, 0, width, height);
+    
+    // Get the image data URL
+    const imageDataUrl = captureCanvas.toDataURL('image/jpeg');
+    
+    // Store the captured photo
+    const photoIndex = parseInt(currentPhotoId) - 1;
+    capturedPhotos[photoIndex] = {
+        dataUrl: imageDataUrl,
+        timestamp: new Date().toISOString()
+    };
+    
+    // Update the preview
+    updatePhotoPreview(photoIndex, imageDataUrl);
+    
+    // Stop the camera
+    stopCamera();
+    
+    // Check requirements
+    checkRequirements();
+    
+    // Show success message
+    showToast('Photo captured successfully');
+}
+
+/**
+ * Update the photo preview for a specific slot
+ * @param {Number} index - Index of the photo slot
+ * @param {String} imageDataUrl - Data URL of the captured image
+ */
+function updatePhotoPreview(index, imageDataUrl) {
+    // Get the preview area for this index
+    const previewArea = document.getElementById(`photoPreview${index + 1}`);
+    
+    // Update the preview with the captured image
+    previewArea.innerHTML = `
+        <img src="${imageDataUrl}" alt="Preview">
+        <div class="photo-controls">
+            <span class="photo-number">Photo ${index + 1}</span>
+            <button type="button" class="photo-delete" data-index="${index}">
+                <span class="material-icons">delete</span>
+            </button>
+        </div>
+    `;
+    
+    // Show the preview
+    previewArea.classList.add('has-image');
+    
+    // Hide the capture button
+    const captureButton = document.querySelector(`.camera-capture-btn[data-photo-id="${index + 1}"]`);
+    if (captureButton) {
+        captureButton.style.display = 'none';
+    }
+    
+    // Add event listener to delete button
+    const deleteButton = previewArea.querySelector('.photo-delete');
+    deleteButton.addEventListener('click', () => {
+        deletePhoto(index);
+    });
+}
+
+/**
+ * Delete a captured photo
+ * @param {Number} index - Index of the photo to delete
+ */
+function deletePhoto(index) {
+    // Reset the captured photo data
+    capturedPhotos[index] = null;
+    
+    // Get the preview area
+    const previewArea = document.getElementById(`photoPreview${index + 1}`);
+    
+    // Clear and hide the preview
+    previewArea.innerHTML = '';
+    previewArea.classList.remove('has-image');
+    
+    // Show the capture button again
+    const captureButton = document.querySelector(`.camera-capture-btn[data-photo-id="${index + 1}"]`);
+    if (captureButton) {
+        captureButton.style.display = 'flex';
+    }
+    
+    // Check requirements
+    checkRequirements();
+    
+    // Show message
+    showToast('Photo removed');
+}
+
+/**
+ * Check if all requirements are met for submission
+ */
+function checkRequirements() {
+    const validPhotos = capturedPhotos.filter(photo => photo !== null && photo !== undefined);
+    const commentLength = document.getElementById('completionComment').value.trim().length;
+    
+    // Comment is now optional, so we only need photos and location
+    submitCompleteBtn.disabled = validPhotos.length < 3 || !capturedLocation;
+    
+    // Provide visual feedback on comment length
+    const commentCharCount = document.getElementById('commentCharCount');
+    if (commentCharCount) {
+        commentCharCount.textContent = commentLength;
+        
+        // Since comment is optional, we'll just show the count without color indication
+        commentCharCount.style.color = '#666';
+    }
+    
+    // Update photo status in UI
+    updatePhotoStatusDisplay(validPhotos.length);
+}
+
+/**
+ * Update photo status display in the UI
+ * @param {Number} count - Number of valid photos
+ */
+function updatePhotoStatusDisplay(count) {
+    // Add visual feedback on the photo requirement
+    const photoSection = document.querySelector('.photo-upload-section h4');
+    if (photoSection) {
+        if (count < 3) {
+            photoSection.innerHTML = `Capture Photos <span class="requirement-count">(${count}/3 required)</span>`;
+            photoSection.querySelector('.requirement-count').style.color = '#f44336';
+        } else {
+            photoSection.innerHTML = `Capture Photos <span class="requirement-count">(${count}/3 complete)</span>`;
+            photoSection.querySelector('.requirement-count').style.color = '#4caf50';
+        }
+    }
+}
+
+/**
+ * Check if the minimum photo requirement is met
+ * @deprecated Use checkRequirements instead
+ */
+function checkPhotoRequirement() {
+    checkRequirements();
+}
+
+/**
+ * Setup location elements and map functionality
+ */
+function setupLocationElements() {
+    // Get location elements
+    useCurrentLocationBtn = document.getElementById('useCurrentLocationBtn');
+    locationStatus = document.getElementById('locationStatus');
+    locationAddress = document.getElementById('locationAddress');
+    locationCoordinates = document.getElementById('locationCoordinates');
+    
+    // Add event listener to current location button
+    useCurrentLocationBtn.addEventListener('click', () => {
+        captureCurrentLocation();
+    });
+}
+
+/**
+ * Initialize the location map in the Mark Complete modal
+ */
+function initLocationMap() {
+    try {
+        // Default center (San Francisco)
+        const defaultCenter = { lat: 37.7749, lng: -122.4194 };
+        
+        // Create a new map if it doesn't exist
+        if (!locationMap) {
+            // Clear previous map instance if exists
+            const mapContainer = document.getElementById('locationMap');
+            mapContainer.innerHTML = '';
+            
+            // Create the map with Leaflet
+            locationMap = L.map('locationMap').setView([defaultCenter.lat, defaultCenter.lng], 15);
+            
+            // Add OpenStreetMap tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            }).addTo(locationMap);
+            
+            // Create a marker and add it to the map
+            locationMarker = L.marker([defaultCenter.lat, defaultCenter.lng], {
+                draggable: true,
+                title: 'Your location'
+            }).addTo(locationMap);
+            
+            // Add event listener for when marker is dragged
+            locationMarker.on('dragend', function() {
+                const position = locationMarker.getLatLng();
+                const lat = position.lat;
+                const lng = position.lng;
+                
+                // Update captured location
+                capturedLocation = { lat, lng };
+                
+                // Update UI with new location
+                updateLocationUI(lat, lng);
+                
+                // Re-check requirements
+                checkPhotoRequirement();
+            });
+            
+            // Add a click event to the map to allow users to place the marker manually
+            locationMap.on('click', function(e) {
+                const lat = e.latlng.lat;
+                const lng = e.latlng.lng;
+                
+                // Update marker position
+                locationMarker.setLatLng([lat, lng]);
+                
+                // Update captured location
+                capturedLocation = { lat, lng };
+                
+                // Update UI with new location
+                updateLocationUI(lat, lng);
+                
+                // Re-check requirements
+                checkPhotoRequirement();
+            });
+        }
+        
+        // Try to capture current location after a short delay to ensure map is visible
+        setTimeout(() => {
+            captureCurrentLocation();
+        }, 500);
+    } catch (error) {
+        console.error('Error initializing map:', error);
+        const mapContainer = document.getElementById('locationMap');
+        mapContainer.innerHTML = `
+            <div class="map-error">
+                <span class="material-icons">error</span>
+                <p>Unable to load map. Please ensure you have an internet connection.</p>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Capture the user's current location
+ */
+async function captureCurrentLocation() {
+    locationStatus.textContent = 'Getting your location...';
+    locationStatus.className = 'location-status';
+    
+    try {
+        const position = await getCurrentPosition();
+        const { latitude, longitude } = position.coords;
+        
+        // Update the map and marker
+        if (locationMap && locationMarker) {
+            // Update map view and marker position
+            locationMap.setView([latitude, longitude], 16);
+            locationMarker.setLatLng([latitude, longitude]);
+            
+            // Store the location
+            capturedLocation = { lat: latitude, lng: longitude };
+            
+            // Update UI
+            updateLocationUI(latitude, longitude);
+            
+            // Show success status
+            locationStatus.textContent = 'Location captured successfully';
+            locationStatus.className = 'location-status success';
+            
+            // Check if submit button should be enabled
+            checkPhotoRequirement();
+            
+            // Add a small bounce animation to the map
+            locationMap.flyTo([latitude, longitude], 16, {
+                duration: 1
+            });
+        }
+    } catch (error) {
+        console.error('Error getting location:', error);
+        locationStatus.textContent = 'Could not get your location. Please manually set your location on the map.';
+        locationStatus.className = 'location-status error';
+        
+        // Show toast with instructions for manual selection
+        showToast('Please tap on the map to set your location manually');
+    }
+}
+
+/**
+ * Update location UI elements with address and coordinates
+ * @param {Number} lat - Latitude
+ * @param {Number} lng - Longitude
+ */
+async function updateLocationUI(lat, lng) {
+    // Update coordinates text with more user-friendly format
+    locationCoordinates.textContent = `Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    
+    // Try to get the address from coordinates using OSM Nominatim reverse geocoding
+    try {
+        // Use OpenStreetMap Nominatim API for reverse geocoding
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+            headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'TrashDropCollectorApp' // Identifying the app as per Nominatim usage policy
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Geocoding service failed');
+        }
+        
+        const data = await response.json();
+        
+        if (data && data.display_name) {
+            // Update address field
+            locationAddress.value = data.display_name;
+        } else {
+            locationAddress.value = 'Address information limited';
+        }
+    } catch (error) {
+        console.error('Geocoding error:', error);
+        // Provide more helpful message to user when address lookup fails
+        locationAddress.value = 'Location captured, but address lookup unavailable';
+    }
+}
+
+/**
+ * Load all assignments and sort them by status
+ */
+async function loadAssignments() {
+    try {
+        // In a real app, we would fetch from Supabase here
+        // For demo purposes, we'll use dummy data
+        const dummyAssignments = generateDummyAssignments();
+        
+        // Clear current assignments
+        availableAssignments = [];
+        acceptedAssignments = [];
+        completedAssignments = [];
+        
+        // Sort assignments by status
+        dummyAssignments.forEach(assignment => {
+            if (assignment.status === 'available') {
+                availableAssignments.push(assignment);
+            } else if (assignment.status === 'accepted') {
+                acceptedAssignments.push(assignment);
+            } else if (assignment.status === 'completed') {
+                completedAssignments.push(assignment);
+            }
+        });
+        
+        // Sort available assignments by proximity
+        availableAssignments.sort((a, b) => a.distance - b.distance);
+        
+        // Render assignments
+        renderAvailableAssignments();
+        renderAcceptedAssignments();
+        renderCompletedAssignments();
+    } catch (error) {
+        console.error('Error loading assignments:', error);
+    }
+}
+
+/**
+ * Generate dummy assignment data for demonstration
+ * @returns {Array} - Array of assignment objects
+ */
+function generateDummyAssignments() {
+    const locations = [
+        { name: 'Park Cleanup', lat: 37.7749, lng: -122.4194, distance: 0.5 },
+        { name: 'Beach Restoration', lat: 37.8199, lng: -122.4783, distance: 1.2 },
+        { name: 'Highway Median', lat: 37.7833, lng: -122.4324, distance: 0.8 },
+        { name: 'School Grounds', lat: 37.7694, lng: -122.4862, distance: 1.5 },
+        { name: 'Community Garden', lat: 37.7815, lng: -122.4158, distance: 0.3 }
+    ];
+    
+    return [
+        {
+            id: 1,
+            title: 'Park Cleanup',
+            description: 'Clean up litter and debris in Golden Gate Park.',
+            location: locations[0],
+            authority: 'San Francisco Parks & Rec',
+            status: 'available',
+            reward: 25,
+            createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+            type: 'cleanup',
+            wasteVolume: 'Medium',
+            timeEstimate: '2 hours'
+        },
+        {
+            id: 2,
+            title: 'Beach Restoration',
+            description: 'Remove plastic waste from Ocean Beach shoreline.',
+            location: locations[1],
+            authority: 'California Coastal Commission',
+            status: 'available',
+            reward: 35,
+            createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+            type: 'cleanup',
+            wasteVolume: 'Large',
+            timeEstimate: '3 hours'
+        },
+        {
+            id: 3,
+            title: 'Highway Median Cleanup',
+            description: 'Remove trash from Highway 101 median.',
+            location: locations[2],
+            authority: 'Caltrans',
+            status: 'accepted',
+            reward: 30,
+            createdAt: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
+            type: 'cleanup',
+            wasteVolume: 'Medium',
+            timeEstimate: '2.5 hours'
+        },
+        {
+            id: 4,
+            title: 'School Grounds Cleanup',
+            description: 'Clean up Lincoln High School grounds after the weekend.',
+            location: locations[3],
+            authority: 'SF Unified School District',
+            status: 'completed',
+            reward: 20,
+            createdAt: new Date(Date.now() - 345600000).toISOString(), // 4 days ago
+            completedAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+            type: 'cleanup',
+            wasteVolume: 'Small',
+            timeEstimate: '1.5 hours',
+            photos: ['./public/images/sample-cleanup-1.jpg', './public/images/sample-cleanup-2.jpg', './public/images/sample-cleanup-3.jpg'],
+            comment: 'Removed 3 bags of trash and recycled materials.'
+        },
+        {
+            id: 5,
+            title: 'Community Garden Maintenance',
+            description: 'Clear debris and prepare garden beds for planting.',
+            location: locations[4],
+            authority: 'Urban Farmers Collective',
+            status: 'available',
+            reward: 15,
+            createdAt: new Date(Date.now() - 432000000).toISOString(), // 5 days ago
+            type: 'cleanup',
+            wasteVolume: 'Small',
+            timeEstimate: '1 hour'
+        }
+    ];
+}
+
+/**
+ * Render available assignments in the Available tab
+ */
+function renderAvailableAssignments() {
+    if (availableAssignments.length === 0) {
+        availableAssignmentsElement.innerHTML = '<p class="empty-state">No available assignments found</p>';
+        return;
+    }
+    
+    let html = '';
+    
+    availableAssignments.forEach(assignment => {
+        html += `
+            <div class="assignment-card" data-id="${assignment.id}">
+                <div class="assignment-header">
+                    <h3>${assignment.title}</h3>
+                    <span class="badge badge-proximity">${assignment.location.distance} mi</span>
+                </div>
+                <p class="assignment-description">${assignment.description}</p>
+                <div class="assignment-details">
+                    <p><strong>Authority:</strong> ${assignment.authority}</p>
+                    <p><strong>Type:</strong> ${capitalizeFirstLetter(assignment.type)}</p>
+                    <p><strong>Reward:</strong> $${assignment.reward}</p>
+                    <p><strong>Time Estimate:</strong> ${assignment.timeEstimate}</p>
+                </div>
+                <div class="assignment-actions">
+                    <button class="btn btn-primary view-assignment-btn" data-id="${assignment.id}">View Details</button>
+                </div>
+            </div>
+        `;
+    });
+    
+    availableAssignmentsElement.innerHTML = html;
+    
+    // Add event listeners to view buttons
+    const viewButtons = availableAssignmentsElement.querySelectorAll('.view-assignment-btn');
+    viewButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const assignmentId = parseInt(button.getAttribute('data-id'));
+            viewAssignmentDetails(assignmentId);
+        });
+    });
+}
+
+/**
+ * Render accepted assignments in the Accepted tab
+ */
+function renderAcceptedAssignments() {
+    if (acceptedAssignments.length === 0) {
+        acceptedAssignmentsElement.innerHTML = '<p class="empty-state">No accepted assignments found</p>';
+        return;
+    }
+    
+    let html = '';
+    
+    acceptedAssignments.forEach(assignment => {
+        html += `
+            <div class="assignment-card" data-id="${assignment.id}">
+                <div class="assignment-header">
+                    <h3>${assignment.title}</h3>
+                    <span class="badge badge-accepted">Accepted</span>
+                </div>
+                <p class="assignment-description">${assignment.description}</p>
+                <div class="assignment-details">
+                    <p><strong>Authority:</strong> ${assignment.authority}</p>
+                    <p><strong>Location:</strong> ${assignment.location.name}</p>
+                    <p><strong>Reward:</strong> $${assignment.reward}</p>
+                </div>
+                <div class="assignment-actions">
+                    <button class="btn btn-outline get-directions-btn" data-id="${assignment.id}" data-lat="${assignment.location.lat}" data-lng="${assignment.location.lng}">
+                        <span class="material-icons">directions</span> Get Directions
+                    </button>
+                    <button class="btn btn-primary mark-complete-btn" data-id="${assignment.id}">
+                        <span class="material-icons">check_circle</span> Mark Complete
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    acceptedAssignmentsElement.innerHTML = html;
+    
+    // Add event listeners to action buttons
+    const directionsButtons = acceptedAssignmentsElement.querySelectorAll('.get-directions-btn');
+    directionsButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const lat = parseFloat(button.getAttribute('data-lat'));
+            const lng = parseFloat(button.getAttribute('data-lng'));
+            openDirections(lat, lng);
+        });
+    });
+    
+    const markCompleteButtons = acceptedAssignmentsElement.querySelectorAll('.mark-complete-btn');
+    markCompleteButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const assignmentId = parseInt(button.getAttribute('data-id'));
+            openMarkCompleteModal(assignmentId);
+        });
+    });
+}
+
+/**
+ * Render completed assignments in the Completed tab
+ */
+function renderCompletedAssignments() {
+    if (completedAssignments.length === 0) {
+        completedAssignmentsElement.innerHTML = '<p class="empty-state">No completed assignments found</p>';
+        return;
+    }
+    
+    let html = '';
+    
+    completedAssignments.forEach(assignment => {
+        html += `
+            <div class="assignment-card" data-id="${assignment.id}">
+                <div class="assignment-header">
+                    <h3>${assignment.title}</h3>
+                    <span class="badge badge-completed">Completed</span>
+                </div>
+                <p class="assignment-description">${assignment.description}</p>
+                <div class="assignment-details">
+                    <p><strong>Authority:</strong> ${assignment.authority}</p>
+                    <p><strong>Completed:</strong> ${formatDate(assignment.completedAt)}</p>
+                    <p><strong>Reward:</strong> $${assignment.reward}</p>
+                </div>
+                <div class="assignment-actions">
+                    <button class="btn btn-outline locate-dumping-btn" data-id="${assignment.id}">
+                        <span class="material-icons">location_on</span> Locate Dumping Site
+                    </button>
+                    <button class="btn btn-primary dispose-now-btn" data-id="${assignment.id}" disabled>
+                        <span class="material-icons">delete</span> Dispose Now
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    completedAssignmentsElement.innerHTML = html;
+    
+    // Add event listeners to action buttons
+    const locateDumpingButtons = completedAssignmentsElement.querySelectorAll('.locate-dumping-btn');
+    locateDumpingButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const assignmentId = parseInt(button.getAttribute('data-id'));
+            locateDumpingSite(assignmentId);
+        });
+    });
+}
+
+/**
+ * View assignment details in a modal
+ * @param {Number} assignmentId - ID of the assignment to view
+ */
+function viewAssignmentDetails(assignmentId) {
+    const assignment = availableAssignments.find(a => a.id === assignmentId);
+    
+    if (!assignment) {
+        console.error('Assignment not found');
+        return;
+    }
+    
+    // Set current assignment ID for the accept button
+    currentAssignmentId = assignmentId;
+    
+    // Update the modal content
+    const assignmentDetails = document.getElementById('assignmentDetails');
+    assignmentDetails.innerHTML = `
+        <div class="assignment-detail-header">
+            <h4>${assignment.title}</h4>
+            <span class="badge badge-${assignment.status}">${capitalizeFirstLetter(assignment.status)}</span>
+        </div>
+        <p>${assignment.description}</p>
+        <div class="assignment-info-grid">
+            <div class="info-item">
+                <span class="info-label">Authority</span>
+                <span class="info-value">${assignment.authority}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Location</span>
+                <span class="info-value">${assignment.location.name}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Distance</span>
+                <span class="info-value">${assignment.location.distance} miles</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Type</span>
+                <span class="info-value">${capitalizeFirstLetter(assignment.type)}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Waste Volume</span>
+                <span class="info-value">${assignment.wasteVolume}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Time Estimate</span>
+                <span class="info-value">${assignment.timeEstimate}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Reward</span>
+                <span class="info-value">$${assignment.reward}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Posted</span>
+                <span class="info-value">${formatDate(assignment.createdAt)}</span>
+            </div>
+        </div>
+    `;
+    
+    // Update button text and show the modal
+    const acceptBtn = document.getElementById('acceptAssignmentBtn');
+    acceptBtn.textContent = 'Accept Assignment';
+    assignmentModal.style.display = 'block';
+}
+
+/**
+ * Accept an assignment
+ * @param {Number} assignmentId - ID of the assignment to accept
+ */
+function acceptAssignment(assignmentId) {
+    const assignment = availableAssignments.find(a => a.id === assignmentId);
+    
+    if (!assignment) {
+        console.error('Assignment not found');
+        return;
+    }
+    
+    // Update assignment status
+    assignment.status = 'accepted';
+    
+    // Move assignment from available to accepted
+    availableAssignments = availableAssignments.filter(a => a.id !== assignmentId);
+    acceptedAssignments.push(assignment);
+    
+    // Re-render both lists
+    renderAvailableAssignments();
+    renderAcceptedAssignments();
+    
+    // Show success message
+    showToast('Assignment accepted successfully');
+}
+
+/**
+ * Open directions to a location
+ * @param {Number} lat - Latitude
+ * @param {Number} lng - Longitude
+ */
+function openDirections(lat, lng) {
+    // Check if device is mobile
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    let url;
+    if (isMobile) {
+        // Mobile devices - open in maps app
+        if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            // iOS
+            url = `maps://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`;
+        } else {
+            // Android
+            url = `geo:${lat},${lng}?q=${lat},${lng}`;
+        }
+    } else {
+        // Desktop - open in Google Maps
+        url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+    }
+    
+    // Open in new tab/window
+    window.open(url, '_blank');
+}
+
+/**
+ * Open the mark complete modal
+ * @param {Number} assignmentId - ID of the assignment to mark complete
+ */
+function openMarkCompleteModal(assignmentId) {
+    const assignment = acceptedAssignments.find(a => a.id === assignmentId);
+    
+    if (!assignment) {
+        console.error('Assignment not found');
+        return;
+    }
+    
+    // Set current assignment ID
+    currentAssignmentId = assignmentId;
+    
+    // Reset captured photos
+    capturedPhotos = [];
+    
+    // Reset location data
+    capturedLocation = null;
+    
+    // Reset photo capture UI
+    for (let i = 1; i <= 3; i++) {
+        // Reset preview areas
+        const previewArea = document.getElementById(`photoPreview${i}`);
+        if (previewArea) {
+            previewArea.innerHTML = '';
+            previewArea.classList.remove('has-image');
+        }
+        
+        // Show camera capture buttons
+        const captureButton = document.querySelector(`.camera-capture-btn[data-photo-id="${i}"]`);
+        if (captureButton) {
+            captureButton.style.display = 'flex';
+        }
+    }
+    
+    // Reset photo counter in the UI
+    updatePhotoStatusDisplay(0);
+    
+    // Make sure camera is stopped
+    if (cameraStream) {
+        stopCamera();
+    }
+    
+    // Reset comments
+    const commentInput = document.getElementById('completionComment');
+    commentInput.value = '';
+    
+    // Set up comment character count and event listener
+    const commentCharCount = document.getElementById('commentCharCount');
+    if (commentCharCount) {
+        commentCharCount.textContent = '0';
+        
+        // Add input event listener for real-time character counting
+        commentInput.addEventListener('input', function() {
+            const length = this.value.trim().length;
+            commentCharCount.textContent = length;
+            
+            // Update color based on minimum requirement (20 chars)
+            if (length < 20) {
+                commentCharCount.style.color = '#f44336'; // Red for invalid
+            } else {
+                commentCharCount.style.color = '#4caf50'; // Green for valid
+            }
+            
+            // Check all requirements for submission
+            checkRequirements();
+        });
+    }
+    
+    // Reset location fields
+    if (locationAddress) locationAddress.value = '';
+    if (locationCoordinates) locationCoordinates.textContent = 'Coordinates: --';
+    if (locationStatus) {
+        locationStatus.textContent = 'Waiting for location...';
+        locationStatus.className = 'location-status';
+    }
+    
+    // Disable submit button
+    submitCompleteBtn.disabled = true;
+    
+    // Show modal with assignment title
+    const modalTitle = markCompleteModal.querySelector('.modal-header h3');
+    modalTitle.textContent = `Mark Complete: ${assignment.title}`;
+    
+    // Show modal
+    markCompleteModal.style.display = 'block';
+    
+    // Initialize the location map with a slight delay to ensure the modal is visible
+    setTimeout(() => {
+        initLocationMap();
+    }, 300);
+    
+    // Show camera instruction toast
+    setTimeout(() => {
+        showToast('Please use your camera to take photos of the cleaned area');
+    }, 500);
+}
+
+/**
+ * Complete an assignment
+ * @param {Number} assignmentId - ID of the assignment to complete
+ */
+function completeAssignment(assignmentId) {
+    const assignment = acceptedAssignments.find(a => a.id === assignmentId);
+    
+    if (!assignment) {
+        console.error('Assignment not found');
+        return;
+    }
+    
+    // Ensure we have location data
+    if (!capturedLocation) {
+        showToast('Please capture your location before completing');
+        return;
+    }
+    
+    // Get comment
+    const comment = document.getElementById('completionComment').value.trim();
+    
+    // Get address (if available)
+    const address = document.getElementById('locationAddress').value;
+    
+    // Update assignment
+    assignment.status = 'completed';
+    assignment.completedAt = new Date().toISOString();
+    assignment.comment = comment;
+    assignment.photos = capturedPhotos.filter(photo => photo !== null).map(photo => photo.dataUrl);
+    
+    // Add location data
+    assignment.completionLocation = {
+        coordinates: capturedLocation,
+        address: address || 'Address not available',
+        capturedAt: new Date().toISOString()
+    };
+    
+    // Move assignment from accepted to completed
+    acceptedAssignments = acceptedAssignments.filter(a => a.id !== assignmentId);
+    completedAssignments.push(assignment);
+    
+    // Re-render both lists
+    renderAcceptedAssignments();
+    renderCompletedAssignments();
+    
+    // Close modal
+    markCompleteModal.style.display = 'none';
+    
+    // Reset uploaded photos and location
+    uploadedPhotos = [];
+    capturedLocation = null;
+    
+    // Show success message
+    showToast('Assignment completed successfully with location verified');
+    
+    // Log the completed assignment with location for debugging
+    console.log('Completed assignment with location:', assignment);
+}
+
+/**
+ * Locate the nearest dumping site
+ * @param {Number} assignmentId - ID of the assignment
+ */
+function locateDumpingSite(assignmentId) {
+    const assignment = completedAssignments.find(a => a.id === assignmentId);
+    
+    if (!assignment) {
+        console.error('Assignment not found');
+        return;
+    }
+    
+    // Get the nearest dumping site
+    getCurrentPosition()
+        .then(position => {
+            const { latitude, longitude } = position.coords;
+            const dumpingSite = getNearestDumpingSite(latitude, longitude);
+            
+            // Open directions to the dumping site
+            openDirections(dumpingSite.lat, dumpingSite.lng);
+        })
+        .catch(error => {
+            console.error('Error getting current position:', error);
+            showToast('Unable to get your location. Please enable location services.');
+        });
+}
+
+/**
+ * Get the nearest dumping site
+ * @param {Number} lat - Current latitude
+ * @param {Number} lng - Current longitude
+ * @returns {Object} - Nearest dumping site object
+ */
+function getNearestDumpingSite(lat, lng) {
+    // In a real app, this would query a database of dumping sites
+    // For demo purposes, we'll return a hardcoded site
+    return {
+        id: 1,
+        name: 'City Recycling Center',
+        address: '501 Tunnel Ave, San Francisco, CA 94134',
+        lat: 37.7123,
+        lng: -122.3789,
+        type: 'recycling'
+    };
+}
+
+/**
+ * Open the dispose modal
+ * @param {Number} assignmentId - ID of the assignment
+ */
+function openDisposeModal(assignmentId) {
+    const assignment = completedAssignments.find(a => a.id === assignmentId);
+    
+    if (!assignment) {
+        console.error('Assignment not found');
+        return;
+    }
+    
+    // Set current assignment ID
+    currentAssignmentId = assignmentId;
+    
+    // Get the nearest dumping site
+    const dumpingSite = getNearestDumpingSite(0, 0); // Using placeholder coords
+    
+    // Update modal content
+    document.getElementById('disposeSiteName').textContent = dumpingSite.name;
+    document.getElementById('disposeSiteAddress').textContent = dumpingSite.address;
+    document.getElementById('disposeAssignmentId').textContent = assignmentId;
+    
+    // Show modal
+    disposeModal.style.display = 'block';
+}
+
+/**
+ * Process the disposal and credit the user's account
+ * @param {Number} assignmentId - ID of the assignment
+ */
+function processDisposal(assignmentId) {
+    const assignment = completedAssignments.find(a => a.id === assignmentId);
+    
+    if (!assignment) {
+        console.error('Assignment not found');
+        return;
+    }
+    
+    // Update assignment
+    assignment.disposedAt = new Date().toISOString();
+    assignment.disposalComplete = true;
+    
+    // Close modal
+    disposeModal.style.display = 'none';
+    
+    // Re-render completed assignments
+    renderCompletedAssignments();
+    
+    // Show success message
+    showToast('Disposal confirmed successfully. Payment has been processed.');
+}
+
+/**
+ * Format a date string
+ * @param {String} dateString - ISO date string
+ * @returns {String} - Formatted date string
+ */
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+}
+
+/**
+ * Capitalize the first letter of a string
+ * @param {String} string - String to capitalize
+ * @returns {String} - Capitalized string
+ */
+function capitalizeFirstLetter(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+/**
+ * Show a toast message
+ * @param {String} message - Message to display
+ */
+function showToast(message) {
+    // Check if toast container exists, if not, create it
+    let toastContainer = document.querySelector('.toast-container');
+    
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    
+    // Add toast to container
+    toastContainer.appendChild(toast);
+    
+    // Show toast
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 100);
+    
+    // Remove toast after timeout
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 3000);
+}
+
+/**
+ * Get current position promise
+ * @returns {Promise} - Promise that resolves with position
+ */
+function getCurrentPosition() {
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            reject(new Error('Geolocation is not supported by your browser'));
+            return;
+        }
+        
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+        });
+    });
+}
+
+// Geofencing variables
+let geofencingInterval = null;
+
+/**
+ * Start checking for nearby dumping sites
+ */
+function startGeofencingCheck() {
+    // Clear any existing interval
+    if (geofencingInterval) {
+        clearInterval(geofencingInterval);
+    }
+    
+    // Check immediately
+    checkNearbyDumpingSites();
+    
+    // Set interval to check every 30 seconds
+    geofencingInterval = setInterval(checkNearbyDumpingSites, 30000);
+}
+
+/**
+ * Check if the user is near any dumping sites
+ */
+function checkNearbyDumpingSites() {
+    // Only proceed if there are completed assignments
+    if (completedAssignments.length === 0) {
+        return;
+    }
+    
+    // Get current position
+    getCurrentPosition()
+        .then(position => {
+            const { latitude, longitude } = position.coords;
+            const dumpingSite = getNearestDumpingSite(latitude, longitude);
+            
+            // Calculate distance to the dumping site
+            const distance = calculateDistance(
+                latitude, longitude,
+                dumpingSite.lat, dumpingSite.lng
+            );
+            
+            // If within 50 meters, enable the Dispose Now buttons
+            const isNearby = distance <= 0.05; // 0.05 km = 50 meters
+            const disposeButtons = document.querySelectorAll('.dispose-now-btn');
+            
+            disposeButtons.forEach(button => {
+                button.disabled = !isNearby;
+                
+                // Add click event if nearby
+                if (isNearby) {
+                    button.addEventListener('click', () => {
+                        const assignmentId = parseInt(button.getAttribute('data-id'));
+                        openDisposeModal(assignmentId);
+                    });
+                }
+            });
+            
+            // Show toast if newly in range
+            if (isNearby && disposeButtons.length > 0 && disposeButtons[0].disabled) {
+                showToast('You are near a disposal site. You can now dispose of collected waste.');
+            }
+        })
+        .catch(error => {
+            console.error('Error getting current position:', error);
+        });
+}
+
+/**
+ * Calculate distance between two points in km using Haversine formula
+ * @param {Number} lat1 - Latitude of first point
+ * @param {Number} lon1 - Longitude of first point
+ * @param {Number} lat2 - Latitude of second point
+ * @param {Number} lon2 - Longitude of second point
+ * @returns {Number} - Distance in kilometers
+ */
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Radius of the earth in km
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2); 
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    const distance = R * c; // Distance in km
+    return distance;
+}
+
+/**
+ * Convert degrees to radians
+ * @param {Number} deg - Degrees
+ * @returns {Number} - Radians
+ */
+function deg2rad(deg) {
+    return deg * (Math.PI/180);
+}
+
+// Initialize the assignment page when the DOM is loaded
+document.addEventListener('DOMContentLoaded', initAssignPage);

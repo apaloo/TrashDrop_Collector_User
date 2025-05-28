@@ -36,15 +36,24 @@
     --border-radius: 8px;
     --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     --transition: all 0.3s ease;
+    
+    /* Theme Variables */
+    --bg-color: var(--light);
+    --card-bg: var(--white);
+    --text-color: var(--dark);
+    --border-color: var(--medium-light);
+    --input-bg: var(--white);
+    --input-border: var(--medium-light);
 }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
         Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     line-height: 1.6;
-    color: var(--dark);
-    background-color: var(--light);
+    color: var(--text-color);
+    background-color: var(--bg-color);
     min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .app-container {
@@ -700,14 +709,20 @@ input:checked + .toggle-slider:before {
 }
 
 #listViewBtn {
-    align-self: flex-end;
+    /* Now positioned in overlay-controls */
 }
 
 .map-overlay {
     position: absolute;
-    bottom: 5rem;
-    right: 1rem;
+    bottom: 8rem;
+    left: 0;
+    right: 0;
     z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem; /* Ensure clear separation from filters */
 }
 
 .request-count-badge {
@@ -722,6 +737,19 @@ input:checked + .toggle-slider:before {
     font-weight: 600;
     font-size: 1.2rem;
     box-shadow: var(--box-shadow);
+}
+
+.overlay-controls {
+    display: flex;
+    align-items: center;
+}
+
+.map-filters-container {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 1rem;
+    right: 1rem;
+    z-index: 999;
 }
 
 /* ======= Bottom Navigation ======= */
@@ -753,13 +781,20 @@ input:checked + .toggle-slider:before {
     color: var(--primary-color);
 }
 
-.nav-icon {
-    font-size: 1.5rem;
-    margin-bottom: 0.25rem;
+/* Bottom navigation styles */
+.bottom-nav .nav-icon,
+.bottom-nav .material-icons {
+    font-size: 1.2rem;
+    margin-bottom: 0.15rem;
 }
 
-.nav-item span {
-    font-size: 0.8rem;
+.bottom-nav .nav-label {
+    font-size: 0.7rem;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block !important; /* Force display of labels */
+    visibility: visible !important; /* Force visibility */
 }
 
 /* ======= Notifications ======= */
@@ -833,6 +868,68 @@ input:checked + .toggle-slider:before {
 
 .request-popup .btn {
     margin-top: 0.5rem;
+}
+
+/* ======= Dark Mode Styles ======= */
+body.dark-theme {
+    --bg-color: #121212;
+    --card-bg: #1e1e1e;
+    --text-color: #e0e0e0;
+    --border-color: #333;
+    --input-bg: #2a2a2a;
+    --input-border: #444;
+    --primary-light: #2d6a30;
+}
+
+body.dark-theme .content-card,
+body.dark-theme .auth-container,
+body.dark-theme .modal-content {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+body.dark-theme input,
+body.dark-theme select,
+body.dark-theme textarea {
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    border-color: var(--input-border);
+}
+
+body.dark-theme .settings-item,
+body.dark-theme .info-item {
+    border-color: var(--border-color);
+}
+
+body.dark-theme .btn-outline {
+    border-color: var(--primary-color);
+}
+
+body.dark-theme .page-header {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+}
+
+body.dark-theme .bottom-nav {
+    background-color: var(--card-bg);
+    border-top-color: var(--border-color);
+}
+
+body.dark-theme .bottom-nav .nav-item {
+    color: var(--text-color);
+}
+
+body.dark-theme .info-label,
+body.dark-theme .setting-label,
+body.dark-theme label {
+    color: var(--text-color);
+}
+
+body.dark-theme .info-value,
+body.dark-theme .setting-description,
+body.dark-theme .settings-subtitle {
+    color: var(--medium-light);
 }
 
 /* ======= Responsive Styles ======= */

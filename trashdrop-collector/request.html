@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Request - TrashDrop Collector</title>
     <meta name="description" content="View and manage trash collection requests">
     <link rel="stylesheet" href="./src/styles/main.css">
@@ -13,6 +13,18 @@
     <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     
+    <!-- Mock Data for Development -->
+    <script src="./src/js/mock-data.js"></script>
+    
+    <!-- Fixed Navigation - Simple and reliable -->
+    <script src="./src/js/fixed-navigation.js"></script>
+    
+    <!-- Development Tools - Should be loaded first -->
+    <script src="./src/js/dev-tools.js"></script>
+    
+    <!-- Mock Authentication for Development -->
+    <script src="./src/js/mock-auth.js"></script>
+    
     <!-- Supabase JS CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
@@ -21,12 +33,30 @@
     
     <!-- Authentication -->
     <script src="./src/js/auth.js"></script>
+    
+    <!-- Core functionality -->
+    <script src="./src/js/main.js"></script>
+    
+    <!-- Technical setup components -->
+    <script src="./src/js/tech-setup.js"></script>
+    <script src="./src/js/pwa-install.js"></script>
+    <script src="./src/js/qr-scanner.js"></script>
+    <script src="./src/js/notifications.js"></script>
 
     <style>
         .tabs {
             display: flex;
             border-bottom: 1px solid #e0e0e0;
             margin-bottom: 20px;
+            width: 100%;
+            overflow-x: auto;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
+        }
+        
+        /* Hide scrollbar for Chrome, Safari, and Opera */
+        .tabs::-webkit-scrollbar {
+            display: none;
         }
         
         .tab {
@@ -35,6 +65,10 @@
             font-weight: 500;
             color: #757575;
             position: relative;
+            white-space: nowrap;
+            flex: 1 1 auto;
+            text-align: center;
+            min-width: 100px;
         }
         
         .tab.active {
@@ -57,6 +91,30 @@
         
         .tab-content.active {
             display: block;
+        }
+        
+        /* Make the content card properly responsive */
+        .content-card {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        
+        /* Responsive adjustments for tabs */
+        @media (max-width: 600px) {
+            .tab {
+                padding: 12px 16px;
+                min-width: 80px;
+                font-size: 0.9rem;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            .tab {
+                padding: 10px 12px;
+                min-width: 70px;
+                font-size: 0.85rem;
+            }
         }
         
         .request-item {
@@ -261,28 +319,29 @@
     </div>
     
     <!-- Bottom Navigation Bar -->
-    <nav class="bottom-nav">
-        <a href="./map.html" class="nav-item">
-            <span class="material-icons nav-icon">map</span>
-            <span class="nav-label">Map</span>
+    <!-- Completely rebuilt bottom navigation -->
+    <div style="position:fixed;bottom:0;left:0;right:0;height:60px;background-color:#fff;display:flex;justify-content:space-around;align-items:center;box-shadow:0 -2px 10px rgba(0,0,0,0.1);z-index:1001;">
+        <a href="./map.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
+            <i class="material-icons" style="font-size:24px;">map</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Map</span>
         </a>
-        <a href="./request.html" class="nav-item active">
-            <span class="material-icons nav-icon">add_circle</span>
-            <span class="nav-label">Request</span>
+        <a href="./request.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#4CAF50;">
+            <i class="material-icons" style="font-size:24px;">add_circle</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Request</span>
         </a>
-        <a href="./assign.html" class="nav-item">
-            <span class="material-icons nav-icon">assignment</span>
-            <span class="nav-label">Assign</span>
+        <a href="./assign.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
+            <i class="material-icons" style="font-size:24px;">assignment</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Assign</span>
         </a>
-        <a href="./earnings.html" class="nav-item">
-            <span class="material-icons nav-icon">account_balance_wallet</span>
-            <span class="nav-label">Earnings</span>
+        <a href="./earnings.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
+            <i class="material-icons" style="font-size:24px;">account_balance_wallet</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Earnings</span>
         </a>
-        <a href="./account.html" class="nav-item">
-            <span class="material-icons nav-icon">person</span>
-            <span class="nav-label">Account</span>
+        <a href="./account.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
+            <i class="material-icons" style="font-size:24px;">person</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Account</span>
         </a>
-    </nav>
+    </div>
     
     <!-- Request JavaScript -->
     <script src="./src/js/request.js"></script>

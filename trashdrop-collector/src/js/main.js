@@ -7,25 +7,51 @@
 const appState = {
     isOnline: false,
     user: null,
-    notifications: []
+    notifications: [],
+    lastKnownPosition: null,
+    locationPermissionGranted: false
 };
 
 /**
  * Initialize the application
  */
 async function initApp() {
-    // Check if user is logged in
-    const user = await getCurrentUser();
-    appState.user = user;
-    
-    // Handle navigation based on auth status
-    handleAuthNavigation(user);
-    
-    // Initialize service worker
-    registerServiceWorker();
-    
-    // Add event listeners
-    setupEventListeners();
+    try {
+        // Make sure we have direct access to the function before calling it
+        let user = null;
+        if (typeof window.getCurrentUser === 'function') {
+            // Try to get user, catch any errors to prevent crashes
+            try {
+                user = await window.getCurrentUser();
+            } catch (error) {
+                console.error('Error getting current user:', error);
+            }
+        } else {
+            // Try to get from localStorage as fallback
+            const mockUser = localStorage.getItem('mockUser');
+            if (mockUser) {
+                try {
+                    user = JSON.parse(mockUser);
+                } catch (e) {}
+            }
+        }
+        
+        // Update app state with user info
+        appState.user = user;
+        
+        // Handle navigation based on auth status
+        handleAuthNavigation(user);
+        
+        // Initialize service worker
+        registerServiceWorker();
+        
+        // Add event listeners
+        setupEventListeners();
+        
+        console.log('App initialized successfully');
+    } catch (error) {
+        console.error('Error during app initialization:', error);
+    }
 }
 
 /**
@@ -33,7 +59,35 @@ async function initApp() {
  * @param {Object} user - Current user object or null
  */
 function handleAuthNavigation(user) {
-    // Get current page path
+    // CRITICAL: Check if we're in development mode - NEVER redirect in development
+    const isDevelopment = window.isDevelopment || 
+                         window.location.hostname === 'localhost' || 
+                         window.location.hostname.includes('127.0.0.1') ||
+                         window.location.port === '5500' || 
+                         window.location.port === '5501';
+    
+    // If in development mode, allow all navigation without redirects
+    if (isDevelopment) {
+        console.log('Development mode detected - skipping authentication navigation redirects');
+        return;
+    }
+    
+    // Create development mock user if needed
+    if (!user && isDevelopment) {
+        console.log('Creating mock user for development');
+        const mockUser = {
+            id: 'mock-user-' + Date.now(),
+            email: 'dev@example.com',
+            name: 'Development User',
+            created_at: new Date().toISOString()
+        };
+        localStorage.setItem('mockUser', JSON.stringify(mockUser));
+        // Update app state
+        if (window.appState) window.appState.user = mockUser;
+        return; // No redirects needed
+    }
+    
+    // Get current page path (only proceed with redirects in production)
     const currentPath = window.location.pathname;
     const authPages = ['/login.html', '/signup.html', '/reset-password.html', '/email-confirmation.html'];
     const appPages = ['/map.html', '/request.html', '/assign.html', '/earnings.html', '/account.html'];
@@ -43,6 +97,7 @@ function handleAuthNavigation(user) {
     const isAppPage = appPages.some(page => currentPath.endsWith(page));
     const isHomePage = currentPath.endsWith('/index.html') || currentPath.endsWith('/');
     
+    // Only redirect in production environment
     if (user) {
         // User is logged in
         if (isAuthPage || isHomePage) {
@@ -50,9 +105,22 @@ function handleAuthNavigation(user) {
             window.location.href = './map.html';
         }
     } else {
-        // User is not logged in
+        // User is not logged in - extra safeguard to avoid unnecessary redirects
+        // Check again for local storage user before redirect
+        const mockUserStr = localStorage.getItem('mockUser');
+        if (mockUserStr) {
+            try {
+                const mockUser = JSON.parse(mockUserStr);
+                if (mockUser && mockUser.id) {
+                    console.log('Found user in localStorage, avoiding redirect');
+                    return;
+                }
+            } catch (e) {}
+        }
+        
+        // Only redirect in production and if truly no user is found
         if (isAppPage) {
-            // Redirect to login page if on app page
+            console.log('User not authenticated, redirecting to login');
             window.location.href = './login.html';
         }
     }
@@ -148,16 +216,35 @@ function handleEmergencyLogout() {
  * Register service worker for PWA functionality
  */
 function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
+    // Only register service worker in production or on localhost (not on 5server/live-server)
+    const isProduction = !window.location.hostname.includes('localhost') && 
+                        !window.location.hostname.includes('127.0.0.1');
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1';
+    
+    if ('serviceWorker' in navigator && (isProduction || isLocalhost)) {
+        // For development environment using 5server or similar dev servers
+        // don't try to register service worker as it will cause CORS errors
+        if (window.location.port === '5500' || window.location.port === '5501') {
+            console.log('Development environment detected. Service Worker registration skipped.');
+            return;
+        }
+        
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./service-worker.js')
+            // Get the correct path based on the environment
+            const swPath = './service-worker.js';
+            
+            navigator.serviceWorker.register(swPath)
                 .then(registration => {
                     console.log('Service Worker registered with scope:', registration.scope);
                 })
                 .catch(error => {
                     console.error('Service Worker registration failed:', error);
+                    console.log('Service Worker registration may fail in development. This is normal.');
                 });
         });
+    } else {
+        console.log('Service Workers not supported or disabled in development mode');
     }
 }
 
@@ -261,6 +348,154 @@ function calculateDistance(coords1, coords2) {
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', initApp);
 
+/**
+ * Check and request location permissions
+ * @param {Boolean} skipPrompt - Whether to skip the permission prompt if not granted
+ * @returns {Promise<Boolean>} - Whether permission is granted
+ */
+async function checkLocationPermission(skipPrompt = false) {
+    // Check if permission is already known
+    if (appState.locationPermissionGranted) {
+        return true;
+    }
+    
+    // Check if Geolocation API is available
+    if (!navigator.geolocation) {
+        console.warn('Geolocation is not supported by this browser');
+        return false;
+    }
+    
+    if (skipPrompt) {
+        // Just return false without prompting
+        return false;
+    }
+    
+    try {
+        // Request location with a short timeout to see if permission is granted
+        const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+                resolve, 
+                reject, 
+                { 
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 60000 
+                }
+            );
+        });
+        
+        // Store position and update permission status
+        updateLastKnownPosition(position.coords);
+        appState.locationPermissionGranted = true;
+        
+        return true;
+    } catch (error) {
+        console.warn('Location permission not granted or denied:', error.message);
+        return false;
+    }
+}
+
+/**
+ * Request location permission with user interaction
+ * @returns {Promise<Boolean>} - Whether permission was granted
+ */
+async function requestLocationPermission() {
+    try {
+        // Show a notification to explain why location is needed
+        showNotification(
+            'TrashDrop needs your location to find nearby requests and check if you are near disposal sites.',
+            'info',
+            5000
+        );
+        
+        // Request location with user interaction
+        const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+                resolve, 
+                reject, 
+                { 
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 60000 
+                }
+            );
+        });
+        
+        // Store position and update permission status
+        updateLastKnownPosition(position.coords);
+        appState.locationPermissionGranted = true;
+        
+        showNotification('Location access granted!', 'success');
+        return true;
+    } catch (error) {
+        console.warn('Location permission denied:', error.message);
+        showNotification(
+            'Location access denied. Some features may have limited functionality.',
+            'warning',
+            5000
+        );
+        return false;
+    }
+}
+
+/**
+ * Update the last known position
+ * @param {GeolocationCoordinates} coords - Coordinates object
+ */
+function updateLastKnownPosition(coords) {
+    if (coords && coords.latitude && coords.longitude) {
+        appState.lastKnownPosition = {
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            accuracy: coords.accuracy,
+            timestamp: Date.now()
+        };
+    }
+}
+
+/**
+ * Start background location tracking
+ * @param {Boolean} highAccuracy - Whether to use high accuracy
+ */
+function startLocationTracking(highAccuracy = false) {
+    // Only start tracking if permission is granted
+    if (!appState.locationPermissionGranted) {
+        return false;
+    }
+    
+    // Return if already tracking
+    if (appState.locationWatchId) {
+        return true;
+    }
+    
+    // Start watching position
+    appState.locationWatchId = navigator.geolocation.watchPosition(
+        (position) => {
+            updateLastKnownPosition(position.coords);
+        },
+        (error) => {
+            console.warn('Location tracking error:', error.message);
+        },
+        {
+            enableHighAccuracy: highAccuracy,
+            timeout: 10000,
+            maximumAge: 60000
+        }
+    );
+    
+    return true;
+}
+
+/**
+ * Stop background location tracking
+ */
+function stopLocationTracking() {
+    if (appState.locationWatchId) {
+        navigator.geolocation.clearWatch(appState.locationWatchId);
+        appState.locationWatchId = null;
+    }
+}
+
 // Export functions and state to global scope
 window.appState = appState;
 window.showNotification = showNotification;
@@ -268,3 +503,7 @@ window.formatDate = formatDate;
 window.calculateDistance = calculateDistance;
 window.handleLogout = handleLogout;
 window.handleEmergencyLogout = handleEmergencyLogout;
+window.checkLocationPermission = checkLocationPermission;
+window.requestLocationPermission = requestLocationPermission;
+window.startLocationTracking = startLocationTracking;
+window.stopLocationTracking = stopLocationTracking;

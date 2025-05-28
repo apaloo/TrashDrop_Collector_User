@@ -2,11 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Assignments - TrashDrop Collector</title>
     <meta name="description" content="View and manage your trash collection assignments">
     <link rel="stylesheet" href="./src/styles/main.css">
     <link rel="stylesheet" href="./src/styles/navigation.css">
+    <link rel="stylesheet" href="./src/styles/assign.css">
+    <link rel="stylesheet" href="./src/styles/assign-comment.css">
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#4CAF50">
     
@@ -16,50 +18,132 @@
     <!-- Supabase JS CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
+    <style>
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 20px;
+            width: 100%;
+            overflow-x: auto;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
+        }
+        
+        /* Hide scrollbar for Chrome, Safari, and Opera */
+        .tabs::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #757575;
+            position: relative;
+            white-space: nowrap;
+            flex: 1 1 auto;
+            text-align: center;
+            min-width: 100px;
+        }
+        
+        .tab.active {
+            color: #4CAF50;
+        }
+        
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: #4CAF50;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Make the content card properly responsive */
+        .content-card {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .tab {
+                padding: 12px 16px;
+                min-width: 80px;
+                font-size: 0.9rem;
+            }
+            
+            .section-description {
+                font-size: 0.85rem;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            .tab {
+                padding: 10px 12px;
+                min-width: 70px;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+    
     <!-- Configuration -->
     <script src="./src/js/config.js"></script>
     
     <!-- Authentication -->
     <script src="./src/js/auth.js"></script>
+    
+    <!-- Leaflet CSS and JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </head>
 <body>
     <div class="app-container">
         <header class="page-header">
             <h1>Assignments</h1>
-            <div class="tab-navigation">
-                <button class="tab-btn active" data-tab="active">Active</button>
-                <button class="tab-btn" data-tab="pending">Pending</button>
-                <button class="tab-btn" data-tab="completed">Completed</button>
-            </div>
         </header>
         
         <main class="page-content">
-            <div id="activeTab" class="tab-content active">
-                <div class="content-card">
-                    <h2>Active Assignments</h2>
-                    <div class="assignments-list" id="activeAssignments">
-                        <p class="empty-state">No active assignments found</p>
+            <div class="content-card">
+                <div class="tabs">
+                    <div class="tab active" data-tab="available">Available</div>
+                    <div class="tab" data-tab="accepted">Accepted</div>
+                    <div class="tab" data-tab="completed">Completed</div>
+                </div>
+                
+                <!-- Available Assignments Tab -->
+                <div id="availableTab" class="tab-content active">
+                    <p class="section-description">Assignments from authorities, sorted by proximity.</p>
+                    <div class="assignments-list" id="availableAssignments">
+                        <p class="empty-state">No available assignments found</p>
                     </div>
                 </div>
-            </div>
-            
-            <div id="pendingTab" class="tab-content">
-                <div class="content-card">
-                    <h2>Pending Assignments</h2>
-                    <div class="assignments-list" id="pendingAssignments">
-                        <p class="empty-state">No pending assignments found</p>
+                
+                <!-- Accepted Assignments Tab -->
+                <div id="acceptedTab" class="tab-content">
+                    <p class="section-description">Assignments you've accepted for cleanup.</p>
+                    <div class="assignments-list" id="acceptedAssignments">
+                        <p class="empty-state">No accepted assignments found</p>
                     </div>
                 </div>
-            </div>
-            
-            <div id="completedTab" class="tab-content">
-                <div class="content-card">
-                    <h2>Completed Assignments</h2>
+                
+                <!-- Completed Assignments Tab -->
+                <div id="completedTab" class="tab-content">
+                    <p class="section-description">Assignments you've successfully completed.</p>
                     <div class="assignments-list" id="completedAssignments">
                         <p class="empty-state">No completed assignments found</p>
                     </div>
                 </div>
-            </div>
         </main>
     </div>
     
@@ -75,84 +159,155 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-outline" id="closeModalBtn">Close</button>
-                <button class="btn btn-primary" id="updateStatusBtn">Update Status</button>
+                <button class="btn btn-primary" id="acceptAssignmentBtn">Accept Assignment</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Mark Complete Modal (Hidden by default) -->
+    <div id="markCompleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Mark Assignment Complete</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="photo-upload-section">
+                    <h4>Capture Photos (minimum 3 required)</h4>
+                    <p class="photo-capture-instructions">Use your device camera to capture photos of the cleaned area.</p>
+                    <div class="photo-preview-container" id="photoPreviewContainer">
+                        <div class="photo-upload-placeholder">
+                            <button type="button" class="camera-capture-btn" data-photo-id="1">
+                                <span class="material-icons">camera_alt</span>
+                                <span>Capture Photo 1</span>
+                            </button>
+                            <div id="photoPreview1" class="photo-preview-area"></div>
+                        </div>
+                        <div class="photo-upload-placeholder">
+                            <button type="button" class="camera-capture-btn" data-photo-id="2">
+                                <span class="material-icons">camera_alt</span>
+                                <span>Capture Photo 2</span>
+                            </button>
+                            <div id="photoPreview2" class="photo-preview-area"></div>
+                        </div>
+                        <div class="photo-upload-placeholder">
+                            <button type="button" class="camera-capture-btn" data-photo-id="3">
+                                <span class="material-icons">camera_alt</span>
+                                <span>Capture Photo 3</span>
+                            </button>
+                            <div id="photoPreview3" class="photo-preview-area"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden video element for camera capture -->
+                    <div class="camera-container" id="cameraContainer" style="display: none;">
+                        <video id="cameraFeed" autoplay playsinline></video>
+                        <canvas id="captureCanvas" style="display: none;"></canvas>
+                        <div class="camera-controls">
+                            <button type="button" id="takePictureBtn" class="btn btn-primary">
+                                <span class="material-icons">photo_camera</span> Take Photo
+                            </button>
+                            <button type="button" id="cancelCaptureBtn" class="btn btn-outline">
+                                <span class="material-icons">close</span> Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="location-section">
+                    <h4>Verify Location</h4>
+                    <p class="location-instructions">We'll automatically detect your current location. You can adjust it if needed.</p>
+                    
+                    <div class="location-controls">
+                        <button type="button" id="useCurrentLocationBtn" class="btn btn-outline btn-sm">
+                            <span class="material-icons">my_location</span> Use My Current Location
+                        </button>
+                        <span id="locationStatus" class="location-status">Waiting for location...</span>
+                    </div>
+                    
+                    <div id="locationMap" class="location-map"></div>
+                    
+                    <div class="location-details">
+                        <div class="form-group">
+                            <label for="locationAddress">Address</label>
+                            <input type="text" id="locationAddress" readonly>
+                        </div>
+                        <div class="location-coordinates">
+                            <span id="locationCoordinates">Coordinates: --</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group comment-section">
+                    <label for="completionComment">
+                        <span class="label-text">Cleanup Details (Optional)</span>
+                        <span class="label-hint">You may describe what you cleaned up and any challenges faced</span>
+                    </label>
+                    <div class="enhanced-textarea-container">
+                        <textarea id="completionComment" rows="4" placeholder="Describe what you cleaned up, how much waste was collected, and any challenges you faced..."></textarea>
+                        <div class="textarea-feedback">
+                            <span id="commentCharCount">0</span> / 500 characters
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="cancelCompleteBtn">Cancel</button>
+                <button class="btn btn-primary" id="submitCompleteBtn" disabled>Submit</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Dispose Modal (Hidden by default) -->
+    <div id="disposeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirm Disposal</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="dispose-confirmation">
+                    <p>You are about to confirm disposal at:</p>
+                    <h4 id="disposeSiteName">Recycling Center</h4>
+                    <p id="disposeSiteAddress">123 Green Street</p>
+                    <div class="confirmation-details">
+                        <p><strong>Assignment ID:</strong> <span id="disposeAssignmentId"></span></p>
+                        <p><strong>Payment Method:</strong> Mobile Wallet</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="cancelDisposeBtn">Cancel</button>
+                <button class="btn btn-primary" id="confirmDisposeBtn">Confirm Disposal</button>
             </div>
         </div>
     </div>
     
     <!-- Bottom Navigation Bar -->
-    <nav class="bottom-nav">
-        <a href="./map.html" class="nav-item">
-            <span class="material-icons nav-icon">map</span>
-            <span class="nav-label">Map</span>
+    <div style="position:fixed;bottom:0;left:0;right:0;height:60px;background-color:#fff;display:flex;justify-content:space-around;align-items:center;box-shadow:0 -2px 10px rgba(0,0,0,0.1);z-index:1001;">
+        <a href="./map.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
+            <i class="material-icons" style="font-size:24px;">map</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Map</span>
         </a>
-        <a href="./request.html" class="nav-item">
-            <span class="material-icons nav-icon">add_circle</span>
-            <span class="nav-label">Request</span>
+        <a href="./request.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
+            <i class="material-icons" style="font-size:24px;">add_circle</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Request</span>
         </a>
-        <a href="./assign.html" class="nav-item active">
-            <span class="material-icons nav-icon">assignment</span>
-            <span class="nav-label">Assign</span>
+        <a href="./assign.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#4CAF50;">
+            <i class="material-icons" style="font-size:24px;">assignment</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Assign</span>
         </a>
-        <a href="./earnings.html" class="nav-item">
-            <span class="material-icons nav-icon">account_balance_wallet</span>
-            <span class="nav-label">Earnings</span>
+        <a href="./earnings.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
+            <i class="material-icons" style="font-size:24px;">account_balance_wallet</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Earnings</span>
         </a>
-        <a href="./account.html" class="nav-item">
-            <span class="material-icons nav-icon">person</span>
-            <span class="nav-label">Account</span>
+        <a href="./account.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
+            <i class="material-icons" style="font-size:24px;">person</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Account</span>
         </a>
-    </nav>
+    </div>
     
-    <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Check if user is logged in
-            const user = await getCurrentUser();
-            
-            if (!user) {
-                window.location.href = './login.html';
-                return;
-            }
-            
-            // Tab navigation
-            const tabButtons = document.querySelectorAll('.tab-btn');
-            const tabContents = document.querySelectorAll('.tab-content');
-            
-            tabButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    // Remove active class from all buttons and tabs
-                    tabButtons.forEach(btn => btn.classList.remove('active'));
-                    tabContents.forEach(tab => tab.classList.remove('active'));
-                    
-                    // Add active class to clicked button and its corresponding tab
-                    button.classList.add('active');
-                    const tabId = button.getAttribute('data-tab');
-                    document.getElementById(tabId + 'Tab').classList.add('active');
-                });
-            });
-            
-            // Modal functionality
-            const modal = document.getElementById('assignmentModal');
-            const closeModal = document.querySelector('.close-modal');
-            const closeModalBtn = document.getElementById('closeModalBtn');
-            
-            closeModal.addEventListener('click', () => {
-                modal.style.display = 'none';
-            });
-            
-            closeModalBtn.addEventListener('click', () => {
-                modal.style.display = 'none';
-            });
-            
-            window.addEventListener('click', (event) => {
-                if (event.target === modal) {
-                    modal.style.display = 'none';
-                }
-            });
-            
-            // Load assignments (placeholder)
-            // In production, these would be fetched from Supabase
-        });
-    </script>
+    <!-- Assignment functionality script -->
+    <script src="./src/js/assign.js"></script>
 </body>
 </html>

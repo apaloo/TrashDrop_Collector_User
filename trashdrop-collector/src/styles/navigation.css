@@ -10,9 +10,11 @@
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   display: flex;
-  justify-content: space-around;
+  justify-content: space-evenly;
   padding: 0.5rem 0;
   border-top: 1px solid var(--medium-light);
+  /* Add support for iOS safe areas */
+  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0));
 }
 
 .nav-item {
@@ -27,6 +29,11 @@
   font-size: 0.8rem;
   font-weight: 500;
   transition: var(--transition);
+  position: relative;
+  /* Improve touch target size for mobile */
+  min-height: 44px;
+  /* Better touch target spacing */
+  margin: 0 2px;
 }
 
 .nav-item:hover, .nav-item:focus {
@@ -51,11 +58,11 @@
 
 /* Adjust main content to accommodate the navbar */
 .app-container {
-  padding-bottom: 70px;  /* Height of the navbar plus some padding */
+  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0));  /* Height of the navbar plus safe area */
 }
 
 .map-container {
-  padding-bottom: 70px;
+  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0));
 }
 
 /* Active indicator */
@@ -88,7 +95,27 @@
 }
 
 /* Responsive Adjustments */
-@media (max-width: 360px) {
+/* Very small screens */
+@media (max-width: 320px) {
+  .nav-item {
+    font-size: 0.65rem;
+    padding: 0.4rem 0;
+  }
+  
+  .material-icons {
+    font-size: 1.2rem;
+    margin-bottom: 0.15rem;
+  }
+  
+  .nav-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Small screens */
+@media (max-width: 360px) and (min-width: 321px) {
   .nav-item {
     font-size: 0.7rem;
   }
@@ -98,11 +125,37 @@
   }
 }
 
+/* Medium screens */
+@media (min-width: 361px) and (max-width: 767px) {
+  .bottom-nav {
+    padding: 0.6rem 0;
+    padding-bottom: calc(0.6rem + env(safe-area-inset-bottom, 0));
+  }
+  
+  .nav-item {
+    font-size: 0.75rem;
+  }
+  
+  .material-icons {
+    font-size: 1.4rem;
+  }
+}
+
+/* Large screens */
 @media (min-width: 768px) {
   .bottom-nav {
     max-width: 500px;
     left: 50%;
     transform: translateX(-50%);
     border-radius: 1rem 1rem 0 0;
+    padding: 0.7rem 0;
+  }
+  
+  .nav-item {
+    font-size: 0.85rem;
+  }
+  
+  .material-icons {
+    font-size: 1.6rem;
   }
 }

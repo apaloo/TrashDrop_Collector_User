@@ -13,6 +13,9 @@
     <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     
+    <!-- Earnings CSS -->
+    <link rel="stylesheet" href="./src/styles/earnings.css">
+    
     <!-- Supabase JS CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
@@ -24,20 +27,34 @@
     
     <!-- Chart.js for earnings visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Console debugging -->
+    <script>
+        console.log('Earnings page loading...');
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM fully loaded and parsed');
+        });
+    </script>
 </head>
 <body>
     <div class="app-container">
         <header class="page-header">
-            <h1>Earnings</h1>
-            <div class="period-selector">
-                <button class="period-btn active" data-period="week">Week</button>
-                <button class="period-btn" data-period="month">Month</button>
-                <button class="period-btn" data-period="year">Year</button>
+            <div class="page-header-left">
+                <h1>Earnings</h1>
+                <div class="period-selector">
+                    <button class="period-btn active" data-period="week">Week</button>
+                    <button class="period-btn" data-period="month">Month</button>
+                    <button class="period-btn" data-period="year">Year</button>
+                </div>
             </div>
+            <button id="cashOutBtn" class="btn btn-primary">
+                <span class="material-icons">account_balance_wallet</span>
+                Cash Out
+            </button>
         </header>
         
         <main class="page-content">
-            <div class="content-card stats-card">
+            <div class="stats-card">
                 <div class="stat-item">
                     <div class="stat-label">Total Earnings</div>
                     <div class="stat-value">₵0.00</div>
@@ -59,13 +76,46 @@
                 </div>
             </div>
             
+            <div class="breakdown-row">
+                <div class="content-card">
+                    <h2>Work Type Breakdown</h2>
+                    <div class="breakdown-visualization">
+                        <div class="pie-chart-container">
+                            <canvas id="workTypeChart"></canvas>
+                        </div>
+                        <div class="breakdown-list" id="workTypeBreakdown">
+                            <p class="empty-state">
+                                No work type data available
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="content-card">
+                    <h2>Trash Type Breakdown</h2>
+                    <div class="breakdown-visualization">
+                        <div class="bar-chart-container">
+                            <canvas id="trashTypeChart"></canvas>
+                        </div>
+                        <div class="trash-type-grid" id="trashTypeBreakdown">
+                            <!-- Grid items will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="content-card">
                 <div class="card-header-with-action">
                     <h2>Recent Payments</h2>
-                    <button class="btn btn-text" id="viewAllBtn">View All</button>
+                    <button class="btn btn-text" id="viewAllBtn">
+                        <span>View All</span>
+                        <span class="material-icons">arrow_forward</span>
+                    </button>
                 </div>
                 <div class="payments-list" id="recentPayments">
-                    <p class="empty-state">No payment history available yet</p>
+                    <p class="empty-state">
+                        <span>No payment history available yet</span>
+                    </p>
                 </div>
             </div>
             
@@ -92,66 +142,208 @@
     </div>
     
     <!-- Bottom Navigation Bar -->
-    <nav class="bottom-nav">
-        <a href="./map.html" class="nav-item">
-            <span class="material-icons nav-icon">map</span>
-            <span class="nav-label">Map</span>
+    <div style="position:fixed;bottom:0;left:0;right:0;height:60px;background-color:#fff;display:flex;justify-content:space-around;align-items:center;box-shadow:0 -2px 10px rgba(0,0,0,0.1);z-index:1001;">
+        <a href="./map.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
+            <i class="material-icons" style="font-size:24px;">map</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Map</span>
         </a>
-        <a href="./request.html" class="nav-item">
-            <span class="material-icons nav-icon">add_circle</span>
-            <span class="nav-label">Request</span>
+        <a href="./request.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
+            <i class="material-icons" style="font-size:24px;">add_circle</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Request</span>
         </a>
-        <a href="./assign.html" class="nav-item">
-            <span class="material-icons nav-icon">assignment</span>
-            <span class="nav-label">Assign</span>
+        <a href="./assign.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
+            <i class="material-icons" style="font-size:24px;">assignment</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Assign</span>
         </a>
-        <a href="./earnings.html" class="nav-item active">
-            <span class="material-icons nav-icon">account_balance_wallet</span>
-            <span class="nav-label">Earnings</span>
+        <a href="./earnings.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#4CAF50;">
+            <i class="material-icons" style="font-size:24px;">account_balance_wallet</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Earnings</span>
         </a>
-        <a href="./account.html" class="nav-item">
-            <span class="material-icons nav-icon">person</span>
-            <span class="nav-label">Account</span>
+        <a href="./account.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
+            <i class="material-icons" style="font-size:24px;">person</i>
+            <span style="font-size:12px;margin-top:4px;display:block;">Account</span>
         </a>
-    </nav>
+    </div>
     
+    <!-- Cash Out Modal -->
+    <div class="modal" id="cashOutModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Cash Out Earnings</h2>
+                <button class="close-modal">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="cash-out-info">
+                    <div class="cash-out-balance">
+                        <div class="balance-label">Available Balance</div>
+                        <div class="balance-value" id="availableBalance">₵3,856.50</div>
+                    </div>
+                    <div class="cash-out-form">
+                        <div class="form-group">
+                            <label for="cashOutAmount">Amount to Withdraw (₵)</label>
+                            <input type="number" id="cashOutAmount" class="form-control" min="0" max="3856.50" step="0.01" placeholder="Enter amount">
+                            <div class="form-feedback" id="amountFeedback"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="cashOutMethod">Payment Method</label>
+                            <select id="cashOutMethod" class="form-control">
+                                <option value="bank">Bank Transfer</option>
+                                <option value="mobile">Mobile Money</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary close-modal">Cancel</button>
+                <button class="btn btn-primary" id="confirmCashOutBtn">Confirm Withdrawal</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Processing Modal -->
+    <div class="modal" id="processingModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-body text-center">
+                <div class="loading-spinner"></div>
+                <h3>Processing Your Withdrawal</h3>
+                <p>Please wait while we process your request...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Success Modal -->
+    <div class="modal" id="successModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-body text-center">
+                <div class="success-icon">
+                    <span class="material-icons">check_circle</span>
+                </div>
+                <h3>Withdrawal Successful!</h3>
+                <p>Your withdrawal request for <span id="withdrawalAmount"></span> has been processed successfully.</p>
+                <p class="text-muted">You will be redirected to the payment gateway...</p>
+                <div class="modal-footer">
+                    <button class="btn btn-primary btn-block" id="successOkBtn">Continue</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Immediate Mock Data Display -->
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Check if user is logged in
-            const user = await getCurrentUser();
+        // Direct mock data implementation for immediate display
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Directly updating UI with mock data');
             
-            if (!user) {
-                window.location.href = './login.html';
-                return;
+            // Update stats
+            const statValues = document.querySelectorAll('.stat-value');
+            if (statValues.length >= 3) {
+                statValues[0].textContent = '₵3,856.50';
+                statValues[1].textContent = '78';
+                statValues[2].textContent = '₵49.44';
             }
             
-            // Period selector
-            const periodButtons = document.querySelectorAll('.period-btn');
+            // Update work type breakdown
+            const workTypeBreakdown = document.getElementById('workTypeBreakdown');
+            if (workTypeBreakdown) {
+                workTypeBreakdown.innerHTML = `
+                    <div class="breakdown-item">
+                        <div class="breakdown-item-title">Assignments</div>
+                        <div class="breakdown-item-stats">
+                            <span class="breakdown-item-count">45 jobs</span>
+                            <span class="breakdown-item-amount">₵2,150.75</span>
+                        </div>
+                    </div>
+                    <div class="breakdown-item">
+                        <div class="breakdown-item-title">Pickups</div>
+                        <div class="breakdown-item-stats">
+                            <span class="breakdown-item-count">33 jobs</span>
+                            <span class="breakdown-item-amount">₵1,705.75</span>
+                        </div>
+                    </div>
+                `;
+            }
             
-            periodButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    // Remove active class from all buttons
-                    periodButtons.forEach(btn => btn.classList.remove('active'));
-                    
-                    // Add active class to clicked button
-                    button.classList.add('active');
-                    
-                    // Update chart based on selected period
-                    const period = button.getAttribute('data-period');
-                    updateEarningsChart(period);
-                });
-            });
+            // Update trash type breakdown
+            const trashTypeBreakdown = document.getElementById('trashTypeBreakdown');
+            if (trashTypeBreakdown) {
+                trashTypeBreakdown.innerHTML = `
+                    <div class="breakdown-item">
+                        <div class="breakdown-item-title">Plastic</div>
+                        <div class="breakdown-item-stats">
+                            <span class="breakdown-item-count">28 jobs</span>
+                            <span class="breakdown-item-amount">₵1,400.00</span>
+                        </div>
+                    </div>
+                    <div class="breakdown-item">
+                        <div class="breakdown-item-title">Paper</div>
+                        <div class="breakdown-item-stats">
+                            <span class="breakdown-item-count">16 jobs</span>
+                            <span class="breakdown-item-amount">₵800.50</span>
+                        </div>
+                    </div>
+                    <div class="breakdown-item">
+                        <div class="breakdown-item-title">Glass</div>
+                        <div class="breakdown-item-stats">
+                            <span class="breakdown-item-count">12 jobs</span>
+                            <span class="breakdown-item-amount">₵720.00</span>
+                        </div>
+                    </div>
+                    <div class="breakdown-item">
+                        <div class="breakdown-item-title">Metal</div>
+                        <div class="breakdown-item-stats">
+                            <span class="breakdown-item-count">14 jobs</span>
+                            <span class="breakdown-item-amount">₵686.00</span>
+                        </div>
+                    </div>
+                    <div class="breakdown-item">
+                        <div class="breakdown-item-title">Organic</div>
+                        <div class="breakdown-item-stats">
+                            <span class="breakdown-item-count">8 jobs</span>
+                            <span class="breakdown-item-amount">₵250.00</span>
+                        </div>
+                    </div>
+                `;
+            }
             
-            // Initialize earnings chart with demo data
-            function initializeEarningsChart() {
-                const ctx = document.getElementById('earningsChart').getContext('2d');
-                
-                // Sample data
-                const data = {
+            // Update recent payments
+            const recentPayments = document.getElementById('recentPayments');
+            if (recentPayments) {
+                recentPayments.innerHTML = `
+                    <div class="payment-item">
+                        <div class="payment-info">
+                            <div class="payment-date">${new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toLocaleDateString()}</div>
+                            <div class="payment-method">Bank Transfer</div>
+                        </div>
+                        <div class="payment-amount">₵1,250.00</div>
+                    </div>
+                    <div class="payment-item">
+                        <div class="payment-info">
+                            <div class="payment-date">${new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toLocaleDateString()}</div>
+                            <div class="payment-method">Mobile Money</div>
+                        </div>
+                        <div class="payment-amount">₵800.50</div>
+                    </div>
+                    <div class="payment-item">
+                        <div class="payment-info">
+                            <div class="payment-date">${new Date(Date.now() - 16 * 24 * 60 * 60 * 1000).toLocaleDateString()}</div>
+                            <div class="payment-method">Bank Transfer</div>
+                        </div>
+                        <div class="payment-amount">₵950.25</div>
+                    </div>
+                `;
+            }
+            
+            // Initialize line chart for earnings overview
+            const earningsCtx = document.getElementById('earningsChart');
+            if (earningsCtx && window.Chart) {
+                const chartData = {
                     labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
                     datasets: [{
                         label: 'Earnings (₵)',
-                        data: [0, 0, 0, 0, 0, 0, 0],
+                        data: [425.50, 380.25, 520.75, 0, 680.00, 750.50, 1099.50],
                         backgroundColor: 'rgba(76, 175, 80, 0.2)',
                         borderColor: '#4CAF50',
                         borderWidth: 2,
@@ -162,7 +354,7 @@
                 
                 const config = {
                     type: 'line',
-                    data: data,
+                    data: chartData,
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
@@ -171,7 +363,7 @@
                                 beginAtZero: true,
                                 ticks: {
                                     callback: function(value) {
-                                        return '₵' + value;
+                                        return '₵' + value.toFixed(2);
                                     }
                                 }
                             }
@@ -179,53 +371,811 @@
                         plugins: {
                             legend: {
                                 display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `₵${context.raw.toFixed(2)}`;
+                                    }
+                                }
                             }
                         }
                     }
                 };
                 
-                const earningsChart = new Chart(ctx, config);
-                
-                // Return chart instance for updates
-                return earningsChart;
+                new Chart(earningsCtx, config);
             }
             
-            const chart = initializeEarningsChart();
+            // Initialize pie chart for work type breakdown
+            const workTypeCtx = document.getElementById('workTypeChart');
+            if (workTypeCtx && window.Chart) {
+                const workTypeData = {
+                    labels: ['Assignments', 'Pickups'],
+                    datasets: [{
+                        data: [2150.75, 1705.75],
+                        backgroundColor: [
+                            'rgba(76, 175, 80, 0.8)',
+                            'rgba(33, 150, 243, 0.8)'
+                        ],
+                        borderColor: [
+                            '#4CAF50',
+                            '#2196F3'
+                        ],
+                        borderWidth: 1,
+                        hoverOffset: 15
+                    }]
+                };
+                
+                const workTypeConfig = {
+                    type: 'doughnut',
+                    data: workTypeData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.raw || 0;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = Math.round((value / total) * 100);
+                                        return `${label}: ₵${value.toFixed(2)} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '65%',
+                        animation: {
+                            animateScale: true,
+                            animateRotate: true
+                        }
+                    }
+                };
+                
+                new Chart(workTypeCtx, workTypeConfig);
+            }
             
-            // Function to update chart based on period selection
-            function updateEarningsChart(period) {
-                // In a real app, this would fetch data for the selected period
-                console.log(`Updating chart for period: ${period}`);
+            // Initialize bar chart for trash type breakdown
+            const trashTypeCtx = document.getElementById('trashTypeChart');
+            if (trashTypeCtx && window.Chart) {
+                const trashTypeData = {
+                    labels: ['Plastic', 'Paper', 'Glass', 'Metal', 'Organic'],
+                    datasets: [{
+                        label: 'Earnings (₵)',
+                        data: [1400.00, 800.50, 720.00, 686.00, 250.00],
+                        backgroundColor: [
+                            'rgba(255, 87, 34, 0.7)',  // Red-orange for plastic
+                            'rgba(139, 195, 74, 0.7)', // Light green for paper
+                            'rgba(33, 150, 243, 0.7)', // Blue for glass
+                            'rgba(158, 158, 158, 0.7)', // Grey for metal
+                            'rgba(121, 85, 72, 0.7)'   // Brown for organic
+                        ],
+                        borderColor: [
+                            'rgb(255, 87, 34)',
+                            'rgb(139, 195, 74)',
+                            'rgb(33, 150, 243)',
+                            'rgb(158, 158, 158)',
+                            'rgb(121, 85, 72)'
+                        ],
+                        borderWidth: 1,
+                        borderRadius: 5,
+                        barPercentage: 0.6
+                    }]
+                };
                 
-                // Placeholder implementations
-                let labels, data;
+                const trashTypeConfig = {
+                    type: 'bar',
+                    data: trashTypeData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `₵${context.raw.toFixed(2)}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '₵' + value.toFixed(0);
+                                    }
+                                }
+                            }
+                        },
+                        animation: {
+                            animateScale: true
+                        }
+                    }
+                };
                 
-                switch(period) {
-                    case 'week':
-                        labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                        data = [0, 0, 0, 0, 0, 0, 0];
-                        break;
-                    case 'month':
-                        labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-                        data = [0, 0, 0, 0];
-                        break;
-                    case 'year':
-                        labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                        data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-                        break;
+                new Chart(trashTypeCtx, trashTypeConfig);
+                
+                // Add trash type grid items
+                const trashTypeBreakdown = document.getElementById('trashTypeBreakdown');
+                if (trashTypeBreakdown) {
+                    trashTypeBreakdown.innerHTML = ''; // Clear any existing content
+                    
+                    // Create a grid item for each trash type
+                    const trashTypes = [
+                        { type: 'Plastic', amount: 1400.00, color: 'rgb(255, 87, 34)', percentage: '36.3%' },
+                        { type: 'Paper', amount: 800.50, color: 'rgb(139, 195, 74)', percentage: '20.8%' },
+                        { type: 'Glass', amount: 720.00, color: 'rgb(33, 150, 243)', percentage: '18.7%' },
+                        { type: 'Metal', amount: 686.00, color: 'rgb(158, 158, 158)', percentage: '17.8%' },
+                        { type: 'Organic', amount: 250.00, color: 'rgb(121, 85, 72)', percentage: '6.5%' }
+                    ];
+                    
+                    trashTypes.forEach(item => {
+                        const gridItem = document.createElement('div');
+                        gridItem.className = 'trash-type-item';
+                        gridItem.innerHTML = `
+                            <div class="trash-type-color" style="background-color: ${item.color}"></div>
+                            <div class="trash-type-name">${item.type} <span style="font-size: 0.8rem; color: var(--medium); font-weight: normal;">${item.percentage}</span></div>
+                            <div class="trash-type-value">₵${item.amount.toFixed(2)}</div>
+                        `;
+                        trashTypeBreakdown.appendChild(gridItem);
+                    });
                 }
-                
-                chart.data.labels = labels;
-                chart.data.datasets[0].data = data;
-                chart.update();
             }
             
-            // View all payments button (placeholder functionality)
+            // Add payment methods
+            const paymentMethods = document.getElementById('paymentMethods');
+            if (paymentMethods) {
+                paymentMethods.innerHTML = `
+                    <div class="payment-method-item">
+                        <div class="payment-method-icon">
+                            <span class="material-icons">account_balance</span>
+                        </div>
+                        <div class="payment-method-details">
+                            <div class="payment-method-title">Bank Account</div>
+                            <div class="payment-method-subtitle">Ending in 4325</div>
+                        </div>
+                        <div class="payment-method-action">
+                            <button class="btn btn-icon" id="editBankBtn">
+                                <span class="material-icons">edit</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="payment-method-item">
+                        <div class="payment-method-icon">
+                            <span class="material-icons">smartphone</span>
+                        </div>
+                        <div class="payment-method-details">
+                            <div class="payment-method-title">Mobile Money</div>
+                            <div class="payment-method-subtitle">+233 55 123 4567</div>
+                        </div>
+                        <div class="payment-method-action">
+                            <button class="btn btn-icon" id="editMobileBtn">
+                                <span class="material-icons">edit</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="payment-method-item">
+                        <div class="payment-method-icon">
+                            <span class="material-icons">add_circle</span>
+                        </div>
+                        <div class="payment-method-details">
+                            <div class="payment-method-title">Add Payment Method</div>
+                            <div class="payment-method-subtitle">Set up your preferred payment methods</div>
+                        </div>
+                        <div class="payment-method-action">
+                            <button class="btn btn-icon" id="addPaymentMethodBtn">
+                                <span class="material-icons">arrow_forward</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // Add event listeners to the payment method buttons
+                document.getElementById('editBankBtn').addEventListener('click', function() {
+                    // Create and show bank edit modal
+                    const modalHtml = `
+                        <div class="modal" id="editBankModal">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h2>Edit Bank Account</h2>
+                                    <button class="close-modal">
+                                        <span class="material-icons">close</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <form id="editBankForm">
+                                        <div class="form-group">
+                                            <label for="bankName">Bank Name</label>
+                                            <input type="text" id="bankName" class="form-control" value="Ghana Commercial Bank" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="accountNumber">Account Number</label>
+                                            <input type="text" id="accountNumber" class="form-control" value="XXXX-XXXX-4325" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="accountType">Account Type</label>
+                                            <select id="accountType" class="form-control">
+                                                <option value="checking" selected>Checking</option>
+                                                <option value="savings">Savings</option>
+                                                <option value="current">Current</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="branchName">Branch Name</label>
+                                            <input type="text" id="branchName" class="form-control" value="Accra Main Branch">
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button class="btn btn-secondary close-modal">Cancel</button>
+                                    <button class="btn btn-primary" id="saveBankBtn">Save Changes</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Append modal to body if it doesn't exist
+                    if (!document.getElementById('editBankModal')) {
+                        const modalContainer = document.createElement('div');
+                        modalContainer.innerHTML = modalHtml;
+                        document.body.appendChild(modalContainer.firstElementChild);
+                        
+                        // Set up close button
+                        document.querySelector('#editBankModal .close-modal').addEventListener('click', function() {
+                            document.getElementById('editBankModal').classList.remove('active');
+                        });
+                        
+                        // Set up save button
+                        document.getElementById('saveBankBtn').addEventListener('click', function() {
+                            document.getElementById('editBankModal').classList.remove('active');
+                            alert('Bank account information updated successfully');
+                        });
+                    }
+                    
+                    // Show the modal
+                    document.getElementById('editBankModal').classList.add('active');
+                });
+                
+                document.getElementById('editMobileBtn').addEventListener('click', function() {
+                    // Create and show mobile money edit modal
+                    const modalHtml = `
+                        <div class="modal" id="editMobileModal">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h2>Edit Mobile Money</h2>
+                                    <button class="close-modal">
+                                        <span class="material-icons">close</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <form id="editMobileForm">
+                                        <div class="form-group">
+                                            <label for="mobileProvider">Provider</label>
+                                            <select id="mobileProvider" class="form-control">
+                                                <option value="mtn" selected>MTN Mobile Money</option>
+                                                <option value="vodafone">Vodafone Cash</option>
+                                                <option value="airtel">AirtelTigo Money</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="mobileNumber">Mobile Number</label>
+                                            <input type="tel" id="mobileNumber" class="form-control" value="+233 55 123 4567" required>
+                                            <div class="form-hint">Format: +233 XX XXX XXXX</div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="accountName">Account Name</label>
+                                            <input type="text" id="accountName" class="form-control" value="John Doe" required>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button class="btn btn-secondary close-modal">Cancel</button>
+                                    <button class="btn btn-primary" id="saveMobileBtn">Save Changes</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Append modal to body if it doesn't exist
+                    if (!document.getElementById('editMobileModal')) {
+                        const modalContainer = document.createElement('div');
+                        modalContainer.innerHTML = modalHtml;
+                        document.body.appendChild(modalContainer.firstElementChild);
+                        
+                        // Set up close button
+                        document.querySelector('#editMobileModal .close-modal').addEventListener('click', function() {
+                            document.getElementById('editMobileModal').classList.remove('active');
+                        });
+                        
+                        // Set up save button
+                        document.getElementById('saveMobileBtn').addEventListener('click', function() {
+                            document.getElementById('editMobileModal').classList.remove('active');
+                            alert('Mobile money information updated successfully');
+                        });
+                    }
+                    
+                    // Show the modal
+                    document.getElementById('editMobileModal').classList.add('active');
+                });
+                
+                document.getElementById('addPaymentMethodBtn').addEventListener('click', function() {
+                    // Create and show add payment method modal
+                    const modalHtml = `
+                        <div class="modal" id="addPaymentMethodModal">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h2>Add Payment Method</h2>
+                                    <button class="close-modal">
+                                        <span class="material-icons">close</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="payment-method-options">
+                                        <div class="payment-method-option" data-type="bank">
+                                            <div class="payment-method-icon">
+                                                <span class="material-icons">account_balance</span>
+                                            </div>
+                                            <div class="payment-method-label">Bank Account</div>
+                                        </div>
+                                        <div class="payment-method-option" data-type="mobile">
+                                            <div class="payment-method-icon">
+                                                <span class="material-icons">smartphone</span>
+                                            </div>
+                                            <div class="payment-method-label">Mobile Money</div>
+                                        </div>
+                                        <div class="payment-method-option" data-type="card">
+                                            <div class="payment-method-icon">
+                                                <span class="material-icons">credit_card</span>
+                                            </div>
+                                            <div class="payment-method-label">Credit/Debit Card</div>
+                                        </div>
+                                    </div>
+                                    <div id="paymentMethodForms">
+                                        <div id="bankForm" class="payment-form">
+                                            <h3>Add Bank Account</h3>
+                                            <form>
+                                                <div class="form-group">
+                                                    <label for="newBankName">Bank Name</label>
+                                                    <input type="text" id="newBankName" class="form-control" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="newAccountNumber">Account Number</label>
+                                                    <input type="text" id="newAccountNumber" class="form-control" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="newAccountType">Account Type</label>
+                                                    <select id="newAccountType" class="form-control">
+                                                        <option value="checking">Checking</option>
+                                                        <option value="savings">Savings</option>
+                                                        <option value="current">Current</option>
+                                                    </select>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="newBranchName">Branch Name</label>
+                                                    <input type="text" id="newBranchName" class="form-control">
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button class="btn btn-secondary close-modal">Cancel</button>
+                                    <button class="btn btn-primary" id="addPaymentMethodConfirmBtn">Add Payment Method</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Append modal to body if it doesn't exist
+                    if (!document.getElementById('addPaymentMethodModal')) {
+                        const modalContainer = document.createElement('div');
+                        modalContainer.innerHTML = modalHtml;
+                        document.body.appendChild(modalContainer.firstElementChild);
+                        
+                        // Set up close button
+                        document.querySelector('#addPaymentMethodModal .close-modal').addEventListener('click', function() {
+                            document.getElementById('addPaymentMethodModal').classList.remove('active');
+                        });
+                        
+                        // Set up payment method option selection
+                        const paymentMethodOptions = document.querySelectorAll('.payment-method-option');
+                        paymentMethodOptions.forEach(option => {
+                            option.addEventListener('click', function() {
+                                // Remove active class from all options
+                                paymentMethodOptions.forEach(opt => opt.classList.remove('active'));
+                                
+                                // Add active class to clicked option
+                                this.classList.add('active');
+                                
+                                // Show corresponding form
+                                const type = this.getAttribute('data-type');
+                                const forms = document.querySelectorAll('.payment-form');
+                                forms.forEach(form => form.style.display = 'none');
+                                document.getElementById(`${type}Form`).style.display = 'block';
+                            });
+                        });
+                        
+                        // Set first option as active by default
+                        paymentMethodOptions[0].click();
+                        
+                        // Set up add button
+                        document.getElementById('addPaymentMethodConfirmBtn').addEventListener('click', function() {
+                            document.getElementById('addPaymentMethodModal').classList.remove('active');
+                            alert('New payment method added successfully');
+                        });
+                    }
+                    
+                    // Show the modal
+                    document.getElementById('addPaymentMethodModal').classList.add('active');
+                });
+            }
+            
+            // Set up Cash Out button functionality
+            const cashOutBtn = document.getElementById('cashOutBtn');
+            if (cashOutBtn) {
+                cashOutBtn.addEventListener('click', function() {
+                    const cashOutModal = document.getElementById('cashOutModal');
+                    if (cashOutModal) {
+                        cashOutModal.classList.add('active');
+                    }
+                });
+            }
+            
+            // Set up close modal buttons
+            const closeModalBtns = document.querySelectorAll('.close-modal');
+            closeModalBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const modal = this.closest('.modal');
+                    if (modal) {
+                        modal.classList.remove('active');
+                    }
+                });
+            });
+            
+            // Set up cash out amount validation
+            const cashOutAmount = document.getElementById('cashOutAmount');
+            const amountFeedback = document.getElementById('amountFeedback');
+            if (cashOutAmount && amountFeedback) {
+                cashOutAmount.addEventListener('input', function() {
+                    const amount = parseFloat(this.value);
+                    const maxAmount = 3856.50;
+                    
+                    if (isNaN(amount) || amount <= 0) {
+                        amountFeedback.textContent = 'Please enter a valid amount';
+                        amountFeedback.className = 'form-feedback error';
+                        this.setCustomValidity('Invalid amount');
+                    } else if (amount > maxAmount) {
+                        amountFeedback.textContent = 'Amount exceeds available balance';
+                        amountFeedback.className = 'form-feedback error';
+                        this.setCustomValidity('Amount exceeds available balance');
+                    } else {
+                        amountFeedback.textContent = 'Amount is valid';
+                        amountFeedback.className = 'form-feedback success';
+                        this.setCustomValidity('');
+                    }
+                });
+            }
+            
+            // Set up confirm cash out button
+            const confirmCashOutBtn = document.getElementById('confirmCashOutBtn');
+            if (confirmCashOutBtn) {
+                confirmCashOutBtn.addEventListener('click', function() {
+                    const amount = parseFloat(document.getElementById('cashOutAmount').value);
+                    const maxAmount = 3856.50;
+                    
+                    if (isNaN(amount) || amount <= 0 || amount > maxAmount) {
+                        return; // Don't proceed if the amount is invalid
+                    }
+                    
+                    // Hide cash out modal
+                    document.getElementById('cashOutModal').classList.remove('active');
+                    
+                    // Show processing modal
+                    document.getElementById('processingModal').classList.add('active');
+                    
+                    // Simulate processing
+                    setTimeout(function() {
+                        // Hide processing modal
+                        document.getElementById('processingModal').classList.remove('active');
+                        
+                        // Set withdrawal amount in success modal
+                        document.getElementById('withdrawalAmount').textContent = `₵${amount.toFixed(2)}`;
+                        
+                        // Show success modal
+                        document.getElementById('successModal').classList.add('active');
+                    }, 2000);
+                });
+            }
+            
+            // Set up success OK button
+            const successOkBtn = document.getElementById('successOkBtn');
+            if (successOkBtn) {
+                successOkBtn.addEventListener('click', function() {
+                    // Hide success modal
+                    document.getElementById('successModal').classList.remove('active');
+                    
+                    // Simulate redirect to payment gateway
+                    alert('Redirecting to payment gateway...');
+                });
+            }
+            
+            // Set up view all payments button
             const viewAllBtn = document.getElementById('viewAllBtn');
-            viewAllBtn.addEventListener('click', () => {
-                alert('Full payment history feature coming soon');
+            if (viewAllBtn) {
+                viewAllBtn.addEventListener('click', function() {
+                    // Create and show payment history modal
+                    const modalHtml = `
+                        <div class="modal" id="paymentHistoryModal">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h2>Payment History</h2>
+                                    <button class="close-modal">
+                                        <span class="material-icons">close</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="filter-controls">
+                                        <div class="form-group">
+                                            <label for="dateFilter">Filter by Date</label>
+                                            <select id="dateFilter" class="form-control">
+                                                <option value="all">All Time</option>
+                                                <option value="month">This Month</option>
+                                                <option value="quarter">Last 3 Months</option>
+                                                <option value="year">This Year</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="payment-history-list">
+                                        <div class="payment-history-item">
+                                            <div class="payment-history-date">May 26, 2025</div>
+                                            <div class="payment-history-details">
+                                                <div class="payment-history-type">Bank Transfer</div>
+                                                <div class="payment-history-amount">₵1,250.00</div>
+                                                <div class="payment-history-status completed">Completed</div>
+                                            </div>
+                                        </div>
+                                        <div class="payment-history-item">
+                                            <div class="payment-history-date">May 19, 2025</div>
+                                            <div class="payment-history-details">
+                                                <div class="payment-history-type">Mobile Money</div>
+                                                <div class="payment-history-amount">₵800.50</div>
+                                                <div class="payment-history-status completed">Completed</div>
+                                            </div>
+                                        </div>
+                                        <div class="payment-history-item">
+                                            <div class="payment-history-date">May 12, 2025</div>
+                                            <div class="payment-history-details">
+                                                <div class="payment-history-type">Bank Transfer</div>
+                                                <div class="payment-history-amount">₵950.25</div>
+                                                <div class="payment-history-status completed">Completed</div>
+                                            </div>
+                                        </div>
+                                        <div class="payment-history-item">
+                                            <div class="payment-history-date">May 5, 2025</div>
+                                            <div class="payment-history-details">
+                                                <div class="payment-history-type">Mobile Money</div>
+                                                <div class="payment-history-amount">₵725.80</div>
+                                                <div class="payment-history-status completed">Completed</div>
+                                            </div>
+                                        </div>
+                                        <div class="payment-history-item">
+                                            <div class="payment-history-date">April 28, 2025</div>
+                                            <div class="payment-history-details">
+                                                <div class="payment-history-type">Bank Transfer</div>
+                                                <div class="payment-history-amount">₵500.00</div>
+                                                <div class="payment-history-status completed">Completed</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button class="btn btn-primary" id="downloadHistoryBtn">Download History</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Append modal to body if it doesn't exist
+                    if (!document.getElementById('paymentHistoryModal')) {
+                        const modalContainer = document.createElement('div');
+                        modalContainer.innerHTML = modalHtml;
+                        document.body.appendChild(modalContainer.firstElementChild);
+                        
+                        // Set up close button
+                        document.querySelector('#paymentHistoryModal .close-modal').addEventListener('click', function() {
+                            document.getElementById('paymentHistoryModal').classList.remove('active');
+                        });
+                        
+                        // Set up download button
+                        document.getElementById('downloadHistoryBtn').addEventListener('click', function() {
+                            alert('Payment history downloaded successfully');
+                        });
+                        
+                        // Set up date filter
+                        document.getElementById('dateFilter').addEventListener('change', function() {
+                            alert(`Filtered history by: ${this.options[this.selectedIndex].text}`);
+                        });
+                    }
+                    
+                    // Show the modal
+                    document.getElementById('paymentHistoryModal').classList.add('active');
+                });
+            }
+            
+            // Set up period buttons
+            const periodBtns = document.querySelectorAll('.period-btn');
+            periodBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    periodBtns.forEach(b => b.classList.remove('active'));
+                    
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    
+                    // Update data based on selected period
+                    const period = this.textContent.toLowerCase();
+                    
+                    // Update chart data for the selected period
+                    const earningsCtx = document.getElementById('earningsChart');
+                    if (earningsCtx && window.Chart) {
+                        const chart = Chart.getChart(earningsCtx);
+                        if (chart) {
+                            let labels, data;
+                            
+                            switch(period) {
+                                case 'week':
+                                    labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                                    data = [425.50, 380.25, 520.75, 0, 680.00, 750.50, 1099.50];
+                                    break;
+                                case 'month':
+                                    labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+                                    data = [980.25, 1250.75, 850.50, 775.00];
+                                    break;
+                                case 'year':
+                                    labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                    data = [250.50, 320.25, 420.75, 580.00, 680.25, 750.50, 0, 0, 0, 0, 350.25, 504.00];
+                                    break;
+                            }
+                            
+                            chart.data.labels = labels;
+                            chart.data.datasets[0].data = data;
+                            chart.update();
+                        }
+                    }
+                    
+                    // Update stats based on period
+                    const statValues = document.querySelectorAll('.stat-value');
+                    if (statValues.length >= 3) {
+                        switch(period) {
+                            case 'week':
+                                statValues[0].textContent = '₵3,856.50';
+                                statValues[1].textContent = '78';
+                                statValues[2].textContent = '₵49.44';
+                                break;
+                            case 'month':
+                                statValues[0].textContent = '₵14,250.75';
+                                statValues[1].textContent = '247';
+                                statValues[2].textContent = '₵57.69';
+                                break;
+                            case 'year':
+                                statValues[0].textContent = '₵95,420.50';
+                                statValues[1].textContent = '1,485';
+                                statValues[2].textContent = '₵64.26';
+                                break;
+                        }
+                    }
+                    
+                    // Update work type breakdown for the selected period
+                    const workTypeCtx = document.getElementById('workTypeChart');
+                    if (workTypeCtx && window.Chart) {
+                        const chart = Chart.getChart(workTypeCtx);
+                        if (chart) {
+                            let data;
+                            
+                            switch(period) {
+                                case 'week':
+                                    data = [2150.75, 1705.75];
+                                    break;
+                                case 'month':
+                                    data = [8250.75, 6000.00];
+                                    break;
+                                case 'year':
+                                    data = [54250.50, 41170.00];
+                                    break;
+                            }
+                            
+                            chart.data.datasets[0].data = data;
+                            chart.update();
+                        }
+                    }
+                    
+                    // Update trash type breakdown for the selected period
+                    const trashTypeCtx = document.getElementById('trashTypeChart');
+                    if (trashTypeCtx && window.Chart) {
+                        const chart = Chart.getChart(trashTypeCtx);
+                        if (chart) {
+                            let data;
+                            let trashTypes;
+                            
+                            switch(period) {
+                                case 'week':
+                                    data = [1400.00, 800.50, 720.00, 686.00, 250.00];
+                                    trashTypes = [
+                                        { type: 'Plastic', amount: 1400.00, color: 'rgb(255, 87, 34)', percentage: '36.3%' },
+                                        { type: 'Paper', amount: 800.50, color: 'rgb(139, 195, 74)', percentage: '20.8%' },
+                                        { type: 'Glass', amount: 720.00, color: 'rgb(33, 150, 243)', percentage: '18.7%' },
+                                        { type: 'Metal', amount: 686.00, color: 'rgb(158, 158, 158)', percentage: '17.8%' },
+                                        { type: 'Organic', amount: 250.00, color: 'rgb(121, 85, 72)', percentage: '6.5%' }
+                                    ];
+                                    break;
+                                case 'month':
+                                    data = [4200.00, 3200.75, 2880.00, 2470.00, 1500.00];
+                                    trashTypes = [
+                                        { type: 'Plastic', amount: 4200.00, color: 'rgb(255, 87, 34)', percentage: '29.5%' },
+                                        { type: 'Paper', amount: 3200.75, color: 'rgb(139, 195, 74)', percentage: '22.5%' },
+                                        { type: 'Glass', amount: 2880.00, color: 'rgb(33, 150, 243)', percentage: '20.2%' },
+                                        { type: 'Metal', amount: 2470.00, color: 'rgb(158, 158, 158)', percentage: '17.3%' },
+                                        { type: 'Organic', amount: 1500.00, color: 'rgb(121, 85, 72)', percentage: '10.5%' }
+                                    ];
+                                    break;
+                                case 'year':
+                                    data = [28000.50, 22500.75, 18720.00, 15400.00, 10800.25];
+                                    trashTypes = [
+                                        { type: 'Plastic', amount: 28000.50, color: 'rgb(255, 87, 34)', percentage: '29.3%' },
+                                        { type: 'Paper', amount: 22500.75, color: 'rgb(139, 195, 74)', percentage: '23.6%' },
+                                        { type: 'Glass', amount: 18720.00, color: 'rgb(33, 150, 243)', percentage: '19.6%' },
+                                        { type: 'Metal', amount: 15400.00, color: 'rgb(158, 158, 158)', percentage: '16.1%' },
+                                        { type: 'Organic', amount: 10800.25, color: 'rgb(121, 85, 72)', percentage: '11.3%' }
+                                    ];
+                                    break;
+                            }
+                            
+                            // Update chart
+                            chart.data.datasets[0].data = data;
+                            chart.update();
+                            
+                            // Update trash type grid
+                            const trashTypeBreakdown = document.getElementById('trashTypeBreakdown');
+                            if (trashTypeBreakdown && trashTypes) {
+                                trashTypeBreakdown.innerHTML = ''; // Clear existing content
+                                
+                                // Add new grid items
+                                trashTypes.forEach(item => {
+                                    const gridItem = document.createElement('div');
+                                    gridItem.className = 'trash-type-item';
+                                    gridItem.innerHTML = `
+                                        <div class="trash-type-color" style="background-color: ${item.color}"></div>
+                                        <div class="trash-type-name">${item.type} <span style="font-size: 0.8rem; color: var(--medium); font-weight: normal;">${item.percentage}</span></div>
+                                        <div class="trash-type-value">₵${item.amount.toFixed(2)}</div>
+                                    `;
+                                    trashTypeBreakdown.appendChild(gridItem);
+                                });
+                            }
+                        }
+                    }
+                });
             });
         });
     </script>
+    
+    <!-- Earnings JS - Added at the end of body for initialization -->
+    <script src="./src/js/earnings.js"></script>
 </body>
 </html>
