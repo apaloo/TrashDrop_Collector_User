@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earnings - TrashDrop Collector</title>
+    <meta name="description" content="View your earnings and payment history">
+    <link rel="stylesheet" href="./src/styles/main.css">
+    <link rel="stylesheet" href="./src/styles/navigation.css">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Configuration -->
+    <script src="./src/js/config.js"></script>
+    
+    <!-- Authentication -->
+    <script src="./src/js/auth.js"></script>
+    
+    <!-- Chart.js for earnings visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="page-header">
+            <h1>Earnings</h1>
+            <div class="period-selector">
+                <button class="period-btn active" data-period="week">Week</button>
+                <button class="period-btn" data-period="month">Month</button>
+                <button class="period-btn" data-period="year">Year</button>
+            </div>
+        </header>
+        
+        <main class="page-content">
+            <div class="content-card stats-card">
+                <div class="stat-item">
+                    <div class="stat-label">Total Earnings</div>
+                    <div class="stat-value">₵0.00</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Completed Jobs</div>
+                    <div class="stat-value">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Avg. Per Job</div>
+                    <div class="stat-value">₵0.00</div>
+                </div>
+            </div>
+            
+            <div class="content-card">
+                <h2>Earnings Overview</h2>
+                <div class="chart-container">
+                    <canvas id="earningsChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="content-card">
+                <div class="card-header-with-action">
+                    <h2>Recent Payments</h2>
+                    <button class="btn btn-text" id="viewAllBtn">View All</button>
+                </div>
+                <div class="payments-list" id="recentPayments">
+                    <p class="empty-state">No payment history available yet</p>
+                </div>
+            </div>
+            
+            <div class="content-card">
+                <h2>Payment Methods</h2>
+                <div class="payment-methods" id="paymentMethods">
+                    <div class="payment-method-item">
+                        <div class="payment-method-icon">
+                            <span class="material-icons">account_balance</span>
+                        </div>
+                        <div class="payment-method-details">
+                            <div class="payment-method-title">Add Payment Method</div>
+                            <div class="payment-method-subtitle">Set up your preferred payment methods</div>
+                        </div>
+                        <div class="payment-method-action">
+                            <button class="btn btn-icon">
+                                <span class="material-icons">add_circle</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+        <a href="./map.html" class="nav-item">
+            <span class="material-icons nav-icon">map</span>
+            <span class="nav-label">Map</span>
+        </a>
+        <a href="./request.html" class="nav-item">
+            <span class="material-icons nav-icon">add_circle</span>
+            <span class="nav-label">Request</span>
+        </a>
+        <a href="./assign.html" class="nav-item">
+            <span class="material-icons nav-icon">assignment</span>
+            <span class="nav-label">Assign</span>
+        </a>
+        <a href="./earnings.html" class="nav-item active">
+            <span class="material-icons nav-icon">account_balance_wallet</span>
+            <span class="nav-label">Earnings</span>
+        </a>
+        <a href="./account.html" class="nav-item">
+            <span class="material-icons nav-icon">person</span>
+            <span class="nav-label">Account</span>
+        </a>
+    </nav>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check if user is logged in
+            const user = await getCurrentUser();
+            
+            if (!user) {
+                window.location.href = './login.html';
+                return;
+            }
+            
+            // Period selector
+            const periodButtons = document.querySelectorAll('.period-btn');
+            
+            periodButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove active class from all buttons
+                    periodButtons.forEach(btn => btn.classList.remove('active'));
+                    
+                    // Add active class to clicked button
+                    button.classList.add('active');
+                    
+                    // Update chart based on selected period
+                    const period = button.getAttribute('data-period');
+                    updateEarningsChart(period);
+                });
+            });
+            
+            // Initialize earnings chart with demo data
+            function initializeEarningsChart() {
+                const ctx = document.getElementById('earningsChart').getContext('2d');
+                
+                // Sample data
+                const data = {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Earnings (₵)',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        backgroundColor: 'rgba(76, 175, 80, 0.2)',
+                        borderColor: '#4CAF50',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true
+                    }]
+                };
+                
+                const config = {
+                    type: 'line',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '₵' + value;
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                };
+                
+                const earningsChart = new Chart(ctx, config);
+                
+                // Return chart instance for updates
+                return earningsChart;
+            }
+            
+            const chart = initializeEarningsChart();
+            
+            // Function to update chart based on period selection
+            function updateEarningsChart(period) {
+                // In a real app, this would fetch data for the selected period
+                console.log(`Updating chart for period: ${period}`);
+                
+                // Placeholder implementations
+                let labels, data;
+                
+                switch(period) {
+                    case 'week':
+                        labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                        data = [0, 0, 0, 0, 0, 0, 0];
+                        break;
+                    case 'month':
+                        labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+                        data = [0, 0, 0, 0];
+                        break;
+                    case 'year':
+                        labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+                        break;
+                }
+                
+                chart.data.labels = labels;
+                chart.data.datasets[0].data = data;
+                chart.update();
+            }
+            
+            // View all payments button (placeholder functionality)
+            const viewAllBtn = document.getElementById('viewAllBtn');
+            viewAllBtn.addEventListener('click', () => {
+                alert('Full payment history feature coming soon');
+            });
+        });
+    </script>
+</body>
+</html>

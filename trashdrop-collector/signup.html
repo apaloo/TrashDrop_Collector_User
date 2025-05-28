@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - TrashDrop Collector</title>
+    <meta name="description" content="Create a new TrashDrop Collector account">
+    <link rel="stylesheet" href="./src/styles/main.css">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Configuration -->
+    <script src="./src/js/config.js"></script>
+    <!-- Authentication -->
+    <script src="./src/js/auth.js"></script>
+</head>
+<body>
+    <div class="app-container auth-page">
+        <div class="auth-container">
+            <div class="auth-logo">
+                <img src="./public/logo.svg" alt="TrashDrop Logo" class="logo">
+                <h1>TrashDrop Collector</h1>
+            </div>
+            
+            <div class="auth-form-container">
+                <h2>Create Your Account</h2>
+                
+                <div class="auth-tabs">
+                    <a href="./login.html" class="auth-tab">Login</a>
+                    <a href="./signup.html" class="auth-tab active">Sign Up</a>
+                </div>
+                
+                <form id="signupForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" required placeholder="Enter your email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required placeholder="Create a password">
+                        <div class="password-strength">
+                            <div class="strength-meter">
+                                <div class="strength-bar" id="strengthBar"></div>
+                            </div>
+                            <span id="strengthText">Password strength</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="Confirm your password">
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="terms-checkbox">
+                            <input type="checkbox" id="agreeTerms" name="agreeTerms" required>
+                            <label for="agreeTerms">I agree to the <a href="./terms.html">Terms of Service</a> and <a href="./privacy.html">Privacy Policy</a></label>
+                        </div>
+                    </div>
+                    
+                    <div id="signupError" class="auth-error"></div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+                </form>
+                
+                <div class="auth-divider">
+                    <span>OR</span>
+                </div>
+                
+                <div class="auth-alternate">
+                    <p>Already have an account?</p>
+                    <a href="./login.html" class="btn btn-outline btn-block">Login</a>
+                </div>
+            </div>
+            
+            <div class="auth-footer">
+                <p>&copy; 2025 TrashDrop. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const signupForm = document.getElementById('signupForm');
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const confirmPasswordInput = document.getElementById('confirmPassword');
+            const agreeTermsCheckbox = document.getElementById('agreeTerms');
+            const signupError = document.getElementById('signupError');
+            const strengthBar = document.getElementById('strengthBar');
+            const strengthText = document.getElementById('strengthText');
+            
+            // Password strength checker
+            passwordInput.addEventListener('input', () => {
+                const password = passwordInput.value;
+                let strength = 0;
+                let message = '';
+                
+                if (password.length >= 8) strength += 1;
+                if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength += 1;
+                if (password.match(/\d/)) strength += 1;
+                if (password.match(/[^a-zA-Z\d]/)) strength += 1;
+                
+                switch (strength) {
+                    case 0:
+                        message = 'Very weak';
+                        strengthBar.style.width = '25%';
+                        strengthBar.style.backgroundColor = '#ff4d4d';
+                        break;
+                    case 1:
+                        message = 'Weak';
+                        strengthBar.style.width = '25%';
+                        strengthBar.style.backgroundColor = '#ff4d4d';
+                        break;
+                    case 2:
+                        message = 'Fair';
+                        strengthBar.style.width = '50%';
+                        strengthBar.style.backgroundColor = '#ffaa00';
+                        break;
+                    case 3:
+                        message = 'Good';
+                        strengthBar.style.width = '75%';
+                        strengthBar.style.backgroundColor = '#9c9cff';
+                        break;
+                    case 4:
+                        message = 'Strong';
+                        strengthBar.style.width = '100%';
+                        strengthBar.style.backgroundColor = '#4CAF50';
+                        break;
+                }
+                
+                strengthText.textContent = message;
+            });
+            
+            // Function to show success message
+        function showSuccessMessage(message) {
+            const successMessage = document.createElement('div');
+            successMessage.className = 'auth-success';
+            successMessage.textContent = message;
+            signupError.parentNode.insertBefore(successMessage, signupError.nextSibling);
+            
+            // Hide the form
+            signupForm.style.display = 'none';
+            
+            // Show a redirect message
+            const redirectMessage = document.createElement('div');
+            redirectMessage.className = 'auth-redirect';
+            redirectMessage.textContent = 'Redirecting to onboarding...';
+            successMessage.parentNode.insertBefore(redirectMessage, successMessage.nextSibling);
+            
+            // Redirect after 3 seconds
+            setTimeout(() => {
+                window.location.href = './onboarding-personal.html';
+            }, 3000);
+        }
+        
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Clear previous error messages
+            signupError.textContent = '';
+            
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            const agreeTerms = agreeTermsCheckbox.checked;
+            
+            // Validate form
+            if (!email || !password || !confirmPassword) {
+                signupError.textContent = 'Please fill in all fields';
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                signupError.textContent = 'Passwords do not match';
+                return;
+            }
+            
+            if (password.length < 8) {
+                signupError.textContent = 'Password must be at least 8 characters long';
+                return;
+            }
+            
+            if (!agreeTerms) {
+                signupError.textContent = 'You must agree to the Terms of Service and Privacy Policy';
+                return;
+            }
+            
+            // Show loading state
+            const submitBtn = signupForm.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating Account...';
+            
+            try {
+                const { user, error } = await signUpWithEmail(email, password);
+                
+                if (error) {
+                    signupError.textContent = error.message || 'Failed to create account. Please try again.';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalBtnText;
+                    return;
+                }
+                
+                // Check if we're in development mode
+                const isDevelopment = window.location.hostname === 'localhost' || 
+                                    window.location.hostname === '127.0.0.1';
+                
+                if (isDevelopment) {
+                    console.log('Development mode: User registered successfully', user);
+                    showSuccessMessage('Account created successfully! Continuing to onboarding...');
+                } else {
+                    // In production, we would verify email first, then redirect to onboarding
+                    // For now, redirect directly to onboarding in both environments
+                    window.location.href = './onboarding-personal.html';
+                }
+            } catch (err) {
+                console.error('Signup error:', err);
+                signupError.textContent = 'An unexpected error occurred. Please try again.';
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalBtnText;
+            }
+        });
+        });
+    </script>
+</body>
+</html>

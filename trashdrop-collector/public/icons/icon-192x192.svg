@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <rect width="192" height="192" fill="#4CAF50" rx="38" ry="38" />
+  <circle cx="96" cy="96" r="70" fill="#FFFFFF" opacity="0.1" />
+  <path d="M65 55 L96 137 L127 55 Z" fill="#FFFFFF" />
+  <path d="M55 65 L137 96 L55 127 Z" fill="#FFFFFF" transform="rotate(90 96 96)" />
+  <circle cx="96" cy="96" r="20" fill="#FFFFFF" />
+  <circle cx="96" cy="96" r="10" fill="#4CAF50" />
+  <text x="70" y="170" font-family="Arial" font-size="14" font-weight="bold" fill="#FFFFFF">TRASHDROP</text>
+</svg>

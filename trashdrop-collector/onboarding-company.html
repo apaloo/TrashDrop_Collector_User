@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onboarding - Company Details - TrashDrop Collector</title>
+    <meta name="description" content="Complete your company details for TrashDrop Collector account">
+    <link rel="stylesheet" href="./src/styles/main.css">
+    <link rel="stylesheet" href="./src/styles/onboarding.css">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Configuration -->
+    <script src="./src/js/config.js"></script>
+    <!-- Authentication -->
+    <script src="./src/js/auth.js"></script>
+</head>
+<body>
+    <div class="app-container auth-page">
+        <div class="auth-container onboarding-container">
+            <div class="auth-logo">
+                <img src="./public/logo.svg" alt="TrashDrop Logo" class="logo">
+                <h1>TrashDrop Collector</h1>
+            </div>
+            
+            <div class="auth-form-container">
+                <h2>Company Details</h2>
+                
+                <div class="onboarding-progress">
+                    <div class="progress-step completed">
+                        <div class="step-number">1</div>
+                        <div class="step-label">Personal</div>
+                    </div>
+                    <div class="progress-line active"></div>
+                    <div class="progress-step active">
+                        <div class="step-number">2</div>
+                        <div class="step-label">Company</div>
+                    </div>
+                    <div class="progress-line"></div>
+                    <div class="progress-step">
+                        <div class="step-number">3</div>
+                        <div class="step-label">Vehicle</div>
+                    </div>
+                </div>
+                
+                <form id="companyDetailsForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="companyName">Company Name</label>
+                        <input type="text" id="companyName" name="companyName" required placeholder="Enter your company name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="serviceType">Service Type</label>
+                        <select id="serviceType" name="serviceType" required>
+                            <option value="" disabled selected>Select service type</option>
+                            <option value="generalWaste">General Waste Collection</option>
+                            <option value="recycling">Recycling Services</option>
+                            <option value="organicWaste">Organic Waste Collection</option>
+                            <option value="bulkyWaste">Bulky Waste Removal</option>
+                            <option value="hazardousWaste">Hazardous Waste Disposal</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="operatingArea">Operating Area</label>
+                        <select id="operatingArea" name="operatingArea" required>
+                            <option value="" disabled selected>Select operating area</option>
+                            <option value="accra">Accra Metropolitan</option>
+                            <option value="tema">Tema Metropolitan</option>
+                            <option value="kumasi">Kumasi Metropolitan</option>
+                            <option value="tamale">Tamale Metropolitan</option>
+                            <option value="sekondiTakoradi">Sekondi-Takoradi Metropolitan</option>
+                            <option value="other">Other (Specify)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="otherOperatingAreaGroup" style="display: none;">
+                        <label for="otherOperatingArea">Specify Operating Area</label>
+                        <input type="text" id="otherOperatingArea" name="otherOperatingArea" placeholder="Specify your operating area">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="assemblyRegistrationNumber">Assembly Registration Number</label>
+                        <input type="text" id="assemblyRegistrationNumber" name="assemblyRegistrationNumber" required placeholder="Enter assembly registration number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="unionMembership">Union Membership</label>
+                        <select id="unionMembership" name="unionMembership" required>
+                            <option value="" disabled selected>Select union membership</option>
+                            <option value="ewga">Environmental Waste Group Association</option>
+                            <option value="pssu">Private Sector Sanitation Union</option>
+                            <option value="other">Other</option>
+                            <option value="none">None</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="businessStatus">Registered Business Status</label>
+                        <select id="businessStatus" name="businessStatus" required>
+                            <option value="" disabled selected>Select business status</option>
+                            <option value="registered">Registered Business</option>
+                            <option value="inProgress">Registration in Progress</option>
+                            <option value="notRegistered">Not Registered</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="registrationCertificateGroup" style="display: none;">
+                        <label for="registrationCertificate">Upload Company Registration Certificate</label>
+                        <div class="file-upload-container">
+                            <input type="file" id="registrationCertificate" name="registrationCertificate" accept="image/*,.pdf" class="file-input">
+                            <div class="file-upload-button">
+                                <span>Choose File</span>
+                            </div>
+                            <div class="file-name" id="registrationCertificateFileName">No file chosen</div>
+                        </div>
+                        <div class="file-preview" id="registrationCertificatePreview"></div>
+                    </div>
+                    
+                    <div id="companyDetailsError" class="auth-error"></div>
+                    
+                    <div class="onboarding-nav">
+                        <a href="./onboarding-personal.html" class="btn btn-outline">Back to Personal Details</a>
+                        <button type="submit" class="btn btn-primary">Continue to Vehicle Details</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="auth-footer">
+                <p>&copy; 2025 TrashDrop. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onboarding JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get current user or redirect to login
+            async function checkAuth() {
+                const user = await getCurrentUser();
+                if (!user) {
+                    window.location.href = './login.html';
+                }
+                return user;
+            }
+            
+            // Check if personal details were completed
+            const personalDetails = localStorage.getItem('onboardingPersonalDetails');
+            if (!personalDetails) {
+                window.location.href = './onboarding-personal.html';
+            }
+            
+            // Initialize the form
+            const companyDetailsForm = document.getElementById('companyDetailsForm');
+            const companyDetailsError = document.getElementById('companyDetailsError');
+            
+            // Operating Area change handler
+            const operatingArea = document.getElementById('operatingArea');
+            const otherOperatingAreaGroup = document.getElementById('otherOperatingAreaGroup');
+            const otherOperatingArea = document.getElementById('otherOperatingArea');
+            
+            operatingArea.addEventListener('change', () => {
+                if (operatingArea.value === 'other') {
+                    otherOperatingAreaGroup.style.display = 'block';
+                    otherOperatingArea.required = true;
+                } else {
+                    otherOperatingAreaGroup.style.display = 'none';
+                    otherOperatingArea.required = false;
+                }
+            });
+            
+            // Business Status change handler
+            const businessStatus = document.getElementById('businessStatus');
+            const registrationCertificateGroup = document.getElementById('registrationCertificateGroup');
+            const registrationCertificate = document.getElementById('registrationCertificate');
+            
+            businessStatus.addEventListener('change', () => {
+                if (businessStatus.value === 'registered') {
+                    registrationCertificateGroup.style.display = 'block';
+                    registrationCertificate.required = true;
+                } else {
+                    registrationCertificateGroup.style.display = 'none';
+                    registrationCertificate.required = false;
+                }
+            });
+            
+            // File upload preview for Registration Certificate
+            const registrationCertificateFileName = document.getElementById('registrationCertificateFileName');
+            const registrationCertificatePreview = document.getElementById('registrationCertificatePreview');
+            
+            registrationCertificate.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    registrationCertificateFileName.textContent = file.name;
+                    
+                    // Preview image if it's an image
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            registrationCertificatePreview.innerHTML = `<img src="${e.target.result}" alt="Registration Certificate Preview">`;
+                        };
+                        reader.readAsDataURL(file);
+                    } else if (file.type === 'application/pdf') {
+                        // Show PDF icon for PDF files
+                        registrationCertificatePreview.innerHTML = '<div class="pdf-preview">PDF Document</div>';
+                    }
+                } else {
+                    registrationCertificateFileName.textContent = 'No file chosen';
+                    registrationCertificatePreview.innerHTML = '';
+                }
+            });
+            
+            // Form submission
+            companyDetailsForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Clear previous error messages
+                companyDetailsError.textContent = '';
+                
+                try {
+                    // Get form data
+                    const formData = new FormData(companyDetailsForm);
+                    const companyDetails = {
+                        companyName: formData.get('companyName'),
+                        serviceType: formData.get('serviceType'),
+                        operatingArea: formData.get('operatingArea'),
+                        otherOperatingArea: formData.get('otherOperatingArea') || '',
+                        assemblyRegistrationNumber: formData.get('assemblyRegistrationNumber'),
+                        unionMembership: formData.get('unionMembership'),
+                        businessStatus: formData.get('businessStatus'),
+                        // The file will be handled differently in production
+                        registrationCertificate: formData.get('registrationCertificate') ? 
+                            formData.get('registrationCertificate').name : ''
+                    };
+                    
+                    // Save data to localStorage for now (in production, this would be saved to Supabase)
+                    localStorage.setItem('onboardingCompanyDetails', JSON.stringify(companyDetails));
+                    
+                    // Navigate to the next step
+                    window.location.href = './onboarding-vehicle.html';
+                    
+                } catch (error) {
+                    console.error('Error saving company details:', error);
+                    companyDetailsError.textContent = 'Failed to save company details. Please try again.';
+                }
+            });
+            
+            // Check authentication on page load
+            checkAuth();
+        });
+    </script>
+</body>
+</html>

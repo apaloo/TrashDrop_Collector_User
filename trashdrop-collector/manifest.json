@@ -1,0 +1,38 @@
+{
+  "name": "TrashDrop Collector",
+  "short_name": "TrashDrop",
+  "description": "An eco-friendly waste collection service that helps keep communities clean",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ECEFF1",
+  "theme_color": "#4CAF50",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./public/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./public/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "./public/screenshots/home-screen.png",
+      "sizes": "1080x1920",
+      "type": "image/png"
+    },
+    {
+      "src": "./public/screenshots/map-screen.png",
+      "sizes": "1080x1920",
+      "type": "image/png"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

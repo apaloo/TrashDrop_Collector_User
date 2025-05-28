@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignments - TrashDrop Collector</title>
+    <meta name="description" content="View and manage your trash collection assignments">
+    <link rel="stylesheet" href="./src/styles/main.css">
+    <link rel="stylesheet" href="./src/styles/navigation.css">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Configuration -->
+    <script src="./src/js/config.js"></script>
+    
+    <!-- Authentication -->
+    <script src="./src/js/auth.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="page-header">
+            <h1>Assignments</h1>
+            <div class="tab-navigation">
+                <button class="tab-btn active" data-tab="active">Active</button>
+                <button class="tab-btn" data-tab="pending">Pending</button>
+                <button class="tab-btn" data-tab="completed">Completed</button>
+            </div>
+        </header>
+        
+        <main class="page-content">
+            <div id="activeTab" class="tab-content active">
+                <div class="content-card">
+                    <h2>Active Assignments</h2>
+                    <div class="assignments-list" id="activeAssignments">
+                        <p class="empty-state">No active assignments found</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="pendingTab" class="tab-content">
+                <div class="content-card">
+                    <h2>Pending Assignments</h2>
+                    <div class="assignments-list" id="pendingAssignments">
+                        <p class="empty-state">No pending assignments found</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="completedTab" class="tab-content">
+                <div class="content-card">
+                    <h2>Completed Assignments</h2>
+                    <div class="assignments-list" id="completedAssignments">
+                        <p class="empty-state">No completed assignments found</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Assignment Details Modal (Hidden by default) -->
+    <div id="assignmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Assignment Details</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body" id="assignmentDetails">
+                <!-- Details will be populated dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="closeModalBtn">Close</button>
+                <button class="btn btn-primary" id="updateStatusBtn">Update Status</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+        <a href="./map.html" class="nav-item">
+            <span class="material-icons nav-icon">map</span>
+            <span class="nav-label">Map</span>
+        </a>
+        <a href="./request.html" class="nav-item">
+            <span class="material-icons nav-icon">add_circle</span>
+            <span class="nav-label">Request</span>
+        </a>
+        <a href="./assign.html" class="nav-item active">
+            <span class="material-icons nav-icon">assignment</span>
+            <span class="nav-label">Assign</span>
+        </a>
+        <a href="./earnings.html" class="nav-item">
+            <span class="material-icons nav-icon">account_balance_wallet</span>
+            <span class="nav-label">Earnings</span>
+        </a>
+        <a href="./account.html" class="nav-item">
+            <span class="material-icons nav-icon">person</span>
+            <span class="nav-label">Account</span>
+        </a>
+    </nav>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check if user is logged in
+            const user = await getCurrentUser();
+            
+            if (!user) {
+                window.location.href = './login.html';
+                return;
+            }
+            
+            // Tab navigation
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove active class from all buttons and tabs
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    tabContents.forEach(tab => tab.classList.remove('active'));
+                    
+                    // Add active class to clicked button and its corresponding tab
+                    button.classList.add('active');
+                    const tabId = button.getAttribute('data-tab');
+                    document.getElementById(tabId + 'Tab').classList.add('active');
+                });
+            });
+            
+            // Modal functionality
+            const modal = document.getElementById('assignmentModal');
+            const closeModal = document.querySelector('.close-modal');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+            
+            closeModal.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+            
+            closeModalBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+            
+            window.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+            
+            // Load assignments (placeholder)
+            // In production, these would be fetched from Supabase
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account - TrashDrop Collector</title>
+    <meta name="description" content="Manage your TrashDrop Collector account settings">
+    <link rel="stylesheet" href="./src/styles/main.css">
+    <link rel="stylesheet" href="./src/styles/navigation.css">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Configuration -->
+    <script src="./src/js/config.js"></script>
+    
+    <!-- Authentication -->
+    <script src="./src/js/auth.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="page-header">
+            <h1>Account</h1>
+        </header>
+        
+        <main class="page-content">
+            <div class="profile-header content-card">
+                <div class="profile-info">
+                    <div class="profile-avatar">
+                        <span class="material-icons">account_circle</span>
+                    </div>
+                    <div class="profile-details">
+                        <h2 id="profileName">Loading...</h2>
+                        <div class="profile-status" id="profileStatus">
+                            <span class="status-indicator pending"></span>
+                            <span class="status-text">Account Pending Verification</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="profile-actions">
+                    <button class="btn btn-outline btn-sm" id="editProfileBtn">
+                        <span class="material-icons">edit</span>
+                        Edit
+                    </button>
+                </div>
+            </div>
+            
+            <div class="content-card">
+                <h3>Personal Information</h3>
+                <div class="info-list">
+                    <div class="info-item">
+                        <div class="info-label">Email</div>
+                        <div class="info-value" id="profileEmail">Loading...</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Phone</div>
+                        <div class="info-value" id="profilePhone">Loading...</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Company</div>
+                        <div class="info-value" id="profileCompany">Loading...</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Vehicle Type</div>
+                        <div class="info-value" id="profileVehicle">Loading...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-card">
+                <h3>Account Settings</h3>
+                <div class="settings-list">
+                    <a href="javascript:void(0)" class="settings-item">
+                        <div class="settings-icon">
+                            <span class="material-icons">notifications</span>
+                        </div>
+                        <div class="settings-content">
+                            <div class="settings-title">Notification Preferences</div>
+                            <div class="settings-subtitle">Manage how you receive notifications</div>
+                        </div>
+                        <div class="settings-action">
+                            <span class="material-icons">chevron_right</span>
+                        </div>
+                    </a>
+                    
+                    <a href="javascript:void(0)" class="settings-item">
+                        <div class="settings-icon">
+                            <span class="material-icons">lock</span>
+                        </div>
+                        <div class="settings-content">
+                            <div class="settings-title">Password & Security</div>
+                            <div class="settings-subtitle">Update your password and security settings</div>
+                        </div>
+                        <div class="settings-action">
+                            <span class="material-icons">chevron_right</span>
+                        </div>
+                    </a>
+                    
+                    <a href="javascript:void(0)" class="settings-item">
+                        <div class="settings-icon">
+                            <span class="material-icons">language</span>
+                        </div>
+                        <div class="settings-content">
+                            <div class="settings-title">Language & Region</div>
+                            <div class="settings-subtitle">Set your preferred language and region</div>
+                        </div>
+                        <div class="settings-action">
+                            <span class="material-icons">chevron_right</span>
+                        </div>
+                    </a>
+                    
+                    <a href="javascript:void(0)" class="settings-item">
+                        <div class="settings-icon">
+                            <span class="material-icons">help</span>
+                        </div>
+                        <div class="settings-content">
+                            <div class="settings-title">Help & Support</div>
+                            <div class="settings-subtitle">Get assistance and contact support</div>
+                        </div>
+                        <div class="settings-action">
+                            <span class="material-icons">chevron_right</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="content-card">
+                <button class="btn btn-danger btn-block" id="signOutBtn">Sign Out</button>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+        <a href="./map.html" class="nav-item">
+            <span class="material-icons nav-icon">map</span>
+            <span class="nav-label">Map</span>
+        </a>
+        <a href="./request.html" class="nav-item">
+            <span class="material-icons nav-icon">add_circle</span>
+            <span class="nav-label">Request</span>
+        </a>
+        <a href="./assign.html" class="nav-item">
+            <span class="material-icons nav-icon">assignment</span>
+            <span class="nav-label">Assign</span>
+        </a>
+        <a href="./earnings.html" class="nav-item">
+            <span class="material-icons nav-icon">account_balance_wallet</span>
+            <span class="nav-label">Earnings</span>
+        </a>
+        <a href="./account.html" class="nav-item active">
+            <span class="material-icons nav-icon">person</span>
+            <span class="nav-label">Account</span>
+        </a>
+    </nav>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check if user is logged in
+            const user = await getCurrentUser();
+            
+            if (!user) {
+                window.location.href = './login.html';
+                return;
+            }
+            
+            // Load user profile data
+            // In a real app, this would fetch from Supabase
+            // For now, we'll use onboarding data from localStorage if available
+            const profileName = document.getElementById('profileName');
+            const profileEmail = document.getElementById('profileEmail');
+            const profilePhone = document.getElementById('profilePhone');
+            const profileCompany = document.getElementById('profileCompany');
+            const profileVehicle = document.getElementById('profileVehicle');
+            
+            // Try to get onboarding data
+            const onboardingData = localStorage.getItem('onboardingData');
+            if (onboardingData) {
+                const parsedData = JSON.parse(onboardingData);
+                
+                // Update profile with onboarding data
+                profileName.textContent = `${parsedData.personal.firstName} ${parsedData.personal.lastName}`;
+                profilePhone.textContent = parsedData.personal.phoneNumber;
+                profileCompany.textContent = parsedData.company.companyName;
+                profileVehicle.textContent = parsedData.vehicle.vehicleType;
+            } else {
+                // Use fallback data if onboarding data is not available
+                profileName.textContent = user.email?.split('@')[0] || 'User';
+                profilePhone.textContent = 'Not provided';
+                profileCompany.textContent = 'Not provided';
+                profileVehicle.textContent = 'Not provided';
+            }
+            
+            // Set email from user object
+            profileEmail.textContent = user.email || 'No email provided';
+            
+            // Sign out button
+            const signOutBtn = document.getElementById('signOutBtn');
+            signOutBtn.addEventListener('click', async () => {
+                try {
+                    await signOut();
+                    window.location.href = './login.html';
+                } catch (error) {
+                    console.error('Sign out error:', error);
+                    alert('Failed to sign out. Please try again.');
+                }
+            });
+            
+            // Edit profile button (placeholder functionality)
+            const editProfileBtn = document.getElementById('editProfileBtn');
+            editProfileBtn.addEventListener('click', () => {
+                alert('Profile editing will be available soon');
+            });
+            
+            // Settings items (placeholder functionality)
+            const settingsItems = document.querySelectorAll('.settings-item');
+            settingsItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    alert('This feature is coming soon!');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

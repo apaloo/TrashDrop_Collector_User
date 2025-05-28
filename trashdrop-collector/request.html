@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request - TrashDrop Collector</title>
+    <meta name="description" content="View and manage trash collection requests">
+    <link rel="stylesheet" href="./src/styles/main.css">
+    <link rel="stylesheet" href="./src/styles/navigation.css">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Configuration -->
+    <script src="./src/js/config.js"></script>
+    
+    <!-- Authentication -->
+    <script src="./src/js/auth.js"></script>
+
+    <style>
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #757575;
+            position: relative;
+        }
+        
+        .tab.active {
+            color: #4CAF50;
+        }
+        
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: #4CAF50;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .request-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            background-color: #fff;
+        }
+        
+        .request-details {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        
+        .request-type {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-right: 8px;
+        }
+        
+        .request-type.recyclable {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .request-type.general {
+            background-color: #e3f2fd;
+            color: #1565c0;
+        }
+        
+        .request-type.hazardous {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        
+        .request-distance {
+            color: #757575;
+            font-size: 0.9rem;
+        }
+        
+        .request-address {
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+        
+        .request-info {
+            display: flex;
+            margin-bottom: 12px;
+            color: #616161;
+            font-size: 0.9rem;
+        }
+        
+        .request-info div {
+            margin-right: 16px;
+        }
+        
+        .request-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 32px 16px;
+            color: #757575;
+        }
+
+        /* QR Scanner Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            position: relative;
+            background-color: #fff;
+            margin: 60px auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        #qrScanner {
+            width: 100%;
+            height: 250px;
+            background-color: #f5f5f5;
+            margin-bottom: 16px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .scanned-bags-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+        }
+        
+        .scanned-bags-table th,
+        .scanned-bags-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .scanned-bags-table th {
+            background-color: #f5f5f5;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="page-header">
+            <h1>Requests</h1>
+        </header>
+        
+        <main class="page-content">
+            <div class="content-card">
+                <div class="tabs">
+                    <div class="tab active" data-tab="available">Available</div>
+                    <div class="tab" data-tab="accepted">Accepted</div>
+                    <div class="tab" data-tab="pickedUp">Picked Up</div>
+                </div>
+                
+                <!-- Available Requests Tab -->
+                <div id="availableTab" class="tab-content active">
+                    <div id="availableRequests" class="request-list">
+                        <p class="empty-state">Loading available requests...</p>
+                    </div>
+                </div>
+                
+                <!-- Accepted Requests Tab -->
+                <div id="acceptedTab" class="tab-content">
+                    <div id="acceptedRequests" class="request-list">
+                        <p class="empty-state">No accepted requests</p>
+                    </div>
+                </div>
+                
+                <!-- Picked Up Requests Tab -->
+                <div id="pickedUpTab" class="tab-content">
+                    <div id="pickedUpRequests" class="request-list">
+                        <p class="empty-state">No picked up requests</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- QR Scanner Modal -->
+        <div id="qrScannerModal" class="modal">
+            <div class="modal-content">
+                <span class="close-btn">&times;</span>
+                <h2>Scan Bag QR Code</h2>
+                <div id="qrScanner"></div>
+                <div id="scanResult"></div>
+                
+                <table class="scanned-bags-table">
+                    <thead>
+                        <tr>
+                            <th>Bag ID</th>
+                            <th>Type</th>
+                            <th>Points</th>
+                            <th>Fee</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scannedBagsTable">
+                        <!-- Scanned bags will be added here -->
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="2"><strong>Total</strong></td>
+                            <td id="totalPoints">0</td>
+                            <td id="totalFee">$0.00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                
+                <button id="completePickupBtn" class="btn btn-primary">Complete Pickup</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+        <a href="./map.html" class="nav-item">
+            <span class="material-icons nav-icon">map</span>
+            <span class="nav-label">Map</span>
+        </a>
+        <a href="./request.html" class="nav-item active">
+            <span class="material-icons nav-icon">add_circle</span>
+            <span class="nav-label">Request</span>
+        </a>
+        <a href="./assign.html" class="nav-item">
+            <span class="material-icons nav-icon">assignment</span>
+            <span class="nav-label">Assign</span>
+        </a>
+        <a href="./earnings.html" class="nav-item">
+            <span class="material-icons nav-icon">account_balance_wallet</span>
+            <span class="nav-label">Earnings</span>
+        </a>
+        <a href="./account.html" class="nav-item">
+            <span class="material-icons nav-icon">person</span>
+            <span class="nav-label">Account</span>
+        </a>
+    </nav>
+    
+    <!-- Request JavaScript -->
+    <script src="./src/js/request.js"></script>
+</body>
+</html>

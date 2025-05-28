@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrashDrop Collector</title>
+    <meta name="description" content="An eco-friendly waste collection service">
+    <link rel="stylesheet" href="./src/styles/main.css">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <!-- Add PWA meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="TrashDrop">
+    <link rel="apple-touch-icon" href="./public/icons/icon-192x192.png">
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Configuration -->
+    <script src="./src/js/config.js"></script>
+    <!-- Leaflet CSS for maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo-container">
+                <img src="./public/logo.svg" alt="TrashDrop Logo" class="logo">
+                <h1>TrashDrop Collector</h1>
+            </div>
+            <div class="header-controls">
+                <button id="loginBtn" class="btn btn-outline">Login</button>
+                <button id="signupBtn" class="btn btn-primary">Sign Up</button>
+            </div>
+        </header>
+
+        <main>
+            <section class="hero">
+                <div class="hero-content">
+                    <h2>Make Our Environment Cleaner</h2>
+                    <p>Join TrashDrop and help keep our communities clean while earning rewards.</p>
+                    <button id="getStartedBtn" class="btn btn-large btn-primary">Get Started</button>
+                </div>
+                <div class="hero-image">
+                    <img src="./public/hero-image.svg" alt="Clean Environment Illustration">
+                </div>
+            </section>
+
+            <section class="features">
+                <h2>How It Works</h2>
+                <div class="feature-cards">
+                    <div class="feature-card">
+                        <div class="feature-icon">🔍</div>
+                        <h3>Find Requests</h3>
+                        <p>View available trash collection requests and illegal dumping areas on the map.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">✅</div>
+                        <h3>Accept Jobs</h3>
+                        <p>Choose the jobs that work best for your schedule and location.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">♻️</div>
+                        <h3>Collect & Dispose</h3>
+                        <p>Collect trash and properly dispose of it at designated centers.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">💰</div>
+                        <h3>Earn Rewards</h3>
+                        <p>Get paid for each completed job and earn additional eco-points.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="cta">
+                <h2>Ready to Start Collecting?</h2>
+                <p>Join our network of eco-conscious collectors today!</p>
+                <button id="joinNowBtn" class="btn btn-large btn-primary">Join Now</button>
+            </section>
+        </main>
+
+        <footer>
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="./public/logo-small.svg" alt="TrashDrop Logo" class="logo-small">
+                    <p>TrashDrop Collector</p>
+                </div>
+                <div class="footer-links">
+                    <ul>
+                        <li><a href="./about.html">About Us</a></li>
+                        <li><a href="./privacy.html">Privacy Policy</a></li>
+                        <li><a href="./terms.html">Terms of Service</a></li>
+                        <li><a href="./contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <a href="#" class="social-icon">📱</a>
+                    <a href="#" class="social-icon">💬</a>
+                    <a href="#" class="social-icon">📧</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 TrashDrop. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Install Service Worker for PWA -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => console.log('Service Worker registered: ', reg))
+                    .catch(err => console.log('Service Worker registration failed: ', err));
+            });
+        }
+    </script>
+    
+    <!-- Main JavaScript -->
+    <script src="./src/js/main.js"></script>
+    <script src="./src/js/auth.js"></script>
+    
+    <!-- Event Listeners for Buttons -->
+    <script>
+        document.getElementById('loginBtn').addEventListener('click', () => {
+            window.location.href = './login.html';
+        });
+        
+        document.getElementById('signupBtn').addEventListener('click', () => {
+            window.location.href = './signup.html';
+        });
+        
+        document.getElementById('getStartedBtn').addEventListener('click', () => {
+            window.location.href = './signup.html';
+        });
+        
+        document.getElementById('joinNowBtn').addEventListener('click', () => {
+            window.location.href = './signup.html';
+        });
+    </script>
+</body>
+</html>

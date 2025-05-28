@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map - TrashDrop Collector</title>
+    <meta name="description" content="TrashDrop Collector map view">
+    <link rel="stylesheet" href="./src/styles/main.css">
+    <link rel="stylesheet" href="./src/styles/navigation.css">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Leaflet CSS for maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+            
+    <!-- Configuration -->
+    <script src="./src/js/config.js"></script>
+    
+    <!-- Authentication -->
+    <script src="./src/js/auth.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <div class="map-container">
+            <div id="map"></div>
+            
+            <div class="map-controls">
+                <div class="status-toggle">
+                    <label for="onlineToggle" class="toggle-label">
+                        <span id="statusText">Offline</span>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="onlineToggle">
+                            <span class="toggle-slider"></span>
+                        </div>
+                    </label>
+                </div>
+                
+                <div class="map-filters">
+                    <div class="radius-filter">
+                        <label for="radiusSlider">Radius: <span id="radiusValue">5</span> km</label>
+                        <input type="range" id="radiusSlider" min="1" max="20" value="5">
+                    </div>
+                    
+                    <div class="trash-type-filter">
+                        <button class="filter-btn active" data-type="all">All Types</button>
+                        <button class="filter-btn" data-type="recyclable">Recyclable</button>
+                        <button class="filter-btn" data-type="general">General</button>
+                        <button class="filter-btn" data-type="hazardous">Hazardous</button>
+                    </div>
+                </div>
+                
+                <button id="listViewBtn" class="btn btn-primary">List View</button>
+            </div>
+            
+            <div class="map-overlay">
+                <div id="requestCountBadge" class="request-count-badge">0</div>
+            </div>
+        </div>
+        
+        <nav class="bottom-nav">
+            <a href="./map.html" class="nav-item active">
+                <i class="material-icons">map</i>
+                <span>Map</span>
+            </a>
+            <a href="./request.html" class="nav-item">
+                <i class="material-icons">add_circle</i>
+                <span>Request</span>
+            </a>
+            <a href="./assign.html" class="nav-item">
+                <i class="material-icons">assignment</i>
+                <span>Assign</span>
+            </a>
+            <a href="./earnings.html" class="nav-item">
+                <i class="material-icons">account_balance_wallet</i>
+                <span>Earnings</span>
+            </a>
+            <a href="./account.html" class="nav-item">
+                <i class="material-icons">person</i>
+                <span>Account</span>
+            </a>
+        </nav>
+        
+        <!-- Notifications Container -->
+        <div id="notificationsContainer" class="notifications-container"></div>
+    </div>
+
+    <!-- Main JavaScript -->
+    <script src="./src/js/map.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check if user is logged in
+            const user = await getCurrentUser();
+            
+            if (!user) {
+                // Redirect to login if not logged in
+                window.location.href = './login.html';
+                return;
+            }
+            
+            // Initialize map with default coordinates (Accra, Ghana)
+            const map = L.map('map').setView([5.6037, -0.1870], 13);
+            
+            // Add OpenStreetMap tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            }).addTo(map);
+            
+            // Get user's current location
+            try {
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true });
+                });
+                
+                const { latitude, longitude } = position.coords;
+                const coords = [latitude, longitude];
+                
+                // Update map view to user's location
+                map.setView(coords, 15);
+                
+                // Add user marker
+                const userMarker = L.marker(coords).addTo(map)
+                    .bindPopup('Your location')
+                    .openPopup();
+                
+                // Add radius circle (default 5km)
+                const radius = parseInt(sessionStorage.getItem('currentRadius') || 5);
+                document.getElementById('radiusSlider').value = radius;
+                document.getElementById('radiusValue').textContent = radius;
+                
+                // Create radius circle
+                const radiusCircle = L.circle(coords, {
+                    color: '#4CAF50',
+                    fillColor: '#4CAF50',
+                    fillOpacity: 0.1,
+                    radius: radius * 1000 // Convert to meters
+                }).addTo(map);
+                
+                // Restore trash type filter from session if available
+                const trashType = sessionStorage.getItem('currentTrashType') || 'all';
+                const filterButtons = document.querySelectorAll('.filter-btn');
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                document.querySelector(`.filter-btn[data-type="${trashType}"]`).classList.add('active');
+                
+                // Fetch nearby requests with restored filters
+                fetchNearbyRequests(coords, radius, trashType);
+                
+            } catch (error) {
+                showNotification('Unable to access your location. Please enable location services.', 'error');
+                console.error('Geolocation error:', error);
+            }
+            
+            // Status toggle functionality
+            const onlineToggle = document.getElementById('onlineToggle');
+            const statusText = document.getElementById('statusText');
+            
+            // Restore online status from localStorage if available
+            const savedStatus = localStorage.getItem('collectorOnlineStatus');
+            if (savedStatus) {
+                const isOnline = savedStatus === 'online';
+                onlineToggle.checked = isOnline;
+                statusText.textContent = isOnline ? 'Online' : 'Offline';
+                if (isOnline) {
+                    statusText.classList.add('online');
+                    statusText.classList.remove('offline');
+                } else {
+                    statusText.classList.add('offline');
+                    statusText.classList.remove('online');
+                }
+            }
+            
+            onlineToggle.addEventListener('change', async () => {
+                const isOnline = onlineToggle.checked;
+                statusText.textContent = isOnline ? 'Online' : 'Offline';
+                
+                if (isOnline) {
+                    statusText.classList.add('online');
+                    statusText.classList.remove('offline');
+                    showNotification('You are now online and available for requests', 'success');
+                } else {
+                    statusText.classList.add('offline');
+                    statusText.classList.remove('online');
+                    showNotification('You are now offline', 'info');
+                }
+                
+                // Update user status in database
+                try {
+                    await updateUserStatus(isOnline);
+                } catch (error) {
+                    console.error('Failed to update status:', error);
+                    showNotification('Failed to update your status', 'error');
+                }
+            });
+            
+            // Radius slider functionality
+            const radiusSlider = document.getElementById('radiusSlider');
+            const radiusValue = document.getElementById('radiusValue');
+            
+            radiusSlider.addEventListener('input', () => {
+                const radius = parseInt(radiusSlider.value);
+                radiusValue.textContent = radius;
+                updateRadius(radius);
+            });
+            
+            // Trash type filter functionality
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            
+            filterButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove active class from all buttons
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    
+                    // Add active class to clicked button
+                    button.classList.add('active');
+                    
+                    // Get trash type from data attribute
+                    const trashType = button.getAttribute('data-type');
+                    
+                    // Filter requests using map.js function
+                    filterRequestsByType(trashType);
+                });
+            });
+            
+            // List View button functionality
+            const listViewBtn = document.getElementById('listViewBtn');
+            
+            listViewBtn.addEventListener('click', () => {
+                // Use the navigateToListView function from map.js
+                navigateToListView();
+            });
+        });
+    </script>
+</body>
+</html>

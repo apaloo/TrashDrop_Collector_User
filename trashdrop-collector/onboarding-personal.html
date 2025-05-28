@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onboarding - Personal Details - TrashDrop Collector</title>
+    <meta name="description" content="Complete your personal details for TrashDrop Collector account">
+    <link rel="stylesheet" href="./src/styles/main.css">
+    <link rel="stylesheet" href="./src/styles/onboarding.css">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Configuration -->
+    <script src="./src/js/config.js"></script>
+    <!-- Authentication -->
+    <script src="./src/js/auth.js"></script>
+</head>
+<body>
+    <div class="app-container auth-page">
+        <div class="auth-container onboarding-container">
+            <div class="auth-logo">
+                <img src="./public/logo.svg" alt="TrashDrop Logo" class="logo">
+                <h1>TrashDrop Collector</h1>
+            </div>
+            
+            <div class="auth-form-container">
+                <h2>Personal Details</h2>
+                
+                <div class="onboarding-progress">
+                    <div class="progress-step active">
+                        <div class="step-number">1</div>
+                        <div class="step-label">Personal</div>
+                    </div>
+                    <div class="progress-line"></div>
+                    <div class="progress-step">
+                        <div class="step-number">2</div>
+                        <div class="step-label">Company</div>
+                    </div>
+                    <div class="progress-line"></div>
+                    <div class="progress-step">
+                        <div class="step-number">3</div>
+                        <div class="step-label">Vehicle</div>
+                    </div>
+                </div>
+                
+                <form id="personalDetailsForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="firstName">First Name</label>
+                        <input type="text" id="firstName" name="firstName" required placeholder="Enter your first name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="lastName">Last Name</label>
+                        <input type="text" id="lastName" name="lastName" required placeholder="Enter your last name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phoneNumber">Phone Number</label>
+                        <input type="tel" id="phoneNumber" name="phoneNumber" required placeholder="Enter your phone number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ghanaCardNumber">Ghana Card Number</label>
+                        <input type="text" id="ghanaCardNumber" name="ghanaCardNumber" required placeholder="Enter your Ghana Card number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ghanaCardFront">Upload Ghana Card Photo (Front)</label>
+                        <div class="file-upload-container">
+                            <input type="file" id="ghanaCardFront" name="ghanaCardFront" required accept="image/*" class="file-input">
+                            <div class="file-upload-button">
+                                <span>Choose File</span>
+                            </div>
+                            <div class="file-name" id="ghanaCardFrontFileName">No file chosen</div>
+                        </div>
+                        <div class="file-preview" id="ghanaCardFrontPreview"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ghanaCardBack">Upload Ghana Card Photo (Back)</label>
+                        <div class="file-upload-container">
+                            <input type="file" id="ghanaCardBack" name="ghanaCardBack" required accept="image/*" class="file-input">
+                            <div class="file-upload-button">
+                                <span>Choose File</span>
+                            </div>
+                            <div class="file-name" id="ghanaCardBackFileName">No file chosen</div>
+                        </div>
+                        <div class="file-preview" id="ghanaCardBackPreview"></div>
+                    </div>
+                    
+                    <div id="personalDetailsError" class="auth-error"></div>
+                    
+                    <div class="onboarding-nav">
+                        <button type="submit" class="btn btn-primary btn-block">Continue to Company Details</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="auth-footer">
+                <p>&copy; 2025 TrashDrop. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onboarding JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get current user or redirect to login
+            async function checkAuth() {
+                const user = await getCurrentUser();
+                if (!user) {
+                    window.location.href = './login.html';
+                }
+                return user;
+            }
+            
+            // Initialize the form
+            const personalDetailsForm = document.getElementById('personalDetailsForm');
+            const personalDetailsError = document.getElementById('personalDetailsError');
+            
+            // File upload preview for Ghana Card Front
+            const ghanaCardFront = document.getElementById('ghanaCardFront');
+            const ghanaCardFrontFileName = document.getElementById('ghanaCardFrontFileName');
+            const ghanaCardFrontPreview = document.getElementById('ghanaCardFrontPreview');
+            
+            ghanaCardFront.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    ghanaCardFrontFileName.textContent = file.name;
+                    
+                    // Preview image
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        ghanaCardFrontPreview.innerHTML = `<img src="${e.target.result}" alt="Ghana Card Front Preview">`;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    ghanaCardFrontFileName.textContent = 'No file chosen';
+                    ghanaCardFrontPreview.innerHTML = '';
+                }
+            });
+            
+            // File upload preview for Ghana Card Back
+            const ghanaCardBack = document.getElementById('ghanaCardBack');
+            const ghanaCardBackFileName = document.getElementById('ghanaCardBackFileName');
+            const ghanaCardBackPreview = document.getElementById('ghanaCardBackPreview');
+            
+            ghanaCardBack.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    ghanaCardBackFileName.textContent = file.name;
+                    
+                    // Preview image
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        ghanaCardBackPreview.innerHTML = `<img src="${e.target.result}" alt="Ghana Card Back Preview">`;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    ghanaCardBackFileName.textContent = 'No file chosen';
+                    ghanaCardBackPreview.innerHTML = '';
+                }
+            });
+            
+            // Form submission
+            personalDetailsForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Clear previous error messages
+                personalDetailsError.textContent = '';
+                
+                try {
+                    // Get form data
+                    const formData = new FormData(personalDetailsForm);
+                    const personalDetails = {
+                        firstName: formData.get('firstName'),
+                        lastName: formData.get('lastName'),
+                        phoneNumber: formData.get('phoneNumber'),
+                        ghanaCardNumber: formData.get('ghanaCardNumber'),
+                        // The files will be handled differently in production
+                        ghanaCardFront: formData.get('ghanaCardFront').name,
+                        ghanaCardBack: formData.get('ghanaCardBack').name
+                    };
+                    
+                    // Save data to localStorage for now (in production, this would be saved to Supabase)
+                    localStorage.setItem('onboardingPersonalDetails', JSON.stringify(personalDetails));
+                    
+                    // Navigate to the next step
+                    window.location.href = './onboarding-company.html';
+                    
+                } catch (error) {
+                    console.error('Error saving personal details:', error);
+                    personalDetailsError.textContent = 'Failed to save personal details. Please try again.';
+                }
+            });
+            
+            // Check authentication on page load
+            checkAuth();
+        });
+    </script>
+</body>
+</html>

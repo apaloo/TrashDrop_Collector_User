@@ -1,0 +1,192 @@
+/* TrashDrop Collector App - Onboarding Styles */
+
+/* Onboarding Container */
+.onboarding-container {
+    max-width: 600px;
+}
+
+/* Progress Indicator */
+.onboarding-progress {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    padding: 0 1rem;
+}
+
+.progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+}
+
+.step-number {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--medium-light);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    transition: var(--transition);
+}
+
+.step-label {
+    font-size: 0.875rem;
+    color: var(--medium);
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.progress-step.active .step-number {
+    background-color: var(--primary-color);
+    transform: scale(1.1);
+}
+
+.progress-step.active .step-label {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.progress-step.completed .step-number {
+    background-color: var(--success);
+}
+
+.progress-step.completed .step-label {
+    color: var(--success);
+}
+
+.progress-line {
+    flex: 1;
+    height: 3px;
+    background-color: var(--medium-light);
+    position: relative;
+    z-index: 0;
+    transition: var(--transition);
+}
+
+.progress-line.active {
+    background: linear-gradient(to right, var(--success) 50%, var(--medium-light) 50%);
+}
+
+.progress-line.completed {
+    background-color: var(--success);
+}
+
+/* File Upload */
+.file-upload-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.file-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.file-upload-button {
+    padding: 0.75rem 1rem;
+    background-color: var(--primary-light);
+    color: var(--primary-dark);
+    border-radius: var(--border-radius) 0 0 var(--border-radius);
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.file-name {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    background-color: var(--light);
+    border: 1px solid var(--medium-light);
+    border-left: none;
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-preview {
+    margin-top: 1rem;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    max-width: 100%;
+}
+
+.file-preview img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+.pdf-preview {
+    padding: 1.5rem;
+    background-color: var(--light);
+    text-align: center;
+    font-weight: 500;
+    color: var(--medium-dark);
+    border: 1px solid var(--medium-light);
+    border-radius: var(--border-radius);
+}
+
+/* Onboarding Navigation */
+.onboarding-nav {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+    gap: 1rem;
+}
+
+.onboarding-nav .btn {
+    flex: 1;
+}
+
+/* Onboarding Completion */
+.onboarding-completion {
+    text-align: center;
+    padding: 2rem;
+}
+
+.completion-icon {
+    font-size: 3rem;
+    color: var(--success);
+    margin-bottom: 1rem;
+}
+
+.completion-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.completion-message {
+    color: var(--medium);
+    margin-bottom: 2rem;
+}
+
+/* Responsive Styles */
+@media (max-width: 576px) {
+    .onboarding-progress {
+        padding: 0;
+    }
+    
+    .step-label {
+        font-size: 0.75rem;
+    }
+    
+    .onboarding-nav {
+        flex-direction: column;
+    }
+}

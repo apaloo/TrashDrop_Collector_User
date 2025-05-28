@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onboarding - Vehicle Details - TrashDrop Collector</title>
+    <meta name="description" content="Complete your vehicle details for TrashDrop Collector account">
+    <link rel="stylesheet" href="./src/styles/main.css">
+    <link rel="stylesheet" href="./src/styles/onboarding.css">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Configuration -->
+    <script src="./src/js/config.js"></script>
+    <!-- Authentication -->
+    <script src="./src/js/auth.js"></script>
+</head>
+<body>
+    <div class="app-container auth-page">
+        <div class="auth-container onboarding-container">
+            <div class="auth-logo">
+                <img src="./public/logo.svg" alt="TrashDrop Logo" class="logo">
+                <h1>TrashDrop Collector</h1>
+            </div>
+            
+            <div class="auth-form-container">
+                <h2>Vehicle Details</h2>
+                
+                <div class="onboarding-progress">
+                    <div class="progress-step completed">
+                        <div class="step-number">1</div>
+                        <div class="step-label">Personal</div>
+                    </div>
+                    <div class="progress-line completed"></div>
+                    <div class="progress-step completed">
+                        <div class="step-number">2</div>
+                        <div class="step-label">Company</div>
+                    </div>
+                    <div class="progress-line active"></div>
+                    <div class="progress-step active">
+                        <div class="step-number">3</div>
+                        <div class="step-label">Vehicle</div>
+                    </div>
+                </div>
+                
+                <form id="vehicleDetailsForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="registrationNumber">Vehicle Registration Number</label>
+                        <input type="text" id="registrationNumber" name="registrationNumber" required placeholder="Enter vehicle registration number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="chassisNumber">Chassis Number</label>
+                        <input type="text" id="chassisNumber" name="chassisNumber" required placeholder="Enter chassis number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="vehicleType">Vehicle Type</label>
+                        <select id="vehicleType" name="vehicleType" required>
+                            <option value="" disabled selected>Select vehicle type</option>
+                            <option value="compactorTruck">Compactor Truck</option>
+                            <option value="rollOffTruck">Roll-Off Truck</option>
+                            <option value="frontLoader">Front Loader</option>
+                            <option value="rearLoader">Rear Loader</option>
+                            <option value="sideLoader">Side Loader</option>
+                            <option value="tricycle">Tricycle (Aboboyaa)</option>
+                            <option value="pickup">Pickup Truck</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="vehicleStatus">Vehicle Status</label>
+                        <select id="vehicleStatus" name="vehicleStatus" required>
+                            <option value="" disabled selected>Select vehicle status</option>
+                            <option value="owned">Owned</option>
+                            <option value="leased">Leased</option>
+                            <option value="rented">Rented</option>
+                            <option value="borrowed">Borrowed</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="vehiclePhoto">Upload Vehicle Photo</label>
+                        <div class="file-upload-container">
+                            <input type="file" id="vehiclePhoto" name="vehiclePhoto" required accept="image/*" class="file-input">
+                            <div class="file-upload-button">
+                                <span>Choose File</span>
+                            </div>
+                            <div class="file-name" id="vehiclePhotoFileName">No file chosen</div>
+                        </div>
+                        <div class="file-preview" id="vehiclePhotoPreview"></div>
+                    </div>
+                    
+                    <div id="vehicleDetailsError" class="auth-error"></div>
+                    
+                    <div class="onboarding-nav">
+                        <a href="./onboarding-company.html" class="btn btn-outline">Back to Company Details</a>
+                        <button type="submit" class="btn btn-primary">Complete Onboarding</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="auth-footer">
+                <p>&copy; 2025 TrashDrop. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onboarding JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get current user or redirect to login
+            async function checkAuth() {
+                const user = await getCurrentUser();
+                if (!user) {
+                    window.location.href = './login.html';
+                }
+                return user;
+            }
+            
+            // Check if previous steps were completed
+            const personalDetails = localStorage.getItem('onboardingPersonalDetails');
+            const companyDetails = localStorage.getItem('onboardingCompanyDetails');
+            
+            if (!personalDetails) {
+                window.location.href = './onboarding-personal.html';
+            } else if (!companyDetails) {
+                window.location.href = './onboarding-company.html';
+            }
+            
+            // Initialize the form
+            const vehicleDetailsForm = document.getElementById('vehicleDetailsForm');
+            const vehicleDetailsError = document.getElementById('vehicleDetailsError');
+            
+            // File upload preview for Vehicle Photo
+            const vehiclePhoto = document.getElementById('vehiclePhoto');
+            const vehiclePhotoFileName = document.getElementById('vehiclePhotoFileName');
+            const vehiclePhotoPreview = document.getElementById('vehiclePhotoPreview');
+            
+            vehiclePhoto.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    vehiclePhotoFileName.textContent = file.name;
+                    
+                    // Preview image
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        vehiclePhotoPreview.innerHTML = `<img src="${e.target.result}" alt="Vehicle Photo Preview">`;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    vehiclePhotoFileName.textContent = 'No file chosen';
+                    vehiclePhotoPreview.innerHTML = '';
+                }
+            });
+            
+            // Form submission
+            vehicleDetailsForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                // Clear previous error messages
+                vehicleDetailsError.textContent = '';
+                
+                try {
+                    // Get form data
+                    const formData = new FormData(vehicleDetailsForm);
+                    const vehicleDetails = {
+                        registrationNumber: formData.get('registrationNumber'),
+                        chassisNumber: formData.get('chassisNumber'),
+                        vehicleType: formData.get('vehicleType'),
+                        vehicleStatus: formData.get('vehicleStatus'),
+                        // The file will be handled differently in production
+                        vehiclePhoto: formData.get('vehiclePhoto').name
+                    };
+                    
+                    // Save data to localStorage for now (in production, this would be saved to Supabase)
+                    localStorage.setItem('onboardingVehicleDetails', JSON.stringify(vehicleDetails));
+                    
+                    // In production, combine all data and save to Supabase
+                    // For now, we'll simulate completing the onboarding process
+                    const parsedPersonalDetails = JSON.parse(localStorage.getItem('onboardingPersonalDetails'));
+                    const parsedCompanyDetails = JSON.parse(localStorage.getItem('onboardingCompanyDetails'));
+                    
+                    // Combine all onboarding data
+                    const onboardingData = {
+                        personal: parsedPersonalDetails,
+                        company: parsedCompanyDetails,
+                        vehicle: vehicleDetails,
+                        completed: true,
+                        completedAt: new Date().toISOString()
+                    };
+                    
+                    // Save the combined data
+                    localStorage.setItem('onboardingData', JSON.stringify(onboardingData));
+                    
+                    // Update user status
+                    // In production, this would update the user's profile in Supabase
+                    localStorage.setItem('onboardingCompleted', 'true');
+                    
+                    // Navigate to the map page (main app)
+                    window.location.href = './map.html?onboarding=complete';
+                    
+                } catch (error) {
+                    console.error('Error completing onboarding:', error);
+                    vehicleDetailsError.textContent = 'Failed to complete onboarding. Please try again.';
+                }
+            });
+            
+            // Check authentication on page load
+            checkAuth();
+        });
+    </script>
+</body>
+</html>

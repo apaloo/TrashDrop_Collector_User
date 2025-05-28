@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login - TrashDrop Collector</title>
+    <meta name="description" content="Test Login page">
+    <link rel="stylesheet" href="./src/styles/main.css">
+    
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Configuration -->
+    <script src="./src/js/config.js"></script>
+    
+    <!-- Authentication -->
+    <script src="./src/js/auth.js"></script>
+    
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        input {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .result {
+            background: #f1f1f1;
+            padding: 1rem;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TrashDrop Authentication Test</h1>
+        
+        <div class="card">
+            <h2>Environment</h2>
+            <div class="result" id="environmentInfo"></div>
+        </div>
+        
+        <div class="card">
+            <h2>Login Test</h2>
+            <form id="testLoginForm">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" value="test@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" value="Password123!">
+                </div>
+                <button type="submit">Test Login</button>
+            </form>
+            <div class="result" id="loginResult"></div>
+        </div>
+        
+        <div class="card">
+            <h2>Current User Test</h2>
+            <button id="checkUserBtn">Check Current User</button>
+            <div class="result" id="userResult"></div>
+        </div>
+        
+        <div class="card">
+            <h2>LocalStorage Test</h2>
+            <button id="checkStorageBtn">Check LocalStorage</button>
+            <div class="result" id="storageResult"></div>
+        </div>
+        
+        <div class="card">
+            <h2>Navigation Test</h2>
+            <button id="testMapBtn">Go to Map Page</button>
+            <div class="result" id="navResult"></div>
+        </div>
+        
+        <div class="card">
+            <h2>Sign Out Test</h2>
+            <button id="signOutBtn">Test Sign Out</button>
+            <div class="result" id="signOutResult"></div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Display environment info
+            const environmentInfo = document.getElementById('environmentInfo');
+            environmentInfo.textContent = `isDevelopment: ${window.isDevelopment}\n`;
+            environmentInfo.textContent += `Current hostname: ${window.location.hostname}`;
+            
+            // Test login
+            const testLoginForm = document.getElementById('testLoginForm');
+            const loginResult = document.getElementById('loginResult');
+            
+            testLoginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                
+                loginResult.textContent = 'Logging in...';
+                
+                try {
+                    const result = await signInWithEmail(email, password);
+                    loginResult.textContent = JSON.stringify(result, null, 2);
+                    loginResult.classList.remove('error');
+                } catch (error) {
+                    loginResult.textContent = 'Error: ' + error.message;
+                    loginResult.classList.add('error');
+                }
+            });
+            
+            // Test current user
+            const checkUserBtn = document.getElementById('checkUserBtn');
+            const userResult = document.getElementById('userResult');
+            
+            checkUserBtn.addEventListener('click', async () => {
+                userResult.textContent = 'Checking...';
+                
+                try {
+                    const user = await getCurrentUser();
+                    userResult.textContent = user ? JSON.stringify(user, null, 2) : 'No user found';
+                    userResult.classList.remove('error');
+                } catch (error) {
+                    userResult.textContent = 'Error: ' + error.message;
+                    userResult.classList.add('error');
+                }
+            });
+            
+            // Test localStorage
+            const checkStorageBtn = document.getElementById('checkStorageBtn');
+            const storageResult = document.getElementById('storageResult');
+            
+            checkStorageBtn.addEventListener('click', () => {
+                storageResult.textContent = 'LocalStorage contents:\n';
+                
+                try {
+                    const mockUser = localStorage.getItem('mockUser');
+                    storageResult.textContent += `mockUser: ${mockUser ? JSON.stringify(JSON.parse(mockUser), null, 2) : 'Not found'}\n\n`;
+                    
+                    // List all localStorage items
+                    storageResult.textContent += 'All localStorage items:\n';
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        const value = localStorage.getItem(key);
+                        storageResult.textContent += `${key}: ${value}\n`;
+                    }
+                    
+                    storageResult.classList.remove('error');
+                } catch (error) {
+                    storageResult.textContent = 'Error: ' + error.message;
+                    storageResult.classList.add('error');
+                }
+            });
+            
+            // Test navigation
+            const testMapBtn = document.getElementById('testMapBtn');
+            const navResult = document.getElementById('navResult');
+            
+            testMapBtn.addEventListener('click', () => {
+                navResult.textContent = 'Navigating to map.html...';
+                setTimeout(() => {
+                    window.location.href = './map.html';
+                }, 1000);
+            });
+            
+            // Test sign out
+            const signOutBtn = document.getElementById('signOutBtn');
+            const signOutResult = document.getElementById('signOutResult');
+            
+            signOutBtn.addEventListener('click', async () => {
+                signOutResult.textContent = 'Signing out...';
+                
+                try {
+                    const result = await signOut();
+                    signOutResult.textContent = JSON.stringify(result, null, 2);
+                    signOutResult.classList.remove('error');
+                } catch (error) {
+                    signOutResult.textContent = 'Error: ' + error.message;
+                    signOutResult.classList.add('error');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

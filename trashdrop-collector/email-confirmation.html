@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Confirmation - TrashDrop Collector</title>
+    <meta name="description" content="Confirm your email for TrashDrop Collector">
+    <link rel="stylesheet" href="./src/styles/main.css">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+</head>
+<body>
+    <div class="app-container auth-page">
+        <div class="auth-container">
+            <div class="auth-logo">
+                <img src="./public/logo.svg" alt="TrashDrop Logo" class="logo">
+                <h1>TrashDrop Collector</h1>
+            </div>
+            
+            <div class="auth-form-container">
+                <div class="confirmation-container">
+                    <div class="confirmation-icon">✉️</div>
+                    <h2>Check Your Email</h2>
+                    <p>We've sent a confirmation link to: <strong id="userEmail"></strong></p>
+                    <p class="confirmation-instruction">Click the link in the email to verify your account and complete the registration process.</p>
+                    
+                    <div class="email-tips">
+                        <h3>Can't find the email?</h3>
+                        <ul>
+                            <li>Check your spam or junk folder</li>
+                            <li>Make sure you entered the correct email address</li>
+                            <li>Allow a few minutes for the email to arrive</li>
+                        </ul>
+                    </div>
+                    
+                    <button id="resendEmailBtn" class="btn btn-outline">Resend Confirmation Email</button>
+                    <div id="resendMessage" class="resend-message"></div>
+                </div>
+                
+                <div class="auth-alternate">
+                    <p>Already confirmed your email?</p>
+                    <a href="./login.html" class="btn btn-primary btn-block">Login to Your Account</a>
+                </div>
+            </div>
+            
+            <div class="auth-footer">
+                <p>&copy; 2025 TrashDrop. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./src/js/auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const email = urlParams.get('email');
+            const userEmailElement = document.getElementById('userEmail');
+            const resendEmailBtn = document.getElementById('resendEmailBtn');
+            const resendMessage = document.getElementById('resendMessage');
+            
+            // Display user email if available
+            if (email) {
+                userEmailElement.textContent = email;
+            } else {
+                userEmailElement.textContent = 'your email address';
+            }
+            
+            // Resend confirmation email
+            resendEmailBtn.addEventListener('click', async () => {
+                if (!email) {
+                    resendMessage.textContent = 'Email address not found. Please sign up again.';
+                    resendMessage.classList.add('error');
+                    return;
+                }
+                
+                resendEmailBtn.disabled = true;
+                resendEmailBtn.textContent = 'Sending...';
+                
+                try {
+                    const { error } = await resendConfirmationEmail(email);
+                    
+                    if (error) {
+                        resendMessage.textContent = error.message || 'Failed to resend email. Please try again.';
+                        resendMessage.classList.add('error');
+                    } else {
+                        resendMessage.textContent = 'Confirmation email sent! Please check your inbox.';
+                        resendMessage.classList.add('success');
+                        resendMessage.classList.remove('error');
+                        
+                        // Disable button for 60 seconds
+                        let countdown = 60;
+                        const timer = setInterval(() => {
+                            resendEmailBtn.textContent = `Resend in ${countdown}s`;
+                            countdown--;
+                            
+                            if (countdown < 0) {
+                                clearInterval(timer);
+                                resendEmailBtn.disabled = false;
+                                resendEmailBtn.textContent = 'Resend Confirmation Email';
+                            }
+                        }, 1000);
+                    }
+                } catch (err) {
+                    console.error('Resend email error:', err);
+                    resendMessage.textContent = 'An unexpected error occurred. Please try again.';
+                    resendMessage.classList.add('error');
+                    resendEmailBtn.disabled = false;
+                    resendEmailBtn.textContent = 'Resend Confirmation Email';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
