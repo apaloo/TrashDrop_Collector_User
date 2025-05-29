@@ -251,7 +251,9 @@ function renderAvailableRequests() {
                     <div>$${request.fee}</div>
                 </div>
                 <div class="request-actions">
-                    <button class="btn btn-primary accept-btn" data-id="${request.id}">Accept Request</button>
+                    <button class="btn btn-primary accept-btn" data-id="${request.id}">
+                        <span class="material-icons">check_circle</span> Accept
+                    </button>
                 </div>
             </div>
         `;

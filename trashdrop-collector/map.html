@@ -2,13 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <style>
+        /* Hide zoom controls on mobile with important flag and multiple selectors for maximum specificity */
+        @media (max-width: 768px) {
+            .leaflet-control-zoom,
+            .leaflet-control-zoom-in,
+            .leaflet-control-zoom-out,
+            .leaflet-bar a {
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+            }
+        }
+    </style>
     <title>Map - TrashDrop Collector</title>
     <meta name="description" content="TrashDrop Collector map view">
     <link rel="stylesheet" href="./src/styles/main.css">
     <link rel="stylesheet" href="./src/styles/navigation.css">
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#4CAF50">
+    <link rel="stylesheet" href="./src/styles/top-nav.css">
     
     <!-- Fix for navigation labels -->
     <style>
@@ -41,6 +56,37 @@
             text-decoration: none !important;
             height: 60px !important;
         }
+        
+        /* Control navigation visibility based on screen size */
+        @media (max-width: 768px) {
+            .desktop-footer {
+                display: none !important;
+                visibility: hidden !important;
+            }
+            
+            .mobile-nav {
+                display: flex !important;
+                visibility: visible !important;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .mobile-nav {
+                display: none !important;
+                visibility: hidden !important;
+            }
+            
+            .desktop-footer {
+                display: flex !important;
+                visibility: visible !important;
+            }
+            
+            /* Adjust map container for desktop */
+            #map {
+                height: calc(100% - 60px) !important;
+                bottom: 60px !important;
+            }
+        }
     </style>
     
     <!-- Material Icons -->
@@ -72,48 +118,100 @@
     <script src="./src/js/auth.js"></script>
 </head>
 <body>
+    <!-- Top Navigation Bar with Account Dropdown -->
+    <div class="top-nav">
+        <div class="top-nav-logo">
+            <span>TrashDrop</span>
+        </div>
+        
+        <div class="top-nav-actions">
+            <div class="account-dropdown">
+                <button class="account-dropdown-btn">
+                    <span class="material-icons">person</span>
+                    <span class="dropdown-label" id="userDisplayName">Account</span>
+                </button>
+                <div class="account-dropdown-content">
+                    <a href="./account.html" class="dropdown-item">
+                        <span class="material-icons">account_circle</span>
+                        My Profile
+                    </a>
+                    <a href="./account.html#settings-tab" class="dropdown-item">
+                        <span class="material-icons">settings</span>
+                        Settings
+                    </a>
+                    <a href="./account.html#support-tab" class="dropdown-item">
+                        <span class="material-icons">help</span>
+                        Support
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" class="dropdown-item" id="topNavSignOut">
+                        <span class="material-icons">logout</span>
+                        Sign Out
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div class="app-container">
         <div class="map-container">
             <div id="map"></div>
             
-            <div class="map-controls">
-                <div class="status-toggle">
-                    <label for="onlineToggle" class="toggle-label">
-                        <span id="statusText">Offline</span>
-                        <div class="toggle-switch">
-                            <input type="checkbox" id="onlineToggle">
-                            <span class="toggle-slider"></span>
+            <!-- Status toggle container -->            
+            <div class="status-toggle-container" style="position:fixed; top:70px; left:50%; transform:translateX(-50%); z-index:1010;">
+                <div style="background-color:white; border-radius:24px; padding:0.25rem 0.5rem; box-shadow:0 2px 6px rgba(0,0,0,0.15); display:flex; align-items:center;">
+                    <label for="onlineToggle" style="display:flex; align-items:center; white-space:nowrap; font-size:0.9rem;">
+                        <span id="statusText" style="margin-right:0.5rem;">Offline</span>
+                        <div style="position:relative; width:36px; height:18px;">
+                            <input type="checkbox" id="onlineToggle" class="toggle-input" style="opacity:0; width:0; height:0;">
+                            <span class="toggle-slider" style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#ccc; transition:.4s; border-radius:34px;">
+                                <span class="toggle-slider-button" style="position:absolute; content:''; height:14px; width:14px; left:2px; bottom:2px; background-color:white; transition:.4s; border-radius:50%;"></span>
+                            </span>
                         </div>
                     </label>
                 </div>
             </div>
             
-            <div class="map-overlay">
-                <div id="requestCountBadge" class="request-count-badge">0</div>
-                <div class="overlay-controls">
-                    <button id="listViewBtn" class="btn btn-primary">List View</button>
-                </div>
+            <!-- List View button container -->            
+            <div class="list-view-btn-container" style="position:fixed; top:120px; right:10px; z-index:2000;">
+                <button id="listViewBtn" style="background-color:#4CAF50; color:white; border-radius:24px; padding:0.6rem 1.25rem; font-weight:500; box-shadow:0 2px 6px rgba(0,0,0,0.2); border:none; font-size:0.95rem; cursor:pointer;">List View</button>
             </div>
             
-            <div class="map-filters-container">
-                <div class="map-filters">
-                    <div class="radius-filter">
-                        <label for="radiusSlider">Radius: <span id="radiusValue">5</span> km</label>
-                        <input type="range" id="radiusSlider" min="1" max="20" value="5">
+            <!-- Request count badge container -->            
+            <div class="request-count-badge-container" style="position:absolute; top:160px; left:10px; z-index:2000;">
+                <div id="requestCountBadge" style="background-color:#FF5722; color:white; border-radius:50%; width:2.25rem; height:2.25rem; display:flex; justify-content:center; align-items:center; font-weight:600; box-shadow:0 2px 6px rgba(0,0,0,0.2); font-size:0.95rem;">0</div>
+            </div>
+            
+            <!-- Filter container -->            
+            <div class="filter-container" style="position:fixed; bottom:4.5rem; left:0; right:0; z-index:999;">
+                <div style="background-color:white; margin:0 0.75rem; border-radius:8px; padding:1rem; box-shadow:0 2px 10px rgba(0,0,0,0.2); border:1px solid rgba(0,0,0,0.05);">
+                    <h3 style="margin-bottom:1rem; display:none;" class="desktop-only">Filters</h3>
+                    
+                    <!-- Radius filter with better spacing -->
+                    <div style="margin-bottom:1.5rem;">
+                        <label for="radiusSlider" style="display:flex; justify-content:space-between; margin-bottom:0.75rem; font-weight:500; font-size:0.9rem; align-items:center;">
+                            Radius: 
+                            <span style="background:#4CAF50; color:white; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:0.85rem;" id="radiusValue">5</span>
+                        </label>
+                        <input type="range" id="radiusSlider" min="1" max="10" value="5" style="width:100%; margin:8px 0; height:6px; -webkit-appearance:none; background:#e0e0e0; border-radius:3px; outline:none;">
                     </div>
                     
-                    <div class="trash-type-filter">
-                        <button class="filter-btn active" data-type="all">All Types</button>
-                        <button class="filter-btn" data-type="recyclable">Recyclable</button>
-                        <button class="filter-btn" data-type="general">General</button>
-                        <button class="filter-btn" data-type="hazardous">Hazardous</button>
+                    <!-- Filter buttons with grid layout to prevent wrapping issues -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-top:0.5rem;">
+                        <button class="filter-btn active" data-type="all" style="white-space:nowrap; padding:0.5rem 0.25rem; border-radius:6px; border:1px solid #e0e0e0; background-color:white; color:#555; font-size:0.85rem; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s ease;">All Types</button>
+                        <button class="filter-btn" data-type="recyclable" style="white-space:nowrap; padding:0.5rem 0.25rem; border-radius:6px; border:1px solid #e0e0e0; background-color:white; color:#555; font-size:0.85rem; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s ease;">Recyclable</button>
+                        <button class="filter-btn" data-type="general" style="white-space:nowrap; padding:0.5rem 0.25rem; border-radius:6px; border:1px solid #e0e0e0; background-color:white; color:#555; font-size:0.85rem; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s ease;">General</button>
+                        <button class="filter-btn" data-type="hazardous" style="white-space:nowrap; padding:0.5rem 0.25rem; border-radius:6px; border:1px solid #e0e0e0; background-color:white; color:#555; font-size:0.85rem; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s ease;">Hazardous</button>
                     </div>
+                    
+                    <!-- Extra bottom padding to ensure space at bottom -->
+                    <div style="height:0.5rem;"></div>
                 </div>
             </div>
         </div>
         
-        <!-- Completely rebuilt bottom navigation -->
-        <div style="position:fixed;bottom:0;left:0;right:0;height:60px;background-color:#fff;display:flex;justify-content:space-around;align-items:center;box-shadow:0 -2px 10px rgba(0,0,0,0.1);z-index:1001;">
+        <!-- Mobile bottom navigation (only visible on mobile) -->
+        <div class="mobile-nav" style="position:fixed;bottom:0;left:0;right:0;height:60px;background-color:#fff;display:flex;justify-content:space-around;align-items:center;box-shadow:0 -2px 10px rgba(0,0,0,0.1);z-index:1001;">
             <a href="./map.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#4CAF50;">
                 <i class="material-icons" style="font-size:24px;">map</i>
                 <span style="font-size:12px;margin-top:4px;display:block;">Map</span>
@@ -130,20 +228,399 @@
                 <i class="material-icons" style="font-size:24px;">account_balance_wallet</i>
                 <span style="font-size:12px;margin-top:4px;display:block;">Earnings</span>
             </a>
-            <a href="./account.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
-                <i class="material-icons" style="font-size:24px;">person</i>
-                <span style="font-size:12px;margin-top:4px;display:block;">Account</span>
-            </a>
         </div>
+        
+        <!-- Desktop footer navigation - desktop only with !important flags -->
+        <footer class="desktop-footer" style="position:fixed !important;bottom:0 !important;left:0 !important;right:0 !important;height:60px !important;background-color:#fff !important;display:flex !important;justify-content:space-around !important;align-items:center !important;z-index:9999 !important;border-top:1px solid #eee !important;width:100% !important;">
+            <a href="./map.html" style="flex:1 !important;display:flex !important;flex-direction:column !important;align-items:center !important;justify-content:center !important;text-decoration:none !important;color:#4CAF50 !important;">
+                <i class="material-icons" style="font-size:24px !important;">map</i>
+                <span style="font-size:12px !important;margin-top:4px !important;">Map</span>
+            </a>
+            <a href="./request.html" style="flex:1 !important;display:flex !important;flex-direction:column !important;align-items:center !important;justify-content:center !important;text-decoration:none !important;color:#757575 !important;">
+                <i class="material-icons" style="font-size:24px !important;">add_circle</i>
+                <span style="font-size:12px !important;margin-top:4px !important;">Request</span>
+            </a>
+            <a href="./assign.html" style="flex:1 !important;display:flex !important;flex-direction:column !important;align-items:center !important;justify-content:center !important;text-decoration:none !important;color:#757575 !important;">
+                <i class="material-icons" style="font-size:24px !important;">assignment</i>
+                <span style="font-size:12px !important;margin-top:4px !important;">Assign</span>
+            </a>
+            <a href="./earnings.html" style="flex:1 !important;display:flex !important;flex-direction:column !important;align-items:center !important;justify-content:center !important;text-decoration:none !important;color:#757575 !important;">
+                <i class="material-icons" style="font-size:24px !important;">account_balance_wallet</i>
+                <span style="font-size:12px !important;margin-top:4px !important;">Earnings</span>
+            </a>
+        </footer>
         
         <!-- Notifications Container -->
         <div id="notificationsContainer" class="notifications-container"></div>
     </div>
 
+    <!-- Top Navigation JavaScript -->
+    <script src="./src/js/top-nav.js"></script>
+    
+    <!-- Custom styling for map and filter buttons with responsive design -->
+    <style>
+        /* High specificity styling for active filter buttons */
+        .filter-btn.active {
+            background-color: #4CAF50 !important;
+            color: white !important;
+            border-color: #388E3C !important;
+            font-weight: 600 !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+        }
+        
+        /* Green toggle switch styling */
+        input.toggle-input:checked + .toggle-slider {
+            background-color: #4CAF50 !important;
+        }
+        
+        input.toggle-input:checked + .toggle-slider .toggle-slider-button {
+            transform: translateX(18px) !important;
+        }
+        
+        .toggle-slider {
+            transition: background-color 0.4s !important;
+        }
+        
+        .toggle-slider-button {
+            transition: transform 0.4s !important;
+        }
+        
+        /* Common styles for all screen sizes */
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: 100vh !important;
+        }
+        
+        .app-container {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        
+        /* Mobile view (default) */
+        @media (max-width: 768px) {
+            body {
+                overflow: hidden !important;
+            }
+            
+            .map-container {
+                position: absolute !important;
+                top: 60px !important; /* Height of the top nav */
+                bottom: 60px !important; /* Height of bottom nav */
+                left: 0 !important;
+                right: 0 !important;
+                height: auto !important;
+                overflow: hidden !important;
+            }
+            
+            #map {
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                height: 100% !important;
+                width: 100% !important;
+                z-index: 1 !important;
+            }
+            
+            .status-toggle-container {
+                position: fixed !important;
+                top: 70px !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                z-index: 1010 !important;
+            }
+            
+            .list-view-btn-container {
+                position: fixed !important;
+                top: 120px !important;
+                right: 10px !important;
+                z-index: 2000 !important;
+            }
+            
+            .request-count-badge-container {
+                position: absolute !important;
+                top: 160px !important;
+                left: 10px !important;
+                z-index: 2000 !important;
+            }
+            
+            .filter-container {
+                position: fixed !important;
+                bottom: 4.5rem !important;
+                left: 0 !important;
+                right: 0 !important;
+                z-index: 999 !important;
+            }
+        }
+        
+        /* Web/Desktop view - Complete redesign for cleaner layout */
+        @media (min-width: 769px) {
+            body {
+                overflow: hidden !important;
+                background-color: #f5f5f5 !important;
+            }
+            
+            /* Basic layout structure */
+            .app-container {
+                display: flex !important;
+                flex-direction: column !important;
+                height: 100vh !important;
+                width: 100% !important;
+            }
+            
+            /* Top navigation fixed position */
+            .top-nav {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                height: 60px !important;
+                background: white !important;
+                z-index: 1000 !important;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important;
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                padding: 0 20px !important;
+            }
+            
+            /* Desktop bottom navigation styling */
+            .desktop-nav {
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                height: 60px !important;
+                background-color: #fff !important;
+                display: flex !important; /* Always show, we'll control via media query */
+                justify-content: space-around !important;
+                align-items: center !important;
+                z-index: 1001 !important;
+                border-top: 1px solid #eee !important;
+                width: 100% !important;
+            }
+            
+            /* Show desktop nav and hide mobile nav only on desktop */
+            @media (min-width: 769px) {
+                .desktop-nav {
+                    display: flex !important;
+                }
+                
+                .mobile-nav {
+                    display: none !important;
+                }
+            }
+            
+            /* Make absolutely sure desktop-nav is hidden on mobile */
+            @media (max-width: 768px) {
+                .desktop-nav {
+                    display: none !important;
+                }
+            }
+            
+            /* No need for additional desktop-nav a styling as it's now inline */
+            .desktop-nav a:not([style]) {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                text-decoration: none !important;
+                color: #757575 !important;
+            }
+            
+            .desktop-nav a:hover {
+                color: #4CAF50 !important;
+            }
+            
+            .desktop-nav a.active:not([style]) {
+                color: #4CAF50 !important;
+            }
+            
+            /* Main content area with sidebar and map */
+            .map-container {
+                position: fixed !important;
+                top: 60px !important; /* Below top nav */
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                display: flex !important;
+                flex-direction: row !important;
+            }
+            
+            /* Sidebar for filters */
+            .filter-container {
+                position: relative !important;
+                left: 0 !important;
+                top: 0 !important;
+                bottom: 60px !important; /* Account for bottom nav */
+                width: 280px !important;
+                height: calc(100% - 60px) !important; /* Account for bottom nav */
+                background-color: white !important;
+                border-right: 1px solid #e0e0e0 !important;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1) !important;
+                padding: 1.5rem !important;
+                overflow-y: auto !important;
+                z-index: 10 !important;
+                display: block !important;
+            }
+            
+            .filter-container > div {
+                background-color: white !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 0 2rem 0 !important;
+                border-radius: 0 !important;
+            }
+            
+            /* Map positioning */
+            #map {
+                flex: 1 !important;
+                height: calc(100% - 60px) !important; /* Account for bottom nav */ 
+                width: calc(100% - 280px) !important; /* Account for sidebar */
+                position: absolute !important;
+                top: 0 !important;
+                left: 280px !important; /* Position next to sidebar */
+                right: 0 !important;
+                bottom: 60px !important; /* Account for bottom nav */
+                z-index: 1 !important;
+            }
+            
+            /* Map controls repositioning */
+            .status-toggle-container {
+                position: absolute !important;
+                top: 20px !important;
+                left: 300px !important; /* Position to the right of the sidebar */
+                transform: none !important;
+                z-index: 1010 !important;
+            }
+            
+            .list-view-btn-container {
+                position: absolute !important;
+                top: 20px !important;
+                right: 20px !important;
+                z-index: 2000 !important;
+            }
+            
+            .request-count-badge-container {
+                position: absolute !important;
+                top: 20px !important;
+                left: 460px !important; /* Position next to status toggle */
+                z-index: 2000 !important;
+            }
+            
+            /* Show filter title on desktop */
+            .desktop-only {
+                display: block !important;
+                font-size: 1.2rem !important;
+                font-weight: 600 !important;
+                color: #333 !important;
+                margin-bottom: 1.5rem !important;
+            }
+            
+            /* Improved filter buttons */
+            .filter-container .filter-btn {
+                height: 44px !important;
+                font-size: 0.95rem !important;
+                border-radius: 6px !important;
+                margin-bottom: 6px !important;
+            }
+            
+            /* Only hide mobile navigation on desktop, not desktop navigation */
+            .mobile-nav[style*="position:fixed;bottom:0;left:0;right:0;height:60px;"] {
+                display: none !important;
+            }
+            
+            /* Improved form controls */
+            #radiusSlider {
+                height: 8px !important;
+                background-color: #e0e0e0 !important;
+                border-radius: 4px !important;
+            }
+            
+            #radiusValue {
+                width: 32px !important;
+                height: 32px !important;
+            }
+            
+            .leaflet-control-zoom {
+                margin-top: 20px !important;
+                margin-left: 20px !important;
+            }
+            
+            /* Grid layout for filter buttons on desktop */
+            .filter-container div[style*="display:grid"] {
+                grid-template-columns: 1fr !important;
+                gap: 10px !important;
+            }
+        }
+        
+        .leaflet-control-container {
+            z-index: 5 !important;
+        }
+    </style>
+    
     <!-- Main JavaScript -->
     <script src="./src/js/map.js"></script>
     <script>
+        // Add notification function
+        function showNotification(message, type = 'info') {
+            const notificationContainer = document.getElementById('notificationsContainer');
+            
+            if (!notificationContainer) return;
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <span class="notification-message">${message}</span>
+                </div>
+                <button class="notification-close">&times;</button>
+            `;
+            
+            notificationContainer.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                notification.classList.add('fade-out');
+                setTimeout(() => {
+                    if (notification.parentNode === notificationContainer) {
+                        notificationContainer.removeChild(notification);
+                    }
+                }, 300);
+            }, 5000);
+            
+            // Close button functionality
+            const closeButton = notification.querySelector('.notification-close');
+            if (closeButton) {
+                closeButton.addEventListener('click', () => {
+                    notification.classList.add('fade-out');
+                    setTimeout(() => {
+                        if (notification.parentNode === notificationContainer) {
+                            notificationContainer.removeChild(notification);
+                        }
+                    }, 300);
+                });
+            }
+        }
+        
         document.addEventListener('DOMContentLoaded', async () => {
+            // Handle top navigation sign out
+            const topNavSignOut = document.getElementById('topNavSignOut');
+            if (topNavSignOut) {
+                topNavSignOut.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    try {
+                        await signOut();
+                        window.location.href = './login.html';
+                    } catch (error) {
+                        console.error('Error signing out:', error);
+                        showNotification('Error signing out. Please try again.', 'error');
+                    }
+                });
+            }
             // Check if user is logged in
             const user = await getCurrentUser();
             
@@ -197,7 +674,7 @@
                 fetchNearbyRequests(coords, radius, trashType);
                 
             } catch (error) {
-                showNotification('Unable to access your location. Please enable location services.', 'error');
+                console.error('Geolocation error: Location access denied.');
                 console.error('Geolocation error:', error);
             }
             
@@ -243,9 +720,18 @@
                 }
             });
             
+            // Initialize default position if not set yet (important to make radius circle work)
+            if (!currentPosition) {
+                currentPosition = [5.6037, -0.1870]; // Default to Accra if position not available
+            }
+            
             // Radius slider functionality
             const radiusSlider = document.getElementById('radiusSlider');
             const radiusValue = document.getElementById('radiusValue');
+            
+            // Initialize radius circle with current value on page load
+            const initialRadius = parseInt(radiusSlider.value);
+            radiusCircle = addRadiusCircle(currentPosition, initialRadius);
             
             radiusSlider.addEventListener('input', () => {
                 const radius = parseInt(radiusSlider.value);
@@ -254,10 +740,8 @@
                 // Update global currentRadius variable
                 currentRadius = radius;
                 
-                // Update radius circle
-                if (radiusCircle) {
-                    radiusCircle.setRadius(radius * 1000);
-                }
+                // Always update radius circle - ensures it displays regardless of geolocation
+                radiusCircle = addRadiusCircle(currentPosition, radius);
                 
                 // Store selected radius in session
                 sessionStorage.setItem('currentRadius', radius);
@@ -276,13 +760,20 @@
             const filterButtons = document.querySelectorAll('.filter-btn');
             
             filterButtons.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    // Update active button
+                btn.addEventListener('click', (e) => {
+                    // Prevent default behavior and stop propagation
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Update active button visually first for immediate feedback
                     filterButtons.forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                     
                     // Get selected trash type
                     const trashType = btn.getAttribute('data-type');
+                    
+                    // Show loading state
+                    document.getElementById('requestCountBadge').textContent = '...'; 
                     
                     // Update global currentTrashType variable
                     currentTrashType = trashType;
@@ -290,27 +781,16 @@
                     // Store selected type in session
                     sessionStorage.setItem('currentTrashType', trashType);
                     
-                    // Fetch requests with new filter using filterRequestsByType function
-                    filterRequestsByType(trashType);
+                    // Slight delay to ensure UI updates before filtering
+                    setTimeout(() => {
+                        // Apply the filter using the filterRequestsByType function
+                        filterRequestsByType(trashType);
+                    }, 50);
                 });
             });
             
             // List View button functionality
             const listViewBtn = document.getElementById('listViewBtn');
-            listViewBtn.addEventListener('click', () => {
-                // Use the navigateToListView function from map.js
-                navigateToListView();
-            });
-        });
-    </script>
-</body>
-</html>
-                });
-            });
-            
-            // List View button functionality
-            const listViewBtn = document.getElementById('listViewBtn');
-            
             listViewBtn.addEventListener('click', () => {
                 // Use the navigateToListView function from map.js
                 navigateToListView();

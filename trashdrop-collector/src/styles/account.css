@@ -1,12 +1,26 @@
 /* Account Page Styles */
+
+/* Override content-card padding for the account page */
+.content-card {
+    padding: 1.75rem;
+    border-radius: 16px;
+    margin-bottom: 1.5rem;
+}
+
+.profile-header.content-card {
+    padding: 1.5rem;
+}
 .tab-container {
     margin-bottom: 20px;
+    padding: 0; /* Reset padding to control it better */
+    overflow: hidden; /* Prevent content overflow */
 }
 
 .tabs {
     display: flex;
     border-bottom: 1px solid #e0e0e0;
     margin-bottom: 20px;
+    padding: 0 16px; /* Add horizontal padding to tabs container */
 }
 
 .tab {
@@ -35,11 +49,13 @@
 
 .tab-content {
     display: none;
+    padding: 0 16px; /* Add horizontal padding */
 }
 
 .tab-content.active {
     display: block;
     animation: fadeIn 0.3s ease-in-out;
+    padding: 0 16px; /* Ensure active tab has padding too */
 }
 
 @keyframes fadeIn {
@@ -50,6 +66,7 @@
 /* Account Form Styles */
 .form-group {
     margin-bottom: 16px;
+    padding: 0 4px; /* Add slight padding to form groups for better edge spacing */
 }
 
 .form-group label {
@@ -78,7 +95,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 0;
+    padding: 16px;
     border-bottom: 1px solid #f0f0f0;
 }
 

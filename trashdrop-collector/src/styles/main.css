@@ -63,6 +63,7 @@ body {
     max-width: 100%;
     margin: 0 auto;
     position: relative;
+    padding-bottom: 0;
 }
 
 /* ======= Typography ======= */
@@ -119,7 +120,7 @@ a:hover {
 }
 
 .btn-primary {
-    background-color: var(--primary-color);
+    background-color: var(--primary);
     color: var(--white);
 }
 
@@ -157,6 +158,31 @@ a:hover {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
+}
+
+.list-view-btn {
+    background-color: var(--primary);
+    color: var(--white);
+    border-radius: 24px;
+    padding: 0.6rem 1.25rem;
+    font-weight: 500;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    transition: var(--transition);
+    cursor: pointer;
+    white-space: nowrap;
+    font-size: 0.95rem;
+    border: none;
+    display: inline-block;
+    text-align: center;
+    min-width: 110px;
+    margin-right: 10px; /* Add right margin to ensure separation */
+}
+
+.list-view-btn:hover,
+.list-view-btn:focus {
+    background-color: #3a9439;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
 }
 
 /* ======= Header ======= */
@@ -567,6 +593,9 @@ footer {
     height: calc(100vh - 60px); /* Subtract bottom nav height */
     width: 100%;
     z-index: 1;
+    margin-bottom: 0;
+    padding-bottom: 0;
+    overflow: hidden;
 }
 
 #map {
@@ -654,6 +683,133 @@ input:checked + .toggle-slider:before {
     color: var(--success);
 }
 
+/* Request actions - ensure buttons are visible with improved styling */
+.request-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+    justify-content: flex-end; /* Align buttons to the right */
+}
+
+.request-actions .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    min-width: 120px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+.request-actions .btn .material-icons,
+.assignment-actions .btn .material-icons {
+    font-size: 18px;
+    margin-right: 6px;
+}
+
+/* Assignment specific button styling */
+.assignment-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 15px;
+    justify-content: center; /* Center the buttons */
+}
+
+.assignment-actions .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    min-width: 140px;
+    text-align: center;
+}
+
+.assignment-actions .btn .material-icons {
+    font-size: 18px;
+    margin-right: 8px;
+}
+
+.assignment-actions .btn-primary {
+    border: none;
+    background-color: #2e7d32;
+    color: white;
+}
+
+.assignment-actions .btn-outline {
+    border: 2px solid #2e7d32;
+    background-color: white;
+    color: #2e7d32;
+}
+
+.request-actions .btn-primary {
+    border: none;
+    background-color: #2e7d32; /* Darker green for better contrast */
+    color: white;
+}
+
+.request-actions .btn-primary:hover {
+    background-color: #1b5e20; /* Even darker on hover */
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
+}
+
+.request-actions .btn-outline {
+    border: 2px solid #2e7d32;
+    background-color: white;
+    color: #2e7d32;
+}
+
+.request-actions .btn-outline:hover {
+    background-color: #f1f8e9; /* Light green background on hover */
+    border-color: #1b5e20;
+    color: #1b5e20;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+.request-actions .btn.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Improve request item layout and spacing */
+.request-item {
+    padding: 18px;
+    border-radius: 8px;
+    transition: box-shadow 0.2s ease;
+}
+
+.request-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.request-details {
+    margin-bottom: 10px;
+}
+
+.request-address {
+    margin-bottom: 10px;
+    font-size: 15px;
+}
+
+.request-info {
+    display: flex;
+    margin-bottom: 12px;
+    gap: 16px;
+}
+
 #statusText.offline {
     color: var(--medium);
 }
@@ -661,40 +817,111 @@ input:checked + .toggle-slider:before {
 .map-filters {
     background-color: var(--white);
     border-radius: var(--border-radius);
-    padding: 1rem;
-    box-shadow: var(--box-shadow);
+    padding: 0.75rem;
+    padding-bottom: 1.25rem; /* Increase bottom padding */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .radius-filter {
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 .radius-filter label {
-    display: block;
+    display: flex;
+    justify-content: space-between;
     margin-bottom: 0.5rem;
     font-weight: 500;
+    font-size: 0.9rem;
+    align-items: center;
 }
+
+.radius-filter label .radius-value {
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+
 
 .radius-filter input {
     width: 100%;
+    margin: 8px 0;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    outline: none;
+}
+
+.radius-filter input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.radius-filter input::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
 .trash-type-filter {
-    display: flex;
-    overflow-x: auto;
-    gap: 0.5rem;
-    padding-bottom: 0.5rem;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Two columns on mobile */
+    gap: 0.75rem; /* Increase gap between buttons for better spacing */
+    padding: 0.75rem 0 0; /* Add top padding only */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    max-width: 100%;
+    margin-top: 1rem; /* Add more space above filter buttons */
+}
+
+@media (min-width: 500px) {
+    .trash-type-filter {
+        grid-template-columns: repeat(4, 1fr); /* Four columns on larger screens */
+    }
+}
+
+.trash-type-filter::-webkit-scrollbar {
+    display: none; /* Hide scrollbar in Chrome and Safari */
 }
 
 .filter-btn {
     white-space: nowrap;
-    padding: 0.5rem 1rem;
-    border-radius: var(--border-radius);
+    padding: 0.5rem 0.25rem; /* Reduce horizontal padding for better fit */
+    border-radius: calc(var(--border-radius) - 2px);
     border: 1px solid var(--medium-light);
     background-color: var(--white);
     color: var(--medium);
     cursor: pointer;
     transition: var(--transition);
+    font-size: 0.85rem; /* Further reduce font size for mobile */
+    margin: 0; /* Remove margins to prevent overflow */
+    text-align: center; /* Center text */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    min-height: 36px; /* Consistent height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .filter-btn:hover {
@@ -703,26 +930,49 @@ input:checked + .toggle-slider:before {
 }
 
 .filter-btn.active {
-    background-color: var(--primary-color);
+    background-color: var(--primary);
     color: var(--white);
-    border-color: var(--primary-color);
+    border-color: var(--primary);
+    box-shadow: 0 2px 5px rgba(76, 175, 80, 0.4);
 }
 
 #listViewBtn {
     /* Now positioned in overlay-controls */
 }
 
-.map-overlay {
+/* New floating UI container to prevent overlapping elements */
+.floating-ui-container {
     position: absolute;
-    bottom: 8rem;
+    bottom: 9.5rem; /* Position higher above filters */
     left: 0;
     right: 0;
-    z-index: 1000;
-    display: flex;
-    justify-content: center;
+    z-index: 1001;
+    display: flex; /* Change to flexbox for better mobile control */
+    flex-direction: row;
+    justify-content: space-between;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem; /* Ensure clear separation from filters */
+    padding: 0 1rem;
+    pointer-events: none; /* Make container click-through */
+}
+
+.button-container {
+    flex: 1; /* Take available space */
+    display: flex;
+    justify-content: flex-end;
+    padding-right: 1rem;
+    pointer-events: auto; /* Enable clicks */
+}
+
+.badge-container {
+    width: 50px; /* Fixed width */
+    display: flex;
+    justify-content: flex-start;
+    pointer-events: auto; /* Enable clicks */
+}
+
+/* Make individual controls in the overlay clickable */
+.map-overlay > * {
+    pointer-events: auto;
 }
 
 .request-count-badge {
@@ -746,13 +996,40 @@ input:checked + .toggle-slider:before {
 
 .map-filters-container {
     position: absolute;
-    bottom: 1.5rem;
-    left: 1rem;
-    right: 1rem;
+    bottom: 4.5rem; /* Push up from bottom to avoid overlap with bottom nav */
+    left: 0;
+    right: 0;
     z-index: 999;
+    max-width: 500px; /* Limit width on larger screens */
+    margin: 0 auto; /* Center horizontally */
+    padding: 0 0.75rem; /* Add horizontal padding */
+}
+
+/* Added spacer div for better mobile layout */
+.filter-spacer {
+    height: 1rem; /* Add height to push elements apart */
+    width: 100%;
 }
 
 /* ======= Bottom Navigation ======= */
+/* Fixed tabs that stay visible during scrolling */
+.tabs {
+    display: flex;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 20px;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    position: sticky;
+    top: 0;
+    background-color: white;
+    z-index: 100; /* Higher z-index to ensure tabs stay above other content */
+    padding-top: 12px;
+    padding-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
 .bottom-nav {
     display: flex;
     position: fixed;
@@ -932,6 +1209,13 @@ body.dark-theme .settings-subtitle {
     color: var(--medium-light);
 }
 
+/* Hide Leaflet zoom controls on mobile devices */
+@media (max-width: 768px) {
+    .leaflet-control-zoom {
+        display: none !important;
+    }
+}
+
 /* ======= Responsive Styles ======= */
 @media (max-width: 768px) {
     header {
@@ -983,6 +1267,36 @@ body.dark-theme .settings-subtitle {
     
     h3 {
         font-size: 1.25rem;
+    }
+    
+    /* Improve filter button sizing for smaller screens */
+    .filter-btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.8rem;
+        flex: 1 1 48%;
+    }
+    
+    /* Adjust map padding for small screens */
+    .map-filters {
+        padding: 0.75rem;
+    }
+    
+    .radius-filter {
+        margin-bottom: 1.25rem;
+    }
+    
+    /* Ensure map controls are properly sized */
+    .map-controls {
+        gap: 0.5rem;
+    }
+    
+    .status-toggle {
+        justify-content: flex-end;
+    }
+    
+    .toggle-label {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.9rem;
     }
     
     .auth-tabs {

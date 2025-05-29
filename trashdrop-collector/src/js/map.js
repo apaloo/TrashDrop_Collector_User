@@ -24,14 +24,23 @@ let currentTrashType = 'all';
  * @returns {Object} - Leaflet map instance
  */
 function initMap(coords = [5.6037, -0.1870]) {
-    // Create map instance
-    map = L.map('map').setView(coords, 13);
+    // Create map instance with attribution control disabled and custom zoom control position
+    map = L.map('map', {
+        attributionControl: false,  // Disable attribution control
+        zoomControl: false  // Disable default zoom control to reposition it
+    }).setView(coords, 13);
     
-    // Add OpenStreetMap tile layer
+    // Add OpenStreetMap tile layer without attribution
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19
     }).addTo(map);
+    
+    // Only add zoom controls on larger screens (non-mobile)
+    if (window.innerWidth > 768) {
+        L.control.zoom({
+            position: 'topright'  // Position zoom at top right to avoid all overlaps
+        }).addTo(map);
+    }
     
     return map;
 }
@@ -90,23 +99,24 @@ function addUserMarker(coords) {
 }
 
 /**
- * Add radius circle around user
- * @param {Array} coords - Center coordinates [latitude, longitude]
- * @param {Number} radius - Circle radius in kilometers
- * @returns {Object} - Leaflet circle instance
+ * Add a radius circle to the map
+ * @param {Array} coords - [lat, lng] coordinates
+ * @param {Number} radius - radius in kilometers
+ * @returns {Object} - Leaflet circle object
  */
 function addRadiusCircle(coords, radius = 5) {
-    // Remove existing radius circle if it exists
+    // Remove existing circle if it exists
     if (radiusCircle) {
         map.removeLayer(radiusCircle);
     }
     
-    // Create radius circle
+    // Create new circle with the specified radius
     radiusCircle = L.circle(coords, {
+        radius: radius * 1000, // Convert km to meters
         color: '#4CAF50',
         fillColor: '#4CAF50',
-        fillOpacity: 0.1,
-        radius: radius * 1000 // Convert to meters
+        fillOpacity: 0.2, // Increase opacity for better visibility
+        weight: 2
     }).addTo(map);
     
     currentRadius = radius;
@@ -175,11 +185,13 @@ async function fetchNearbyRequests(coords, radius = 5, trashType = 'all') {
  * @param {Number} count - Number of points to generate
  * @returns {Array} - Array of request objects
  */
-function generateDummyRequests(center, radius, count = 10) {
+function generateDummyRequests(center, radius, count = 15) {
     const requests = [];
     const trashTypes = ['recyclable', 'general', 'hazardous'];
     const statuses = ['pending', 'accepted', 'completed'];
     
+    // Ensure we have at least 3 of each trash type for better filter demonstration
+    let typeIndex = 0;
     for (let i = 0; i < count; i++) {
         // Generate random point within radius
         const angle = Math.random() * 2 * Math.PI;
@@ -189,11 +201,15 @@ function generateDummyRequests(center, radius, count = 10) {
         const latOffset = distance * Math.cos(angle) / 111; // 1 degree lat ≈ 111 km
         const lngOffset = distance * Math.sin(angle) / (111 * Math.cos(center[0] * Math.PI / 180));
         
+        // For first 9 points, ensure even distribution (3 of each type)
+        // For remaining points, use random types
+        const trashType = i < 9 ? trashTypes[Math.floor(i / 3)] : trashTypes[Math.floor(Math.random() * trashTypes.length)];
+        
         const request = {
             id: i + 1,
             latitude: center[0] + latOffset,
             longitude: center[1] + lngOffset,
-            type: trashTypes[Math.floor(Math.random() * trashTypes.length)],
+            type: trashType,
             status: statuses[0], // Always pending for the map view
             bags: Math.floor(Math.random() * 5) + 1,
             points: Math.floor(Math.random() * 100) + 50,
@@ -319,13 +335,23 @@ async function acceptRequest(requestId) {
  * @param {String} trashType - Type of trash to filter by
  */
 function filterRequestsByType(trashType) {
+    console.log('Filtering by trash type:', trashType);
     currentTrashType = trashType;
     
     if (currentPosition) {
+        // Clear existing markers first
+        clearRequestMarkers();
+        
+        // Add radius circle with current radius
+        addRadiusCircle(currentPosition, currentRadius);
+        
+        // Fetch new requests with the applied filter
         fetchNearbyRequests(currentPosition, currentRadius, trashType);
         
         // Save current filter settings in sessionStorage for list view access
         sessionStorage.setItem('currentTrashType', trashType);
+    } else {
+        console.error('Current position not available for filtering');
     }
 }
 

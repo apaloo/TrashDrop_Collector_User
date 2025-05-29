@@ -3,7 +3,7 @@
  * Handles caching and offline functionality for the PWA
  */
 
-const CACHE_NAME = 'trashdrop-collector-v1';
+const CACHE_NAME = 'trashdrop-collector-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -12,10 +12,16 @@ const ASSETS_TO_CACHE = [
   './reset-password.html',
   './email-confirmation.html',
   './map.html',
+  './account.html',
+  './request.html',
+  './assign.html',
+  './earnings.html',
   './src/styles/main.css',
+  './src/styles/account.css',
   './src/js/main.js',
   './src/js/auth.js',
   './src/js/map.js',
+  './src/js/account.js',
   './public/logo.svg',
   './public/logo-small.svg',
   './public/hero-image.svg',

@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Earnings - TrashDrop Collector</title>
     <meta name="description" content="View your earnings and payment history">
     <link rel="stylesheet" href="./src/styles/main.css">
     <link rel="stylesheet" href="./src/styles/navigation.css">
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#4CAF50">
+    <link rel="stylesheet" href="./src/styles/top-nav.css">
     
     <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -37,6 +38,40 @@
     </script>
 </head>
 <body>
+    <!-- Top Navigation Bar with Account Dropdown -->
+    <div class="top-nav">
+        <div class="top-nav-logo">
+            <span>TrashDrop</span>
+        </div>
+        <div class="top-nav-actions">
+            <div class="account-dropdown">
+                <button class="account-dropdown-btn">
+                    <span class="material-icons">person</span>
+                    <span class="dropdown-label" id="userDisplayName">Account</span>
+                </button>
+                <div class="account-dropdown-content">
+                    <a href="./account.html" class="dropdown-item">
+                        <span class="material-icons">account_circle</span>
+                        My Profile
+                    </a>
+                    <a href="./account.html#settings-tab" class="dropdown-item">
+                        <span class="material-icons">settings</span>
+                        Settings
+                    </a>
+                    <a href="./account.html#support-tab" class="dropdown-item">
+                        <span class="material-icons">help</span>
+                        Support
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" class="dropdown-item" id="topNavSignOut">
+                        <span class="material-icons">logout</span>
+                        Sign Out
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div class="app-container">
         <header class="page-header">
             <div class="page-header-left">
@@ -159,10 +194,7 @@
             <i class="material-icons" style="font-size:24px;">account_balance_wallet</i>
             <span style="font-size:12px;margin-top:4px;display:block;">Earnings</span>
         </a>
-        <a href="./account.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
-            <i class="material-icons" style="font-size:24px;">person</i>
-            <span style="font-size:12px;margin-top:4px;display:block;">Account</span>
-        </a>
+
     </div>
     
     <!-- Cash Out Modal -->
@@ -1175,7 +1207,32 @@
         });
     </script>
     
+    <!-- Top Navigation JavaScript -->
+    <script src="./src/js/top-nav.js"></script>
+    
     <!-- Earnings JS - Added at the end of body for initialization -->
     <script src="./src/js/earnings.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Handle top navigation sign out
+            const topNavSignOut = document.getElementById('topNavSignOut');
+            if (topNavSignOut) {
+                topNavSignOut.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    try {
+                        await signOut();
+                        window.location.href = './login.html';
+                    } catch (error) {
+                        console.error('Error signing out:', error);
+                        // Show notification if available
+                        if (typeof showNotification === 'function') {
+                            showNotification('Error signing out. Please try again.', 'error');
+                        }
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

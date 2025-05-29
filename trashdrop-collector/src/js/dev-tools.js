@@ -9,12 +9,19 @@ const isDevelopmentServer =
     window.location.port === '5501' ||
     window.location.hostname.includes('127.0.0.1');
 
+// Set to true when testing production mode locally
+const forceProductionMode = true;
+
+// Final environment determination
+const isDevMode = isDevelopmentServer && !forceProductionMode;
+
 /**
  * Initialize development tools and fixes
  */
 function initDevTools() {
-    if (!isDevelopmentServer) {
+    if (!isDevMode) {
         // Not in development mode, no need to run
+        console.log('Production mode active - development tools disabled');
         return;
     }
     
@@ -66,26 +73,45 @@ function interceptFiveServerStatusCalls() {
 }
 
 /**
- * Handle service worker registration for development environment
+ * Handle service worker registration based on environment
  */
 function handleServiceWorkerForDev() {
     // Check if there are any existing service worker registrations
     if ('serviceWorker' in navigator) {
-        // Unregister any existing service workers
-        navigator.serviceWorker.getRegistrations().then(registrations => {
-            for (let registration of registrations) {
-                console.log('Unregistering service worker in development mode');
-                registration.unregister();
+        if (isDevMode) {
+            // In development mode: unregister service workers
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                for (let registration of registrations) {
+                    console.log('Unregistering service worker in development mode');
+                    registration.unregister();
+                }
+            });
+            
+            // Mock service worker registration function
+            if (window.registerServiceWorker) {
+                const originalRegister = window.registerServiceWorker;
+                window.registerServiceWorker = function() {
+                    console.log('Service worker registration skipped in development mode');
+                    return Promise.resolve(null);
+                };
             }
-        });
-        
-        // Mock service worker registration function
-        if (window.registerServiceWorker) {
-            const originalRegister = window.registerServiceWorker;
-            window.registerServiceWorker = function() {
-                console.log('Service worker registration skipped in development mode');
-                return Promise.resolve(null);
-            };
+        } else {
+            // In production mode: ensure service worker is properly registered
+            console.log('Production mode: Service worker registration enabled');
+            // If registerServiceWorker function doesn't exist yet, create it
+            if (!window.registerServiceWorker) {
+                window.registerServiceWorker = function() {
+                    return navigator.serviceWorker.register('./service-worker.js')
+                        .then(registration => {
+                            console.log('Service worker registered successfully');
+                            return registration;
+                        })
+                        .catch(error => {
+                            console.error('Service worker registration failed:', error);
+                            return null;
+                        });
+                };
+            }
         }
     }
 }
