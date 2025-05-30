@@ -7,6 +7,9 @@
     <meta name="description" content="View and manage trash collection requests">
     <link rel="stylesheet" href="./src/styles/main.css">
     <link rel="stylesheet" href="./src/styles/navigation.css">
+    <link rel="stylesheet" href="./src/styles/request-detail.css">
+    <link rel="stylesheet" href="./src/styles/request-detail-components.css">
+    <link rel="stylesheet" href="./src/styles/enhanced-cards.css">
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#4CAF50">
     <link rel="stylesheet" href="./src/styles/top-nav.css">
@@ -43,6 +46,20 @@
     <script src="./src/js/pwa-install.js"></script>
     <script src="./src/js/qr-scanner.js"></script>
     <script src="./src/js/notifications.js"></script>
+    
+    <!-- Data Models - Must be loaded before adapters -->
+    <script src="./src/js/models/request-model.js"></script>
+    
+    <!-- Components - Must be loaded before page-specific scripts -->
+    <script>
+        // Only load request-detail.js if RequestDetailView is not already defined
+        if (!window.requestDetailView) {
+            document.write('<script src="./src/js/components/request-detail.js"><\/script>');
+        }
+    </script>
+    
+    <!-- Adapters - Must be loaded before page-specific scripts -->
+    <script src="./src/js/adapters/request-adapter.js"></script>
 
     <style>
         /* Hide scrollbar for Chrome, Safari, and Opera */
@@ -368,6 +385,9 @@
     
     <!-- Request JavaScript -->
     <script src="./src/js/request.js"></script>
+    
+    <!-- Request Detail Component -->
+    <script src="./src/js/components/request-detail.js"></script>
     
     <script>
         document.addEventListener('DOMContentLoaded', async () => {

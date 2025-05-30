@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <style>
         /* Hide zoom controls on mobile with important flag and multiple selectors for maximum specificity */
-        @media (max-width: 768px) {
+        @media (max-width: 968px) {
             .leaflet-control-zoom,
             .leaflet-control-zoom-in,
             .leaflet-control-zoom-out,
@@ -58,7 +58,13 @@
         }
         
         /* Control navigation visibility based on screen size */
-        @media (max-width: 768px) {
+        @media (max-width: 968px) {
+            .filter-container {
+                bottom: 5rem;
+            }
+            .status-toggle-container {
+                top: 60px;
+            }
             .desktop-footer {
                 display: none !important;
                 visibility: hidden !important;
@@ -70,7 +76,7 @@
             }
         }
         
-        @media (min-width: 769px) {
+        @media (min-width: 969px) {
             .mobile-nav {
                 display: none !important;
                 visibility: hidden !important;
@@ -298,7 +304,7 @@
         }
         
         /* Mobile view (default) */
-        @media (max-width: 768px) {
+        @media (max-width: 968px) {
             body {
                 overflow: hidden !important;
             }
@@ -356,7 +362,7 @@
         }
         
         /* Web/Desktop view - Complete redesign for cleaner layout */
-        @media (min-width: 769px) {
+        @media (min-width: 969px) {
             body {
                 overflow: hidden !important;
                 background-color: #f5f5f5 !important;
@@ -403,7 +409,7 @@
             }
             
             /* Show desktop nav and hide mobile nav only on desktop */
-            @media (min-width: 769px) {
+            @media (min-width: 969px) {
                 .desktop-nav {
                     display: flex !important;
                 }
@@ -414,7 +420,7 @@
             }
             
             /* Make absolutely sure desktop-nav is hidden on mobile */
-            @media (max-width: 768px) {
+            @media (max-width: 968px) {
                 .desktop-nav {
                     display: none !important;
                 }

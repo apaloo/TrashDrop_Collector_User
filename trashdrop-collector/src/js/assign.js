@@ -9,6 +9,10 @@ let acceptedAssignments = [];
 let completedAssignments = [];
 let currentAssignmentId = null;
 
+// Geofencing variables
+let geofencingInterval = null;
+let isGeofencingEnabled = false;
+
 // DOM Elements
 let tabButtons;
 let tabContents;
@@ -719,41 +723,60 @@ function generateDummyAssignments() {
  */
 function renderAvailableAssignments() {
     if (availableAssignments.length === 0) {
-        availableAssignmentsElement.innerHTML = '<p class="empty-state">No available assignments found</p>';
+        availableAssignmentsElement.innerHTML = '<p class="empty-message">No available assignments at this time.</p>';
         return;
     }
     
-    let html = '';
-    
-    availableAssignments.forEach(assignment => {
-        html += `
-            <div class="assignment-card" data-id="${assignment.id}">
-                <div class="assignment-header">
+    const html = availableAssignments.map(assignment => {
+        // Add status corner indicator
+        const statusCornerHTML = '<div class="status-corner available"></div>';
+        
+        // Format the reward amount
+        const rewardAmount = typeof assignment.reward === 'number' ? 
+            assignment.reward.toFixed(2) : 
+            (assignment.reward || '0.00');
+            
+        // Format the distance
+        const distance = assignment.location?.distance ? 
+            `${assignment.location.distance} mi` : 'N/A';
+        
+        return `
+            <div class="request-card" data-id="${assignment.id}">
+                ${statusCornerHTML}
+                <div class="request-header">
                     <h3>${assignment.title}</h3>
-                    <span class="badge badge-proximity">${assignment.location.distance} mi</span>
+                    <span class="timestamp">${formatDate(assignment.timestamp || new Date().toISOString())}</span>
                 </div>
-                <p class="assignment-description">${assignment.description}</p>
-                <div class="assignment-details">
-                    <p><strong>Authority:</strong> ${assignment.authority}</p>
-                    <p><strong>Type:</strong> ${capitalizeFirstLetter(assignment.type)}</p>
-                    <p><strong>Reward:</strong> $${assignment.reward}</p>
-                    <p><strong>Time Estimate:</strong> ${assignment.timeEstimate}</p>
+                <p class="address">${assignment.location?.address || 'Location not specified'}</p>
+                <div class="request-details">
+                    <span class="distance">${distance}</span>
+                    <span class="reward">$${rewardAmount}</span>
+                    <span class="type">${capitalizeFirstLetter(assignment.type || 'general')}</span>
                 </div>
-                <div class="assignment-actions">
-                    <button class="btn btn-primary view-assignment-btn" data-id="${assignment.id}">View Details</button>
+                <div class="assignment-info">
+                    <p><strong>Authority:</strong> ${assignment.authority || 'N/A'}</p>
+                    <p><strong>Time Estimate:</strong> ${assignment.timeEstimate || 'N/A'}</p>
+                </div>
+                <div class="request-actions" style="display:flex;gap:0.5rem;margin-top:0.75rem;">
+                    <button class="primary-btn" style="flex:1" onclick="event.stopPropagation(); viewAssignmentDetails(${assignment.id})">
+                        <span class="material-icons" style="font-size:16px;margin-right:4px;vertical-align:text-bottom;">visibility</span> View Details
+                    </button>
                 </div>
             </div>
         `;
-    });
+    }).join('');
     
     availableAssignmentsElement.innerHTML = html;
     
-    // Add event listeners to view buttons
-    const viewButtons = availableAssignmentsElement.querySelectorAll('.view-assignment-btn');
-    viewButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const assignmentId = parseInt(button.getAttribute('data-id'));
-            viewAssignmentDetails(assignmentId);
+    // Add click handler for the entire card
+    const cards = availableAssignmentsElement.querySelectorAll('.request-card');
+    cards.forEach(card => {
+        card.addEventListener('click', (event) => {
+            // Only trigger if the click wasn't on a button
+            if (!event.target.closest('button')) {
+                const assignmentId = parseInt(card.getAttribute('data-id'));
+                viewAssignmentDetails(assignmentId);
+            }
         });
     });
 }
@@ -1307,20 +1330,109 @@ function showToast(message) {
 function getCurrentPosition() {
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
-            reject(new Error('Geolocation is not supported by your browser'));
+            console.warn('Geolocation is not supported by your browser');
+            // Default to New York coordinates as fallback
+            resolve({
+                coords: {
+                    latitude: 40.7128,
+                    longitude: -74.0060,
+                    accuracy: 10000 // Low accuracy since it's a fallback
+                },
+                timestamp: Date.now()
+            });
             return;
         }
         
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
+        const options = {
             enableHighAccuracy: true,
-            timeout: 5000,
-            maximumAge: 0
-        });
+            timeout: 10000, // 10 seconds
+            maximumAge: 0 // Force fresh position
+        };
+        
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                console.log('Geolocation successful:', position);
+                resolve(position);
+            },
+            (error) => {
+                console.warn('Geolocation error:', error);
+                // Provide fallback coordinates if geolocation fails
+                resolve({
+                    coords: {
+                        latitude: 40.7128, // Default to New York
+                        longitude: -74.0060,
+                        accuracy: 10000 // Low accuracy since it's a fallback
+                    },
+                    timestamp: Date.now()
+                });
+            },
+            options
+        );
     });
 }
 
-// Geofencing variables
-let geofencingInterval = null;
+/**
+ * Start checking for nearby dumping sites
+ */
+function startGeofencingCheck() {
+    // Don't start geofencing if it's already running
+    if (isGeofencingEnabled) {
+        console.log('Geofencing is already running');
+        return;
+    }
+    
+    // Clear any existing interval
+    if (geofencingInterval) {
+        clearInterval(geofencingInterval);
+    }
+    
+    // Check geolocation permission
+    if (navigator.permissions) {
+        navigator.permissions.query({name: 'geolocation'})
+            .then(permissionStatus => {
+                console.log('Geolocation permission state:', permissionStatus.state);
+                if (permissionStatus.state === 'granted') {
+                    startGeofencing();
+                } else if (permissionStatus.state === 'prompt') {
+                    // Request permission
+                    getCurrentPosition()
+                        .then(() => startGeofencing())
+                        .catch(() => console.warn('Geolocation permission was denied'));
+                } else {
+                    console.warn('Geolocation permission was denied');
+                    // Start with fallback coordinates
+                    startGeofencing();
+                }
+                
+                // Listen for permission changes
+                permissionStatus.onchange = () => {
+                    console.log('Geolocation permission changed to:', permissionStatus.state);
+                    if (permissionStatus.state === 'granted') {
+                        startGeofencing();
+                    }
+                };
+            })
+            .catch((error) => {
+                console.warn('Error checking geolocation permission:', error);
+                // Fallback if permissions API is not supported
+                startGeofencing();
+            });
+    } else {
+        // Fallback for browsers that don't support permissions API
+        console.log('Permissions API not supported, starting geofencing with fallback');
+        startGeofencing();
+    }
+    
+    function startGeofencing() {
+        console.log('Starting geofencing service');
+        // Check every 30 seconds
+        geofencingInterval = setInterval(checkNearbyDumpingSites, 30000);
+        isGeofencingEnabled = true;
+        
+        // Initial check
+        checkNearbyDumpingSites();
+    }
+}
 
 /**
  * Start checking for nearby dumping sites

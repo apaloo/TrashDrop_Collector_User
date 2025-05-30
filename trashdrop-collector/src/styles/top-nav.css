@@ -155,7 +155,7 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 768px) {
+@media (max-width: 968px) {
   .account-dropdown-btn span.dropdown-label {
     display: none;
   }
@@ -178,7 +178,7 @@
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .top-nav {
     height: 50px;
     padding: 0.5rem;

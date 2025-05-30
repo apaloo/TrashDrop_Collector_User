@@ -1,0 +1,422 @@
+/**
+ * TrashDrop Collector - Enhanced Cards
+ * Styles for the enhanced request cards with visual indicators
+ */
+
+/* Request Card Container */
+.request-item {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px;
+    margin-bottom: 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.request-card {
+    position: relative;
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid #e0e0e0;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+}
+
+.request-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* Request Header */
+.request-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    align-items: center;
+}
+
+.request-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+}
+
+.request-main-info {
+    flex: 1;
+    min-width: 0; /* Prevents flex items from overflowing */
+    width: 100%;
+    overflow: hidden;
+}
+
+.timestamp {
+    color: #757575;
+    font-size: 0.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Address */
+.request-address {
+    margin: 8px 0;
+    font-weight: 500;
+    color: #333;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+
+/* Request Details */
+.request-actions {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    margin-top: 12px;
+}
+
+.request-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.request-details span {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background-color: #f5f5f5;
+}
+
+.request-details .distance {
+    background-color: #e0f2f1;
+    color: #00796b;
+}
+
+.request-details .bags {
+    background-color: #e8eaf6;
+    color: #3f51b5;
+}
+
+.request-details .points {
+    background-color: #fff8e1;
+    color: #ffa000;
+}
+
+.request-details .fee {
+    background-color: #e0f7fa;
+    color: #0097a7;
+}
+
+/* Priority Indicators */
+.priority-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-left: 8px;
+}
+
+.priority-dot.high {
+    background-color: #f44336;
+}
+
+.priority-dot.medium {
+    background-color: #ff9800;
+}
+
+.priority-dot.low {
+    background-color: #4caf50;
+}
+
+/* Status Corner */
+.status-corner {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 36px 36px 0;
+    border-color: transparent #e0e0e0 transparent transparent;
+}
+
+.status-corner.available {
+    border-color: transparent #4caf50 transparent transparent;
+}
+
+.status-corner.accepted {
+    border-color: transparent #2196f3 transparent transparent;
+}
+
+.status-corner.in_progress {
+    border-color: transparent #ff9800 transparent transparent;
+}
+
+.status-corner.completed {
+    border-color: transparent #673ab7 transparent transparent;
+}
+
+/* Trash Type Tag */
+.request-type-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: capitalize;
+    margin-bottom: 6px;
+}
+
+.trash-type.recyclable {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.trash-type.general {
+    background-color: #e3f2fd;
+    color: #1565c0;
+}
+
+.trash-type.hazardous {
+    background-color: #ffebee;
+    color: #c62828;
+}
+
+.trash-type.mixed {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.trash-type.organic {
+    background-color: #f1f8e9;
+    color: #558b2f;
+}
+
+/* Expandable Content */
+.request-expanded-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    margin-top: 8px;
+    padding: 0 8px;
+}
+
+.request-expanded-content.visible {
+    max-height: 500px; /* Adjust based on content */
+    padding: 8px;
+    margin-top: 8px;
+}
+
+.request-expanded-content p {
+    margin: 4px 0;
+    font-size: 0.9em;
+    color: #555;
+}
+
+.view-more-btn {
+    background: none;
+    border: none;
+    color: #4caf50;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-size: 0.9em;
+    margin-top: 8px;
+    padding: 4px 0;
+}
+
+.view-more-btn .material-icons {
+    font-size: 1.1em;
+    margin-right: 4px;
+    transition: transform 0.3s ease;
+}
+
+.view-more-btn.expanded .material-icons {
+    transform: rotate(180deg);
+}
+
+/* Additional Info */
+.addition.detail-item {
+    background-color: #f5f5f5;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.additional-info {
+    background-color: #fafafa;
+    padding: 8px;
+    border-radius: 4px;
+    margin: 8px 0;
+    font-size: 0.85rem;
+    color: #616161;
+}
+
+.impact-summary {
+    background-color: #e8f5e9;
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: #2e7d32;
+}
+
+/* Buttons */
+.primary-btn {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 16px;
+    margin: 8px 0;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    outline: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    position: relative;
+    z-index: 10;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.primary-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.primary-btn:hover {
+    background-color: #43a047;
+}
+
+.secondary-btn {
+    background-color: #f5f5f5;
+    color: #333;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 10px 16px;
+    margin: 8px 0;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    outline: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: relative;
+    z-index: 10;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.secondary-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Disabled state for buttons */
+.primary-btn:disabled,
+.secondary-btn:disabled,
+.primary-btn.disabled,
+.secondary-btn.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.secondary-btn:hover {
+    background-color: #eeeeee;
+}
+
+/* Button container */
+.button-contain.request-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+/* Empty State */
+.empty-message {
+    text-align: center;
+    padding: 32px 16px;
+    color: #757575;
+    font-size: 0.9rem;
+}
+
+/* Responsive Adjustments */
+@media (min-width: 768px) {
+    .request-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 16px;
+    }
+    
+    .request-item {
+        margin: 0;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .request-actions {
+        margin-top: auto;
+    }
+    
+    .request-details-info {
+        margin: 12px 0;
+    }
+    
+    .detail-item {
+        font-size: 0.8rem;
+        padding: 4px 6px;
+    }
+    
+    .request-card {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+}

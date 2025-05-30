@@ -107,7 +107,7 @@ function renderMockRequests() {
                 <div class="request-details">
                     <span class="bags">${req.bags} bag${req.bags !== 1 ? 's' : ''}</span>
                     <span class="points">${req.points} points</span>
-                    <span class="fee">$${req.fee.toFixed(2)}</span>
+                    <span class="fee">$${(typeof req.fee === 'number' ? req.fee.toFixed(2) : req.fee)}</span>
                 </div>
                 <button class="btn primary-btn accept-btn">Accept</button>
             </div>
@@ -127,7 +127,7 @@ function renderMockRequests() {
                 <div class="request-details">
                     <span class="bags">${req.bags} bag${req.bags !== 1 ? 's' : ''}</span>
                     <span class="points">${req.points} points</span>
-                    <span class="fee">$${req.fee.toFixed(2)}</span>
+                    <span class="fee">$${(typeof req.fee === 'number' ? req.fee.toFixed(2) : req.fee)}</span>
                 </div>
                 <button class="btn primary-btn scan-btn">Scan QR</button>
                 <button class="btn secondary-btn map-btn">View on Map</button>
@@ -148,7 +148,7 @@ function renderMockRequests() {
                 <div class="request-details">
                     <span class="bags">${req.bags} bag${req.bags !== 1 ? 's' : ''}</span>
                     <span class="points">${req.points} points</span>
-                    <span class="fee">$${req.fee.toFixed(2)}</span>
+                    <span class="fee">$${(typeof req.fee === 'number' ? req.fee.toFixed(2) : req.fee)}</span>
                 </div>
             </div>
         `).join('');

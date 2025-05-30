@@ -126,7 +126,7 @@
 }
 
 /* Medium screens */
-@media (min-width: 361px) and (max-width: 767px) {
+@media (min-width: 361px) and (max-width: 967px) {
   .bottom-nav {
     padding: 0.6rem 0;
     padding-bottom: calc(0.6rem + env(safe-area-inset-bottom, 0));
@@ -142,7 +142,7 @@
 }
 
 /* Large screens */
-@media (min-width: 768px) {
+@media (min-width: 968px) {
   .bottom-nav {
     max-width: 500px;
     left: 50%;
