@@ -728,38 +728,59 @@ function renderAvailableAssignments() {
     }
     
     const html = availableAssignments.map(assignment => {
-        // Add status corner indicator
-        const statusCornerHTML = '<div class="status-corner available"></div>';
-        
         // Format the reward amount
         const rewardAmount = typeof assignment.reward === 'number' ? 
             assignment.reward.toFixed(2) : 
             (assignment.reward || '0.00');
-            
+        
+        // Status corner for available assignments (different color)
+        const statusCornerHTML = `<div class="status-corner available"></div>`;
+        
         // Format the distance
         const distance = assignment.location?.distance ? 
             `${assignment.location.distance} mi` : 'N/A';
         
+        // Get enhanced assignment if available
+        const enhancedAssignment = window.getEnhancedRequest ? window.getEnhancedRequest(assignment.id) : null;
+        
+        // Add priority indicator if available from enhanced assignment
+        const priorityHTML = enhancedAssignment && enhancedAssignment.priority ? 
+            `<span class="priority-dot ${enhancedAssignment.priority}"></span>` : '';
+        
+        // Add trash type if available from enhanced assignment
+        const trashTypeHTML = enhancedAssignment && enhancedAssignment.type ? 
+            `<span class="trash-type ${enhancedAssignment.type}">${enhancedAssignment.type}</span>` : '';
+        
         return `
-            <div class="request-card" data-id="${assignment.id}">
+            <div class="request-card" data-id="${assignment.id}" onclick="viewAssignmentDetails(${assignment.id})">
                 ${statusCornerHTML}
                 <div class="request-header">
-                    <h3>${assignment.title}</h3>
-                    <span class="timestamp">${formatDate(assignment.timestamp || new Date().toISOString())}</span>
+                    <h3>${assignment.title} ${priorityHTML}</h3>
+                    <span class="timestamp">${formatDate(assignment.timestamp || assignment.created_at || new Date().toISOString())}</span>
                 </div>
                 <p class="address">${assignment.location?.address || 'Location not specified'}</p>
                 <div class="request-details">
                     <span class="distance">${distance}</span>
                     <span class="reward">$${rewardAmount}</span>
-                    <span class="type">${capitalizeFirstLetter(assignment.type || 'general')}</span>
+                    ${trashTypeHTML}
                 </div>
-                <div class="assignment-info">
-                    <p><strong>Authority:</strong> ${assignment.authority || 'N/A'}</p>
-                    <p><strong>Time Estimate:</strong> ${assignment.timeEstimate || 'N/A'}</p>
+                
+                <button class="view-more-btn" onclick="toggleRequestDetails(this); event.stopPropagation();">
+                    <span class="material-icons">expand_more</span>
+                    <span>View More</span>
+                </button>
+                
+                <div class="request-expanded-content">
+                    ${assignment.authority ? `<p><strong>Authority:</strong> ${assignment.authority}</p>` : ''}
+                    ${assignment.timeEstimate ? `<p><strong>Time Estimate:</strong> ${assignment.timeEstimate}</p>` : ''}
+                    <p><strong>Type:</strong> ${capitalizeFirstLetter(assignment.type || 'general')}</p>
+                    ${assignment.location?.distance ? `<p><strong>Distance:</strong> ${assignment.location.distance} mi away</p>` : ''}
                 </div>
-                <div class="request-actions" style="display:flex;gap:0.5rem;margin-top:0.75rem;">
-                    <button class="primary-btn" style="flex:1" onclick="event.stopPropagation(); viewAssignmentDetails(${assignment.id})">
-                        <span class="material-icons" style="font-size:16px;margin-right:4px;vertical-align:text-bottom;">visibility</span> View Details
+                
+                <div class="request-actions">
+                    <button class="view-details-btn" data-id="${assignment.id}" onclick="viewAssignmentDetails(${assignment.id}); event.stopPropagation();">
+                        <span class="material-icons">visibility</span>
+                        <span>View Details</span>
                     </button>
                 </div>
             </div>
@@ -772,8 +793,8 @@ function renderAvailableAssignments() {
     const cards = availableAssignmentsElement.querySelectorAll('.request-card');
     cards.forEach(card => {
         card.addEventListener('click', (event) => {
-            // Only trigger if the click wasn't on a button
-            if (!event.target.closest('button')) {
+            // Only trigger if the click wasn't on a button or view-more button
+            if (!event.target.closest('button') && !event.target.closest('.view-more-btn')) {
                 const assignmentId = parseInt(card.getAttribute('data-id'));
                 viewAssignmentDetails(assignmentId);
             }
@@ -786,31 +807,50 @@ function renderAvailableAssignments() {
  */
 function renderAcceptedAssignments() {
     if (acceptedAssignments.length === 0) {
-        acceptedAssignmentsElement.innerHTML = '<p class="empty-state">No accepted assignments found</p>';
+        acceptedAssignmentsElement.innerHTML = '<p class="empty-message">No accepted assignments found</p>';
         return;
     }
     
     let html = '';
     
     acceptedAssignments.forEach(assignment => {
+        const formattedDate = formatDate(assignment.acceptedAt || new Date().toISOString());
+        const rewardAmount = assignment.reward || 0;
+        const trashType = assignment.type || 'General Waste';
+        
         html += `
-            <div class="assignment-card" data-id="${assignment.id}">
-                <div class="assignment-header">
-                    <h3>${assignment.title}</h3>
-                    <span class="badge badge-accepted">Accepted</span>
+            <div class="request-card" data-id="${assignment.id}">
+                <div class="status-corner accepted"></div>
+                <div class="request-header">
+                    <h3>${assignment.title || 'Assignment'} <span class="priority-dot priority-${assignment.priority || 'medium'}"></span></h3>
+                    <span class="timestamp">${formattedDate}</span>
                 </div>
-                <p class="assignment-description">${assignment.description}</p>
-                <div class="assignment-details">
-                    <p><strong>Authority:</strong> ${assignment.authority}</p>
-                    <p><strong>Location:</strong> ${assignment.location.name}</p>
-                    <p><strong>Reward:</strong> $${assignment.reward}</p>
+                <p class="address">${assignment.location?.name || 'Location not specified'}</p>
+                <div class="request-details">
+                    <span class="distance">${assignment.distance ? `${assignment.distance} mi` : 'N/A'}</span>
+                    <span class="reward">$${rewardAmount.toFixed(2)}</span>
+                    <span class="trash-type">${trashType}</span>
                 </div>
-                <div class="assignment-actions">
-                    <button class="btn btn-outline get-directions-btn" data-id="${assignment.id}" data-lat="${assignment.location.lat}" data-lng="${assignment.location.lng}">
-                        <span class="material-icons">directions</span> Get Directions
+                
+                <button class="view-more-btn" onclick="toggleRequestDetails(this); event.stopPropagation();">
+                    <span class="material-icons">expand_more</span>
+                    <span>View More</span>
+                </button>
+                
+                <div class="request-expanded-content">
+                    ${assignment.authority ? `<p><strong>Authority:</strong> ${assignment.authority}</p>` : ''}
+                    ${assignment.estimatedTime ? `<p><strong>Estimated Time:</strong> ${assignment.estimatedTime} minutes</p>` : ''}
+                    ${assignment.description ? `<p><strong>Description:</strong> ${assignment.description}</p>` : ''}
+                </div>
+                
+                <div class="request-actions">
+                    <button class="view-details-btn get-directions-btn" data-id="${assignment.id}" data-lat="${assignment.location?.lat}" data-lng="${assignment.location?.lng}">
+                        <span class="material-icons">directions</span>
+                        <span>Get Directions</span>
                     </button>
-                    <button class="btn btn-primary mark-complete-btn" data-id="${assignment.id}">
-                        <span class="material-icons">check_circle</span> Mark Complete
+                    <button class="view-details-btn mark-complete-btn" data-id="${assignment.id}">
+                        <span class="material-icons">check_circle</span>
+                        <span>Mark Complete</span>
                     </button>
                 </div>
             </div>
@@ -843,32 +883,45 @@ function renderAcceptedAssignments() {
  */
 function renderCompletedAssignments() {
     if (completedAssignments.length === 0) {
-        completedAssignmentsElement.innerHTML = '<p class="empty-state">No completed assignments found</p>';
+        completedAssignmentsElement.innerHTML = '<p class="empty-message">No completed assignments found</p>';
         return;
     }
     
     let html = '';
     
     completedAssignments.forEach(assignment => {
+        const formattedDate = formatDate(assignment.completedAt || new Date().toISOString());
+        const rewardAmount = assignment.reward || 0;
+        const trashType = assignment.type || 'General Waste';
+        
         html += `
-            <div class="assignment-card" data-id="${assignment.id}">
-                <div class="assignment-header">
-                    <h3>${assignment.title}</h3>
-                    <span class="badge badge-completed">Completed</span>
+            <div class="request-card" data-id="${assignment.id}">
+                <div class="status-corner completed"></div>
+                <div class="request-header">
+                    <h3>${assignment.title || 'Assignment'}</h3>
+                    <span class="timestamp">${formattedDate}</span>
                 </div>
-                <p class="assignment-description">${assignment.description}</p>
-                <div class="assignment-details">
-                    <p><strong>Authority:</strong> ${assignment.authority}</p>
-                    <p><strong>Completed:</strong> ${formatDate(assignment.completedAt)}</p>
-                    <p><strong>Reward:</strong> $${assignment.reward}</p>
+                <p class="address">${assignment.location?.name || 'Location not specified'}</p>
+                <div class="request-details">
+                    <span class="reward">$${rewardAmount.toFixed(2)}</span>
+                    <span class="trash-type">${trashType}</span>
                 </div>
-                <div class="assignment-actions">
-                    <button class="btn btn-outline locate-dumping-btn" data-id="${assignment.id}">
-                        <span class="material-icons">location_on</span> Locate Dumping Site
+                
+                <div class="request-actions">
+                    <button class="view-details-btn locate-dumping-btn" data-id="${assignment.id}" data-lat="${assignment.location?.lat}" data-lng="${assignment.location?.lng}">
+                        <span class="material-icons">location_on</span>
+                        <span>View Dumping Site</span>
                     </button>
-                    <button class="btn btn-primary dispose-now-btn" data-id="${assignment.id}" disabled>
-                        <span class="material-icons">delete</span> Dispose Now
+                    <button class="view-details-btn dispose-now-btn" data-id="${assignment.id}" style="background-color: #f5f5f5; color: #333;" disabled>
+                        <span class="material-icons">delete</span>
+                        <span>Dispose Now</span>
                     </button>
+                </div>
+                
+                <div class="request-expanded-content">
+                    ${assignment.authority ? `<p><strong>Authority:</strong> ${assignment.authority}</p>` : ''}
+                    <p><strong>Completed:</strong> ${formattedDate}</p>
+                    ${assignment.description ? `<p><strong>Description:</strong> ${assignment.description}</p>` : ''}
                 </div>
             </div>
         `;
@@ -1525,6 +1578,24 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
  */
 function deg2rad(deg) {
     return deg * (Math.PI/180);
+}
+
+/**
+ * Toggle the visibility of request details
+ * @param {HTMLElement} button - The button that was clicked
+ */
+function toggleRequestDetails(button) {
+    const card = button.closest('.request-card');
+    if (!card) return;
+    
+    const content = card.querySelector('.request-expanded-content');
+    const icon = button.querySelector('.material-icons');
+    
+    if (content && icon) {
+        const isExpanded = content.style.display === 'block';
+        content.style.display = isExpanded ? 'none' : 'block';
+        icon.textContent = isExpanded ? 'expand_more' : 'expand_less';
+    }
 }
 
 // Initialize the assignment page when the DOM is loaded
