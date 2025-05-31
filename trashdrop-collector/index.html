@@ -17,6 +17,10 @@
     <script src="./src/js/dev-tools.js"></script>
     
     <!-- Supabase JS CDN -->
+     <script>
+       // Initialize Supabase client once
+       window.supabaseClient = window.supabase || {};  // or your actual Supabase initialization
+     </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Configuration -->
     <script src="./src/js/config.js"></script>
@@ -121,6 +125,17 @@
     </script>
     
     <!-- Main JavaScript -->
+    <script>
+      // Check if Supabase loaded correctly
+      window.addEventListener('DOMContentLoaded', () => {
+        if (!window.supabase) {
+          console.error('Supabase failed to load. Check your internet connection and ensure the CDN is accessible.');
+        }
+        if (!window.SUPABASE_CONFIG) {
+          console.error('Supabase configuration is missing. Check config.js');
+        }
+      });
+    </script>
     <script src="./src/js/main.js"></script>
     <script src="./src/js/auth.js"></script>
     

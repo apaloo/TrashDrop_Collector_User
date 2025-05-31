@@ -1,5 +1,8 @@
 // earnings.js - Handles earnings functionality for TrashDrop Collector
 
+// Use global supabaseClient
+const supabaseClient = window.supabaseClient || {};
+
 // Create a backup mock implementation for immediate testing
 const mockData = {
     totalEarnings: 3856.50,
@@ -62,40 +65,17 @@ const mockData = {
     ]
 };
 
-// Initialize Supabase client from config if possible, otherwise use mock
-let supabase;
-try {
-    // Using window.supabase since it's loaded from CDN
-    if (window.supabase) {
-        supabase = window.supabase.createClient(
-            window.SUPABASE_CONFIG.url,
-            window.SUPABASE_CONFIG.key
-        );
-        console.log('Supabase client initialized successfully');
-    } else {
-        throw new Error('Supabase client not available');
-    }
-} catch (error) {
-    console.error('Error initializing Supabase client:', error);
-    // Create a mock supabase client with no-op methods
-    supabase = {
-        from: () => ({
-            select: () => ({
-                eq: () => ({
-                    eq: () => ({
-                        gte: () => ({
-                            lte: () => Promise.resolve({ data: [], error: null })
-                        })
-                    })
-                }),
-                order: () => ({
-                    limit: () => Promise.resolve({ data: [], error: null })
-                })
-            })
-        })
-    };
-    console.log('Using mock Supabase client');
+// Use the global supabaseClient without redeclaring it
+if (!window.supabaseClient) {
+  console.warn('Warning: Supabase client not initialized. Using window.supabase if available.');
+  window.supabaseClient = window.supabase || {};
 }
+
+// Local reference
+const supabaseClient = window.supabaseClient;
+
+console.log('Earnings module: Supabase client', 
+  supabaseClient ? 'initialized successfully' : 'not available');
 
 // Global variables
 let currentPeriod = 'week';
@@ -859,7 +839,21 @@ function loadMockData(period) {
 }
 
 // Initialize page when DOM is loaded
-document.addEventListener('DOMContentLoaded', initializeEarningsPage);
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    if (!supabaseClient?.auth) {
+      console.error('Supabase client not properly initialized');
+      // Fall back to mock data if Supabase isn't available
+      loadMockData(currentPeriod);
+      return;
+    }
+    await initializeEarningsPage();
+  } catch (error) {
+    console.error('Error initializing earnings page:', error);
+    // Fall back to mock data on error
+    loadMockData(currentPeriod);
+  }
+});
 
 // Export functions for testing
 window.earningsModule = {

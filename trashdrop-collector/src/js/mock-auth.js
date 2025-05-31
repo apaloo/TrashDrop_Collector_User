@@ -3,59 +3,95 @@
  * This file provides a reliable mock authentication system for development
  */
 
-// Always ensure we have a mock user in development mode
-(function setupMockAuth() {
-    // Check if we're in development mode
-    const isDev = window.location.hostname === 'localhost' || 
-                 window.location.hostname.includes('127.0.0.1') ||
-                 window.location.port === '5500' ||
-                 window.location.port === '5501';
+// Mock user data in memory
+let currentUser = null;
+let authToken = null;
+
+// Check if we're in development mode
+const isDev = window.location.hostname === 'localhost' || 
+             window.location.hostname.includes('127.0.0.1') ||
+             window.location.port === '5500' ||
+             window.location.port === '5501';
+
+if (!isDev) {
+    console.log('Production environment detected. Mock auth disabled.');
+} else {
+    console.log('Development environment detected. Mock authentication enabled.');
+}
+
+// Mock user data
+const MOCK_USER = {
+    id: 'mock-user-12345',
+    email: 'test@example.com',
+    name: 'Test User',
+    role: 'collector',
+    created_at: new Date().toISOString()
+};
+
+// Initialize mock auth if in development
+if (isDev) {
+    // Initialize with default user
+    currentUser = MOCK_USER;
+    authToken = 'mock-token-' + Date.now();
     
-    if (!isDev) {
-        console.log('Production environment detected. Mock auth disabled.');
-        return;
-    }
-    
-    console.log('Development environment detected. Setting up mock authentication.');
-    
-    // Create mock user if it doesn't exist
-    if (!localStorage.getItem('mockUser')) {
-        const mockUser = {
-            id: 'mock-user-' + Date.now(),
-            email: 'mockuser@example.com',
-            name: 'Mock User',
-            created_at: new Date().toISOString(),
-            role: 'collector'
-        };
-        
-        // Store user in localStorage
-        localStorage.setItem('mockUser', JSON.stringify(mockUser));
-        console.log('Created mock user:', mockUser.email);
-    } else {
-        console.log('Using existing mock user');
-    }
-    
-    // Override authentication functions to use mock user
+    // Override getCurrentUser
     window.getCurrentUser = function() {
-        const mockUserStr = localStorage.getItem('mockUser');
-        if (mockUserStr) {
-            try {
-                return Promise.resolve(JSON.parse(mockUserStr));
-            } catch (e) {
-                console.error('Error parsing mock user:', e);
-            }
+        console.log('getCurrentUser called');
+        if (currentUser) {
+            return { user: currentUser, error: null };
         }
-        return Promise.resolve(null);
+        return { user: null, error: 'Not authenticated' };
     };
     
-    window.signOut = function() {
-        console.log('Mock sign out called');
-        localStorage.removeItem('mockUser');
-        return Promise.resolve({ success: true });
+    // Override signInWithEmail
+    window.signInWithEmail = async function(email, password) {
+        console.log('Mock signInWithEmail called with:', email);
+        
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Set the current user and token
+        currentUser = { ...MOCK_USER, email };
+        authToken = 'mock-token-' + Date.now();
+        
+        // Store in sessionStorage to persist across page reloads
+        sessionStorage.setItem('mock_user', JSON.stringify(currentUser));
+        sessionStorage.setItem('mock_token', authToken);
+        
+        return {
+            user: currentUser,
+            session: {
+                access_token: authToken,
+                refresh_token: 'mock-refresh-token',
+                user: currentUser
+            },
+            error: null
+        };
     };
     
-    // Skip auth check entirely in development mode
-    window.bypassAuthForDev = true;
+    // Override signOut
+    window.signOut = async function() {
+        console.log('Mock signOut called');
+        currentUser = null;
+        authToken = null;
+        sessionStorage.removeItem('mock_user');
+        sessionStorage.removeItem('mock_token');
+        return { error: null };
+    };
     
-    console.log('Mock authentication setup complete');
-})();
+    // Check for existing session on page load
+    const savedUser = sessionStorage.getItem('mock_user');
+    const savedToken = sessionStorage.getItem('mock_token');
+    
+    if (savedUser && savedToken) {
+        try {
+            currentUser = JSON.parse(savedUser);
+            authToken = savedToken;
+            console.log('Restored user session:', currentUser.email);
+        } catch (e) {
+            console.error('Error parsing saved user:', e);
+        }
+    }
+    
+    console.log('Mock authentication initialized');
+}

@@ -11,12 +11,17 @@ let userMarker;
 let requestMarkers = [];
 // Radius circle
 let radiusCircle;
-// Current position
-let currentPosition = null;
-// Current radius in km
-let currentRadius = 5;
-// Current trash type filter
-let currentTrashType = 'all';
+
+// Initialize global state if not exists
+window.TrashDrop = window.TrashDrop || {};
+window.TrashDrop.state = window.TrashDrop.state || {
+    currentPosition: null,
+    currentRadius: 5,
+    currentTrashType: 'all'
+};
+
+// Alias for easier access
+const state = window.TrashDrop.state;
 
 /**
  * Initialize the map
@@ -24,25 +29,344 @@ let currentTrashType = 'all';
  * @returns {Object} - Leaflet map instance
  */
 function initMap(coords = [5.6037, -0.1870]) {
-    // Create map instance with attribution control disabled and custom zoom control position
-    map = L.map('map', {
-        attributionControl: false,  // Disable attribution control
-        zoomControl: false  // Disable default zoom control to reposition it
-    }).setView(coords, 13);
-    
-    // Add OpenStreetMap tile layer without attribution
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19
-    }).addTo(map);
-    
-    // Only add zoom controls on larger screens (non-mobile)
-    if (window.innerWidth > 768) {
-        L.control.zoom({
-            position: 'topright'  // Position zoom at top right to avoid all overlaps
-        }).addTo(map);
+    // Check if map container exists and is not already initialized
+    const mapElement = document.getElementById('map');
+    if (!mapElement) {
+        console.error('Map container not found');
+        return null;
     }
     
-    return map;
+    // If map is already initialized, just update the view and return
+    if (mapElement._leaflet_id && map) {
+        map.setView(coords, map.getZoom(), { 
+            animate: false,
+            duration: 0.3
+        });
+        return Promise.resolve(map);
+    }
+    
+    // Create map instance with optimized settings for mobile and desktop
+    const mapOptions = {
+        attributionControl: false,  // Disable default attribution control
+        zoomControl: false,        // We'll add a custom one
+        touchZoom: true,          // Enable touch zoom
+        doubleClickZoom: true,    // Enable double click zoom
+        scrollWheelZoom: true,    // Enable scroll wheel zoom
+        boxZoom: true,            // Enable box zoom
+        dragging: true,           // Enable dragging
+        keyboard: true,           // Enable keyboard navigation
+        tapTolerance: 25,         // Increased tap tolerance for better touch (from 15 to 25)
+        preferCanvas: true,       // Better performance for many markers
+        zoomSnap: 0.25,           // Smoother zooming
+        zoomDelta: 0.5,           // Smoother zoom steps
+        wheelPxPerZoomLevel: 60,  // Smoother mouse wheel zoom
+        fadeAnimation: true,      // Smoother animations
+        markerZoomAnimation: true, // Smoother marker animations
+        maxBoundsViscosity: 0.7,  // How much the map stays still when dragging near the edge
+        inertia: true,            // Inertia for smoother panning
+        inertiaDeceleration: 3000, // Speed of deceleration after panning
+        inertiaMaxSpeed: 1500,     // Max speed of the inertial movement
+        easeLinearity: 0.3,        // Animation curve for smooth transitions
+        worldCopyJump: false,     // Prevent infinite horizontal panning
+        maxBounds: [             // Limit map bounds to reasonable values
+            [-90, -180],
+            [90, 180]
+        ]
+    };
+
+
+    try {
+        // Initialize the map with the options
+        map = L.map('map', mapOptions).setView(coords, 13);
+        
+        // Store map instance in state
+        window.TrashDrop.map = map;
+        
+        // Initialize current position from state if available
+        if (state.currentPosition) {
+            coords = [state.currentPosition.lat, state.currentPosition.lng];
+            map.setView(coords, 13, { animate: false });
+        }
+    } catch (error) {
+        console.error('Error initializing map:', error);
+        throw error; // Re-throw to be caught by the caller
+    }
+    
+    // Add a class to the map container for mobile detection in CSS
+    if (L.Browser.mobile) {
+        map.getContainer().classList.add('leaflet-touch');
+    }
+    
+    // Add OpenStreetMap tile layer with optimized options
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        detectRetina: true,      // Better rendering on retina displays
+        attribution: '',         // Empty attribution to avoid any overlay
+        updateWhenIdle: false,   // Only update when panning is done
+        updateWhenZooming: false, // Don't update during zoom animation
+        reuseTiles: true,       // Reuse tiles to save memory
+        updateInterval: 200      // Throttle updates
+    }).addTo(map);
+    
+    // Add user location control with proper error handling
+    function setupLocateControl() {
+        try {
+            // Check if locate control is available
+            if (L.control && L.control.locate) {
+                const locateControl = L.control.locate({
+                    position: 'topleft',
+                    drawCircle: false,
+                    follow: false,
+                    setView: 'once',
+                    locateOptions: {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    },
+                    onLocationError: function(err) {
+                        console.warn('Location error:', err);
+                    }
+                }).addTo(map);
+                return locateControl;
+            }
+        } catch (error) {
+            console.warn('Error initializing locate control:', error);
+        }
+        return null;
+    }
+    
+    // Initialize locate control
+    const locateControl = setupLocateControl();
+    
+    /**
+     * Update the user's location marker on the map
+     * @param {Array|Object} coords - Either [lat, lng] or {lat, lng} coordinates
+     */
+    function updateUserLocationMarker(coords) {
+        try {
+            const latlng = Array.isArray(coords) 
+                ? { lat: coords[0], lng: coords[1] } 
+                : coords;
+            
+            // Ensure we have valid coordinates
+            if (isNaN(latlng.lat) || isNaN(latlng.lng)) {
+                console.warn('Invalid coordinates:', latlng);
+                return;
+            }
+            
+            // Update or create user marker
+            if (userMarker) {
+                userMarker.setLatLng(latlng);
+            } else {
+                userMarker = L.marker(latlng, {
+                    icon: L.divIcon({
+                        className: 'user-location-marker',
+                        html: '📍',
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 32],
+                        popupAnchor: [0, -32]
+                    }),
+                    zIndexOffset: 1000
+                }).addTo(map);
+            }
+            
+            // Update radius circle
+            if (radiusCircle) {
+                radiusCircle.setLatLng(latlng);
+            } else {
+                radiusCircle = addRadiusCircle(latlng, state.currentRadius);
+            }
+            
+            return latlng;
+        } catch (error) {
+            console.error('Error updating user location marker:', error);
+            return null;
+        }
+    }
+    
+    // Fallback to basic geolocation if locate control failed
+    // Only attempt if we don't already have a location
+    if (!locateControl && navigator.geolocation && !state.currentPosition) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const coords = [pos.coords.latitude, pos.coords.longitude];
+                map.setView(coords, 15);
+                
+                // Update state and UI
+                state.currentPosition = { lat: coords[0], lng: coords[1] };
+                updateUserLocationMarker(coords);
+                
+                // Fetch nearby requests
+                fetchNearbyRequests(coords, state.currentRadius, state.currentTrashType);
+            },
+            (err) => {
+                // Only log debug info for geolocation errors
+                if (err.code === 1) {
+                    console.debug('User denied geolocation permission');
+                } else {
+                    console.debug('Geolocation not available:', err.message);
+                }
+                // Don't show error notifications for geolocation
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    }
+    
+    // Store locate control for later use if it was created
+    if (locateControl) {
+        window.TrashDrop.locateControl = locateControl;
+    }
+    
+    // Add zoom controls for all devices but position them appropriately
+    const zoomOptions = {
+        position: 'topright',
+        zoomInTitle: 'Zoom in',
+        zoomOutTitle: 'Zoom out'
+    };
+    
+    // Add zoom control for all devices
+    L.control.zoom(zoomOptions).addTo(map);
+    
+    /**
+     * Enhanced mobile interaction handling with better touch support
+     */
+    function setupMobileInteractions() {
+        if (!L.Browser.mobile) return;
+        
+        // Enable all map interactions safely
+        const enableInteractions = () => {
+            try {
+                if (map.dragging) map.dragging.enable();
+                if (map.touchZoom) map.touchZoom.enable();
+                if (map.doubleClickZoom) map.doubleClickZoom.enable();
+                if (map.scrollWheelZoom) map.scrollWheelZoom.enable();
+                if (map.boxZoom) map.boxZoom.enable();
+                if (map.keyboard) map.keyboard.enable();
+            } catch (error) {
+                console.warn('Error enabling map interactions:', error);
+            }
+        };
+        
+        // Initial setup
+        enableInteractions();
+        
+        // Debounce function to prevent rapid firing
+        const debounce = (fn, delay) => {
+            let timeout;
+            return function() {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => fn.apply(this, arguments), delay);
+            };
+        };
+        
+        // Re-enable interactions with debouncing
+        const reEnableInteractions = debounce(() => {
+            if (!map) return;
+            enableInteractions();
+            
+            // Additional mobile-specific optimizations
+            try {
+                // Force hardware acceleration for smoother animations
+                const container = map.getContainer();
+                if (container) {
+                    container.style.transform = 'translateZ(0)';
+                    container.style.webkitBackfaceVisibility = 'hidden';
+                }
+                
+                // Ensure touch actions are properly set
+                if (map._container) {
+                    map._container.style.touchAction = 'pan-x pan-y';
+                }
+                
+                // Add touch-action to map container for better touch handling
+                map.getContainer().style.touchAction = 'manipulation';
+                
+                // Disable double tap zoom on mobile for better performance
+                map.tap?.disable();
+                
+            } catch (e) {
+                console.warn('Error optimizing mobile interactions:', e);
+            }
+        }, 100);
+        
+        // Re-enable interactions after certain events
+        map.on('moveend', reEnableInteractions);
+        map.on('zoomend', reEnableInteractions);
+        
+        // Handle touch events
+        map.on('touchstart', (e) => {
+            // Enable interactions when user interacts with the map
+            enableInteractions();
+            
+            // Prevent default to avoid text selection and other default behaviors
+            if (e.originalEvent.touches.length > 1) {
+                e.originalEvent.preventDefault();
+            }
+        });
+        
+        // Handle window resize
+        const handleResize = debounce(() => {
+            map.invalidateSize({ animate: false });
+        }, 100);
+        
+        window.addEventListener('resize', handleResize);
+        
+        // Cleanup
+        map.on('remove', () => {
+            window.removeEventListener('resize', handleResize);
+        });
+    }
+    
+    // Set up mobile interactions
+    setupMobileInteractions();
+    
+    // Return a promise that resolves when the map is fully initialized
+    return new Promise((resolve, reject) => {
+        // Auto-start location if possible
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    try {
+                        // Update map view to current position
+                        const coords = [position.coords.latitude, position.coords.longitude];
+                        map.setView(coords, 15);
+                        
+                        // Update state and UI
+                        state.currentPosition = { lat: coords[0], lng: coords[1] };
+                        updateUserLocationMarker(coords);
+                        
+                        // If locate control is available, start it
+                        if (locateControl && typeof locateControl.start === 'function') {
+                            try {
+                                await locateControl.start();
+                            } catch (err) {
+                                console.warn('Could not start locate control:', err);
+                                // Continue without locate control
+                            }
+                        }
+                        
+                        resolve(map);
+                    } catch (err) {
+                        console.error('Error processing location:', err);
+                        resolve(map);
+                    }
+                },
+                (err) => {
+                    console.warn('Geolocation permission denied or error:', err);
+                    resolve(map);
+                },
+                { 
+                    enableHighAccuracy: true, 
+                    timeout: 10000, 
+                    maximumAge: 0 
+                }
+            );
+        } else {
+            // Geolocation not supported, just resolve with the map
+            console.warn('Geolocation is not supported by this browser');
+            resolve(map);
+        }
+    });
 }
 
 /**
@@ -139,6 +463,24 @@ async function fetchNearbyRequests(coords, radius = 5, trashType = 'all') {
         // Store the latest requests for list view access
         window.currentRequests = [];
         
+        // Ensure we have valid coordinates
+        let centerLat, centerLng;
+        
+        if (Array.isArray(coords)) {
+            [centerLat, centerLng] = coords;
+        } else if (coords && typeof coords === 'object') {
+            centerLat = coords.lat || coords.latitude || 5.6037; // Default to Accra coordinates
+            centerLng = coords.lng || coords.longitude || -0.1870;
+        } else {
+            // Fallback to default coordinates if coords is invalid
+            centerLat = 5.6037;
+            centerLng = -0.1870;
+        }
+        
+        // Ensure coordinates are numbers
+        centerLat = parseFloat(centerLat) || 5.6037;
+        centerLng = parseFloat(centerLng) || -0.1870;
+        
         // In production, this would be a Supabase query like:
         // const { data, error } = await supabase
         //    .from('requests')
@@ -152,24 +494,35 @@ async function fetchNearbyRequests(coords, radius = 5, trashType = 'all') {
         await new Promise(resolve => setTimeout(resolve, 500));
         
         // Generate random points within the radius
-        const dummyRequests = generateDummyRequests(coords, radius, 10);
+        const dummyRequests = generateDummyRequests([centerLat, centerLng], radius, 10);
         
         // Filter requests by trash type if needed
         const filteredRequests = trashType === 'all' 
             ? dummyRequests 
-            : dummyRequests.filter(req => req.type === trashType);
-            
+            : dummyRequests.filter(req => req && req.type === trashType);
+        
         // Sort by distance
-        filteredRequests.sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
+        filteredRequests.sort((a, b) => {
+            const distA = typeof a.distance === 'number' ? a.distance : parseFloat(a.distance) || 0;
+            const distB = typeof b.distance === 'number' ? b.distance : parseFloat(b.distance) || 0;
+            return distA - distB;
+        });
         
         // Store the latest requests for list view access
-        window.currentRequests = filteredRequests;
+        window.currentRequests = filteredRequests.filter(Boolean);
         
         // Add markers for each request
-        filteredRequests.forEach(addRequestMarker);
+        filteredRequests.forEach(request => {
+            if (request) {
+                addRequestMarker(request);
+            }
+        });
         
         // Update request count badge
-        document.getElementById('requestCountBadge').textContent = filteredRequests.length;
+        const badge = document.getElementById('requestCountBadge');
+        if (badge) {
+            badge.textContent = filteredRequests.length;
+        }
         
         return filteredRequests;
     } catch (error) {
@@ -185,38 +538,72 @@ async function fetchNearbyRequests(coords, radius = 5, trashType = 'all') {
  * @param {Number} count - Number of points to generate
  * @returns {Array} - Array of request objects
  */
-function generateDummyRequests(center, radius, count = 15) {
+function generateDummyRequests(center, radius = 5, count = 15) {
     const requests = [];
     const trashTypes = ['recyclable', 'general', 'hazardous'];
     const statuses = ['pending', 'accepted', 'completed'];
     
+    // Ensure center is in the correct format
+    let centerLat, centerLng;
+    
+    if (Array.isArray(center)) {
+        [centerLat, centerLng] = center;
+    } else if (center && typeof center === 'object') {
+        centerLat = center.lat || center.latitude || 5.6037; // Default to Accra coordinates
+        centerLng = center.lng || center.longitude || -0.1870;
+    } else {
+        // Fallback to default coordinates if center is invalid
+        centerLat = 5.6037;
+        centerLng = -0.1870;
+    }
+    
+    // Ensure coordinates are numbers
+    centerLat = parseFloat(centerLat) || 5.6037;
+    centerLng = parseFloat(centerLng) || -0.1870;
+    radius = parseFloat(radius) || 5;
+    
     // Ensure we have at least 3 of each trash type for better filter demonstration
-    let typeIndex = 0;
     for (let i = 0; i < count; i++) {
-        // Generate random point within radius
-        const angle = Math.random() * 2 * Math.PI;
-        const distance = Math.random() * radius * 0.8; // 80% of radius to keep points inside
-        
-        // Convert distance to latitude/longitude offset
-        const latOffset = distance * Math.cos(angle) / 111; // 1 degree lat ≈ 111 km
-        const lngOffset = distance * Math.sin(angle) / (111 * Math.cos(center[0] * Math.PI / 180));
-        
-        // For first 9 points, ensure even distribution (3 of each type)
-        // For remaining points, use random types
-        const trashType = i < 9 ? trashTypes[Math.floor(i / 3)] : trashTypes[Math.floor(Math.random() * trashTypes.length)];
-        
-        const request = {
-            id: i + 1,
-            latitude: center[0] + latOffset,
-            longitude: center[1] + lngOffset,
-            type: trashType,
-            status: statuses[0], // Always pending for the map view
-            bags: Math.floor(Math.random() * 5) + 1,
-            points: Math.floor(Math.random() * 100) + 50,
-            distance: (distance).toFixed(1)
-        };
-        
-        requests.push(request);
+        try {
+            // Generate random point within radius
+            const angle = Math.random() * 2 * Math.PI;
+            const distance = Math.random() * radius * 0.8; // 80% of radius to keep points inside
+            
+            // Convert distance to latitude/longitude offset
+            const latOffset = (distance * Math.cos(angle)) / 111; // 1 degree lat ≈ 111 km
+            const lngOffset = (distance * Math.sin(angle)) / (111 * Math.cos((centerLat * Math.PI) / 180));
+            
+            // Calculate final coordinates
+            const latitude = centerLat + latOffset;
+            const longitude = centerLng + lngOffset;
+            
+            // Skip if coordinates are invalid
+            if (isNaN(latitude) || isNaN(longitude)) {
+                console.warn('Skipping invalid coordinates');
+                continue;
+            }
+            
+            // For first 9 points, ensure even distribution (3 of each type)
+            // For remaining points, use random types
+            const trashType = i < 9 
+                ? trashTypes[Math.min(Math.floor(i / 3), trashTypes.length - 1)] 
+                : trashTypes[Math.floor(Math.random() * trashTypes.length)];
+            
+            const request = {
+                id: i + 1,
+                latitude,
+                longitude,
+                type: trashType,
+                status: statuses[0], // Always pending for the map view
+                bags: Math.floor(Math.random() * 5) + 1,
+                points: Math.floor(Math.random() * 100) + 50,
+                distance: parseFloat(distance.toFixed(1))
+            };
+            
+            requests.push(request);
+        } catch (error) {
+            console.error('Error generating request:', error);
+        }
     }
     
     return requests;
@@ -228,35 +615,52 @@ function generateDummyRequests(center, radius, count = 15) {
  * @returns {Object} - Leaflet marker instance
  */
 function addRequestMarker(request) {
-    // Define marker icon based on trash type
-    let iconHtml;
-    let iconColor;
-    
-    switch (request.type) {
-        case 'recyclable':
-            iconHtml = '♻️';
-            iconColor = '#4CAF50';
-            break;
-        case 'hazardous':
-            iconHtml = '⚠️';
-            iconColor = '#F44336';
-            break;
-        case 'general':
-        default:
-            iconHtml = '🗑️';
-            iconColor = '#2196F3';
-    }
-    
-    // Create custom icon
-    const requestIcon = L.divIcon({
-        className: 'request-marker',
-        html: `<div class="request-marker-icon" style="background-color:${iconColor}">${iconHtml}</div>`,
-        iconSize: [36, 36],
-        iconAnchor: [18, 18]
-    });
-    
-    // Create marker
-    const marker = L.marker([request.latitude, request.longitude], { icon: requestIcon })
+    try {
+        // Validate request and coordinates
+        if (!request || (isNaN(parseFloat(request.latitude)) || isNaN(parseFloat(request.longitude)))) {
+            console.warn('Invalid request or coordinates:', request);
+            return null;
+        }
+        
+        // Parse coordinates to ensure they are numbers
+        const lat = parseFloat(request.latitude);
+        const lng = parseFloat(request.longitude);
+        
+        // Skip if coordinates are invalid
+        if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+            console.warn('Invalid coordinates:', { lat, lng });
+            return null;
+        }
+        
+        // Define marker icon based on trash type
+        let iconHtml;
+        let iconColor;
+        
+        switch (request.type) {
+            case 'recyclable':
+                iconHtml = '♻️';
+                iconColor = '#4CAF50';
+                break;
+            case 'hazardous':
+                iconHtml = '⚠️';
+                iconColor = '#F44336';
+                break;
+            case 'general':
+            default:
+                iconHtml = '🗑️';
+                iconColor = '#2196F3';
+        }
+        
+        // Create custom icon
+        const requestIcon = L.divIcon({
+            className: 'request-marker',
+            html: `<div class="request-marker-icon" style="background-color:${iconColor}">${iconHtml}</div>`,
+            iconSize: [36, 36],
+            iconAnchor: [18, 18]
+        });
+        
+        // Create marker with validated coordinates
+        const marker = L.marker([lat, lng], { icon: requestIcon })
         .addTo(map)
         .bindPopup(`
             <div class="request-popup">
@@ -282,6 +686,10 @@ function addRequestMarker(request) {
     requestMarkers.push(marker);
     
     return marker;
+    } catch (error) {
+        console.error('Error adding request marker:', error);
+        return null;
+    }
 }
 
 /**
@@ -336,22 +744,36 @@ async function acceptRequest(requestId) {
  */
 function filterRequestsByType(trashType) {
     console.log('Filtering by trash type:', trashType);
-    currentTrashType = trashType;
+    const state = window.TrashDrop.state;
+    state.currentTrashType = trashType;
     
-    if (currentPosition) {
-        // Clear existing markers first
-        clearRequestMarkers();
-        
-        // Add radius circle with current radius
-        addRadiusCircle(currentPosition, currentRadius);
-        
-        // Fetch new requests with the applied filter
-        fetchNearbyRequests(currentPosition, currentRadius, trashType);
-        
-        // Save current filter settings in sessionStorage for list view access
-        sessionStorage.setItem('currentTrashType', trashType);
+    if (state.currentPosition) {
+        try {
+            // Clear existing markers first
+            clearRequestMarkers();
+            
+            // Add/update radius circle with current radius
+            if (radiusCircle) {
+                radiusCircle.remove();
+            }
+            radiusCircle = addRadiusCircle(
+                [state.currentPosition.lat, state.currentPosition.lng], 
+                state.currentRadius
+            );
+            
+            // Fetch new requests with the applied filter
+            return fetchNearbyRequests(
+                state.currentPosition,
+                state.currentRadius,
+                trashType
+            );
+        } catch (error) {
+            console.error('Error applying filter:', error);
+            return Promise.reject(error);
+        }
     } else {
-        console.error('Current position not available for filtering');
+        console.log('Current position not available, saving filter preference only');
+        return Promise.resolve();
     }
 }
 
@@ -360,14 +782,33 @@ function filterRequestsByType(trashType) {
  * @param {Number} radius - New radius in kilometers
  */
 function updateRadius(radius) {
-    currentRadius = radius;
+    const state = window.TrashDrop.state;
+    state.currentRadius = parseInt(radius);
     
-    if (currentPosition) {
-        addRadiusCircle(currentPosition, radius);
-        fetchNearbyRequests(currentPosition, radius, currentTrashType);
-        
-        // Save current filter settings in sessionStorage for list view access
-        sessionStorage.setItem('currentRadius', radius);
+    if (state.currentPosition) {
+        try {
+            // Update radius circle
+            if (radiusCircle) {
+                radiusCircle.remove();
+            }
+            radiusCircle = addRadiusCircle(
+                [state.currentPosition.lat, state.currentPosition.lng],
+                state.currentRadius
+            );
+            
+            // Fetch requests with new radius
+            return fetchNearbyRequests(
+                state.currentPosition,
+                state.currentRadius,
+                state.currentTrashType
+            );
+        } catch (error) {
+            console.error('Error updating radius:', error);
+            return Promise.reject(error);
+        }
+    } else {
+        console.log('Current position not available, saving radius preference only');
+        return Promise.resolve();
     }
 }
 
@@ -419,8 +860,25 @@ window.getUserLocation = getUserLocation;
 window.addUserMarker = addUserMarker;
 window.addRadiusCircle = addRadiusCircle;
 window.fetchNearbyRequests = fetchNearbyRequests;
+window.addRequestMarker = addRequestMarker;
+window.clearRequestMarkers = clearRequestMarkers;
+window.acceptRequest = acceptRequest;
 window.filterRequestsByType = filterRequestsByType;
 window.updateRadius = updateRadius;
-window.acceptRequest = acceptRequest;
 window.navigateToListView = navigateToListView;
 window.updateUserStatus = updateUserStatus;
+
+// Initialize global state if not already done
+if (!window.TrashDrop) {
+    window.TrashDrop = {
+        state: {
+            currentPosition: null,
+            currentRadius: 5,
+            currentTrashType: 'all',
+            mapInitialized: false,
+            filtersInitialized: false
+        },
+        map: null,
+        locateControl: null
+    };
+}

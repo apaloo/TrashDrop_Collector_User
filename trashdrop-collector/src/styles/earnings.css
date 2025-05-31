@@ -86,11 +86,12 @@
     background-color: var(--white);
     border-radius: 16px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-    padding: 1.75rem;
-    margin-bottom: 2rem;
+    padding: 1.5rem;
+    margin: 0 1rem 1.5rem;
     transition: transform 0.3s, box-shadow 0.3s;
     position: relative;
     overflow: hidden;
+    box-sizing: border-box;
 }
 
 .content-card:hover {
@@ -100,17 +101,36 @@
 
 /* Breakdown row styles */
 .breakdown-row {
-    display: grid;
-    grid-template-columns: 0.85fr 1.15fr;
+    display: flex;
+    flex-direction: column;
     gap: 1.5rem;
-    margin-bottom: 1rem;
+    margin: 0 1rem 1.5rem;
+    padding: 0;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.breakdown-row .content-card {
+    width: 100%;
+    margin: 0 0 1.5rem 0;
+    box-sizing: border-box;
+}
+
+.breakdown-row .content-card:last-child {
+    margin-bottom: 0;
+}
+
+/* Ensure consistent spacing for all card containers */
+.page-content {
+    padding: 1rem 0;
 }
 
 .content-card h2 {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--dark);
-    margin-bottom: 1.25rem;
+    margin: 0 0 1.25rem 0;
+    padding: 0;
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -127,29 +147,37 @@
 
 /* Stats card styles */
 .stats-card {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin: 0 0 1.5rem 0;
+    padding: 0 1rem;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .stat-item {
+    flex: 1;
+    min-width: 100px; /* Minimum width to prevent too much squishing */
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 1.5rem;
-    border-radius: 16px;
+    justify-content: center;
+    padding: 1rem 0.25rem;
+    border-radius: 12px;
     background-color: var(--white);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     text-align: center;
     transition: transform 0.3s, box-shadow 0.3s;
     overflow: hidden;
     position: relative;
+    min-height: 120px;
 }
 
 .stat-item:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
 }
 
 .stat-item::before {
@@ -158,32 +186,83 @@
     top: 0;
     left: 0;
     width: 100%;
-    height: 4px;
+    height: 3px;
     background: linear-gradient(to right, var(--primary-color), var(--primary-light));
 }
 
 .stat-label {
-    font-size: 1rem;
+    font-size: 0.85rem;
     color: var(--medium);
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
     font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    padding: 0 0.25rem;
 }
 
 .stat-value {
-    font-size: 2.2rem;
+    font-size: 1.5rem;
     font-weight: 700;
     color: var(--dark);
     letter-spacing: -0.5px;
+    line-height: 1.2;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .breakdown-row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin: 0 1rem 1rem;
+    }
+    
+    .content-card {
+        margin: 0 1rem 1rem;
+        padding: 1.25rem;
+    }
+}
+
+@media (max-width: 680px) {
+    .stats-card {
+        gap: 0.5rem;
+    }
+    
+    .stat-item {
+        min-height: 100px;
+        padding: 0.75rem 0.15rem;
+    }
+    
+    .stat-label {
+        font-size: 0.75rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .stat-value {
+        font-size: 1.25rem;
+    }
+}
+
+/* For very small screens, ensure text remains readable */
+@media (max-width: 560px) {
+    .stat-label {
+        font-size: 0.7rem;
+    }
+    
+    .stat-value {
+        font-size: 1.1rem;
+    }
 }
 
 /* Chart container styles */
 .chart-container {
     position: relative;
     height: 300px;
-    margin-top: 1.5rem;
+    margin: 0;
     padding: 1rem;
     background-color: var(--white);
-    border-radius: 12px;
+    border-radius: 8px;
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
@@ -192,16 +271,22 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    margin-top: 1.5rem;
+    margin: 0;
+    padding: 0;
     height: 100%;
 }
 
 .pie-chart-container,
 .bar-chart-container {
-    height: 300px;
+    height: 280px;
     position: relative;
-    margin-bottom: 1rem;
+    margin: 0;
+    padding: 1rem;
     width: 100%;
+    box-sizing: border-box;
+    background-color: var(--white);
+    border-radius: 8px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 /* Grid layout for trash type items */
@@ -709,6 +794,12 @@
 .payment-history-status.failed {
     background-color: rgba(244, 67, 54, 0.15);
     color: var(--error);
+}
+
+.mod.page-content {
+    padding: 1.5rem 1rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
 }
 
 .modal-header {
