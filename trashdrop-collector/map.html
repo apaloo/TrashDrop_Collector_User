@@ -146,14 +146,6 @@
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
           crossorigin=""/>
     
-    <!-- Supabase JS CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-            crossorigin=""></script>
-            
     <!-- Configuration -->
     <script src="./src/js/config.js"></script>
     
@@ -524,6 +516,9 @@
                 height: 100vh !important; /* Full viewport height */
                 width: 100% !important;
                 position: fixed !important;
+                -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+                touch-action: pan-x pan-y; /* Better touch handling */
+                background-color: #f5f5f5; /* Fallback background */
                 -webkit-overflow-scrolling: touch !important;
                 transform: translateZ(0);
                 backface-visibility: hidden;
@@ -1043,55 +1038,98 @@
             }
         }
         
-        // Initialize the app when the DOM is fully loaded
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('DOM fully loaded, initializing app...');
+        // Initialize the app with enhanced error handling and mobile support
+        async function initApp() {
+            console.log('Initializing TrashDrop Collector...');
             
-            try {
-                // Initialize TrashDrop state if not exists
-                window.TrashDrop = window.TrashDrop || {
-                    state: {
-                        currentPosition: null,
-                        currentRadius: 5,
-                        currentTrashType: 'all',
-                        mapInitialized: false,
-                        filtersInitialized: false
-                    },
-                    map: null,
-                    locateControl: null
-                };
-                
-                // Set up filter buttons first
-                console.log('Setting up filter buttons...');
-                setupFilterButtons();
-                
-                // Initialize the app
-                console.log('Starting app...');
-                if (window.startApp) {
-                    await window.startApp();
-                } else {
-                    console.warn('startApp function not found');
-                }
-                
-                // Load initial data
-                console.log('Loading initial data...');
-                await loadInitialData();
-                
-                console.log('App initialization complete');
-            } catch (error) {
-                console.error('Error during app initialization:', error);
+            // Check Supabase connection
+            if (!window.supabase) {
+                console.error('Supabase client not initialized');
+                showNotification('Error: Authentication service not available', 'error');
+                return;
             }
+            
+            // Check if we're in mobile view
+            const isMobile = window.innerWidth <= 768;
+            if (isMobile) {
+                document.documentElement.classList.add('mobile');
+                console.log('Mobile device detected');
+            }
+            
+            // Initialize TrashDrop state if not exists
+            window.TrashDrop = window.TrashDrop || {
+                state: {
+                    currentPosition: null,
+                    currentRadius: 5,
+                    currentTrashType: 'all',
+                    mapInitialized: false,
+                    filtersInitialized: false,
+                    isMobile: isMobile
+                },
+                map: null,
+                markers: {},
+                supabase: window.supabase // Reference to Supabase client
+            };
+            
+            // Set up filter buttons first
+            console.log('Setting up filter buttons...');
+            setupFilterButtons();
+            
+            // Initialize the app
+            console.log('Starting app...');
+            if (window.startApp) {
+                try {
+                    await window.startApp();
+                    
+                    // Load initial data
+                    console.log('Loading initial data...');
+                    await loadInitialData();
+                    
+                    console.log('App initialization complete');
+                    
+                    // Update UI based on auth state
+                    if (typeof updateAuthUI === 'function') {
+                        const user = await getCurrentUser();
+                        updateAuthUI(user);
+                    }
+                } catch (error) {
+                    console.error('Error during app initialization:', error);
+                    showNotification('Error initializing application', 'error');
+                }
+            } else {
+                console.warn('startApp function not found');
+                showNotification('Error: Application initialization failed', 'error');
+            }
+        }
+        
+        // Initialize the app when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM fully loaded, starting app initialization...');
+            initApp().catch(console.error);
         });
 
-        // Map initialization function
+        // Map initialization function with enhanced mobile support
         async function initializeMap() {
             // Ensure map container is visible and has dimensions
             const mapElement = document.getElementById('map');
-            if (mapElement) {
-                mapElement.style.display = 'block';
-                if (mapElement.offsetHeight === 0) {
-                    mapElement.style.height = '100vh';
-                }
+            if (!mapElement) {
+                console.error('Map container not found');
+                return;
+            }
+
+            // Set up map container
+            mapElement.style.display = 'block';
+            mapElement.style.width = '100%';
+            mapElement.style.height = '100vh';
+            
+            // Force a reflow to ensure dimensions are applied
+            mapElement.offsetHeight;
+            
+            // Check if we have valid dimensions
+            if (mapElement.offsetHeight === 0 || mapElement.offsetWidth === 0) {
+                console.warn('Map container has zero dimensions, retrying...');
+                setTimeout(initializeMap, 100);
+                return;
             }
             try {
                 // Wait for DOM and Leaflet to be fully loaded
@@ -1677,33 +1715,46 @@ function finalInitialization() {
     }
 }
 
-    // Check authentication status before initializing
+    // Enhanced authentication check with Supabase
     if (typeof window.checkAuth === 'undefined') {
         window.checkAuth = async function() {
+            console.log('Checking authentication status...');
+            
+            if (!window.supabase) {
+                console.error('Supabase client not available');
+                return false;
+            }
+            
             try {
-                // First check if we have a valid session
-                const hasValidSession = await new Promise(resolve => {
-                    if (window.TrashDrop?.auth?.getSession) {
-                        window.TrashDrop.auth.getSession()
-                            .then(({ data: { session } }) => resolve(!!session))
-                            .catch(() => resolve(false));
-                    } else {
-                        resolve(false);
-                    }
-                });
-
-                // If no valid session, redirect to login with a flag
-                if (!hasValidSession) {
-                    console.log('No valid session, redirecting to login...');
-                    // Don't redirect if we're already on the login page or in a redirect loop
-                    if (!window.location.href.includes('login.html') && !window.location.search.includes('from=map')) {
-                        window.location.href = 'login.html?from=map';
-                    }
+                const { data: { session }, error } = await window.supabase.auth.getSession();
+                
+                if (error) {
+                    console.error('Error checking auth status:', error);
                     return false;
                 }
+                
+                if (!session) {
+                    console.log('No active session found');
+                    return false;
+                }
+                
+                console.log('User is authenticated:', session.user.email);
+                
+                // Update the UI if the function is available
+                if (typeof updateAuthUI === 'function') {
+                    updateAuthUI(session.user);
+                }
+                
                 return true;
             } catch (error) {
-                console.error('Error checking auth status:', error);
+                console.error('Error in checkAuth:', error);
+                
+                // If we get an error, redirect to login page if not already there
+                if (!window.location.href.includes('login.html') && !window.location.search.includes('from=map')) {
+                    console.log('Authentication error, redirecting to login...');
+                    window.location.href = 'login.html?from=map';
+                }
+                
                 return false;
             }
         };

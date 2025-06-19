@@ -481,25 +481,55 @@ async function fetchNearbyRequests(coords, radius = 5, trashType = 'all') {
         centerLat = parseFloat(centerLat) || 5.6037;
         centerLng = parseFloat(centerLng) || -0.1870;
         
-        // In production, this would be a Supabase query like:
-        // const { data, error } = await supabase
-        //    .from('requests')
-        //    .select('*')
-        //    .eq('status', 'pending')
-        //    .filter('type', trashType === 'all' ? 'neq' : 'eq', trashType === 'all' ? null : trashType)
-        //    .filter('distance_from_point', 'lt', radius)
-        //    .order('distance', { ascending: true });
+        // Check if we're in development mode (using mock data)
+        const isDev = window.isDevelopment && !window.forceDirectConnection && 
+                     !window.location.hostname.includes('ngrok-free.app');
         
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 500));
+        let requests = [];
         
-        // Generate random points within the radius
-        const dummyRequests = generateDummyRequests([centerLat, centerLng], radius, 10);
+        if (isDev) {
+            // In development, use mock data
+            console.log('🔧 Development mode: Using mock data');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            requests = generateDummyRequests([centerLat, centerLng], radius, 10);
+        } else {
+            // In production or ngrok, use real API
+            try {
+                console.log('🌐 Fetching requests from API...');
+                const response = await fetch(window.SUPABASE_CONFIG.getApiUrl('REQUESTS_NEARBY'), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': window.SUPABASE_CONFIG.key,
+                        'Authorization': `Bearer ${window.SUPABASE_CONFIG.key}`
+                    },
+                    body: JSON.stringify({
+                        lat: centerLat,
+                        lng: centerLng,
+                        radius_km: radius,
+                        trash_type: trashType === 'all' ? null : trashType
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+                
+                const data = await response.json();
+                requests = Array.isArray(data) ? data : [];
+                console.log(`✅ Fetched ${requests.length} requests from API`);
+                
+            } catch (error) {
+                console.error('API request failed, falling back to mock data', error);
+                // Fall back to mock data if API fails
+                requests = generateDummyRequests([centerLat, centerLng], radius, 5);
+            }
+        }
         
         // Filter requests by trash type if needed
         const filteredRequests = trashType === 'all' 
-            ? dummyRequests 
-            : dummyRequests.filter(req => req && req.type === trashType);
+            ? requests 
+            : requests.filter(req => req && req.type === trashType);
         
         // Sort by distance
         filteredRequests.sort((a, b) => {
@@ -712,14 +742,37 @@ function clearRequestMarkers() {
  */
 async function acceptRequest(requestId) {
     try {
-        // In production, this would be a Supabase query like:
-        // const { data, error } = await supabase
-        //    .from('requests')
-        //    .update({ status: 'accepted', collector_id: user.id })
-        //    .eq('id', requestId);
+        // Check if we're in development mode (using mock data)
+        const isDev = window.isDevelopment && !window.forceDirectConnection && 
+                    !window.location.hostname.includes('ngrok-free.app');
         
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 800));
+        if (isDev) {
+            // In development, simulate API call delay
+            console.log('🔧 Development mode: Simulating request acceptance');
+            await new Promise(resolve => setTimeout(resolve, 800));
+        } else {
+            // In production or ngrok, use real API
+            console.log(`🌐 Accepting request #${requestId} via API...`);
+            const response = await fetch(window.SUPABASE_CONFIG.getApiUrl('ACCEPT_REQUEST'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': window.SUPABASE_CONFIG.key,
+                    'Authorization': `Bearer ${window.SUPABASE_CONFIG.key}`
+                },
+                body: JSON.stringify({
+                    request_id: requestId,
+                    collector_id: window.currentUser?.id || 'anonymous-collector'
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `API request failed with status ${response.status}`);
+            }
+            
+            console.log(`✅ Request #${requestId} accepted successfully`);
+        }
         
         // Show success notification
         window.showNotification(`Request #${requestId} accepted successfully!`, 'success');
@@ -833,20 +886,45 @@ function navigateToListView() {
  */
 async function updateUserStatus(isOnline) {
     try {
-        // In production, this would be a Supabase query like:
-        // const { data, error } = await supabase
-        //    .from('collectors')
-        //    .update({ is_online: isOnline, last_active: new Date() })
-        //    .eq('user_id', user.id);
-
-        // For demo, just simulate success
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Check if we're in development mode (using mock data)
+        const isDev = window.isDevelopment && !window.forceDirectConnection && 
+                    !window.location.hostname.includes('ngrok-free.app');
+        
+        if (isDev) {
+            // In development, simulate API call
+            console.log(`🔧 Development mode: Simulating status update to ${isOnline ? 'online' : 'offline'}`);
+            await new Promise(resolve => setTimeout(resolve, 300));
+        } else {
+            // In production or ngrok, use real API
+            console.log(`🌐 Updating collector status to ${isOnline ? 'online' : 'offline'}...`);
+            const response = await fetch(window.SUPABASE_CONFIG.getApiUrl('UPDATE_STATUS'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': window.SUPABASE_CONFIG.key,
+                    'Authorization': `Bearer ${window.SUPABASE_CONFIG.key}`
+                },
+                body: JSON.stringify({
+                    collector_id: window.currentUser?.id || 'anonymous-collector',
+                    is_online: isOnline,
+                    last_active: new Date().toISOString()
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Failed to update status: ${response.status}`);
+            }
+            
+            console.log(`✅ Collector status updated to ${isOnline ? 'online' : 'offline'}`);
+        }
         
         // Store status in localStorage for persistence across page loads
         localStorage.setItem('collectorOnlineStatus', isOnline ? 'online' : 'offline');
         
         return {
-            success: true
+            success: true,
+            isOnline
         };
     } catch (error) {
         console.error('Error updating user status:', error);
