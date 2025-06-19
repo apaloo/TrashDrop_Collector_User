@@ -45,19 +45,82 @@ let locationAddress;
 let locationCoordinates;
 
 /**
+ * Wait for Supabase client to be initialized - with timeout fallback
+ */
+function waitForSupabaseClient(callback, timeout = 5000) {
+    if (window.supabaseClient) {
+        console.log('Supabase client already available in assign.js');
+        setTimeout(callback, 0);
+        return;
+    }
+    
+    // Set up a timeout to ensure we don't block forever
+    const timeoutId = setTimeout(() => {
+        console.warn('Timed out waiting for Supabase client, proceeding with minimal functionality');
+        // Create emergency fallback if needed
+        if (!window.supabaseClient && window.supabase) {
+            try {
+                console.log('Creating emergency client in assign.js');
+                const config = window.CONFIG || window.SUPABASE_CONFIG || {};
+                const url = config.supabase?.url || 'https://example.supabase.co';
+                const key = config.supabase?.key || 'public-anon-key';
+                window.supabaseClient = window.supabase.createClient(url, key);
+            } catch (error) {
+                console.error('Failed to create emergency client:', error);
+            }
+        }
+        callback();
+    }, timeout);
+    
+    // Listen for both event names for backward compatibility
+    const handleClientReady = () => {
+        clearTimeout(timeoutId);
+        console.log('Supabase client initialized event received in assign.js');
+        callback();
+    };
+    
+    window.addEventListener('supabaseClientInitialized', handleClientReady, {once: true});
+    window.addEventListener('supabaseClientReady', handleClientReady, {once: true});
+}
+
+/**
+ * Fallback implementation of getCurrentUser if the auth module didn't load
+ */
+async function getCurrentUserFallback() {
+    console.warn('Using fallback getCurrentUser - auth.js may not have loaded properly');
+    // Check if we can access the Supabase client
+    if (window.supabaseClient) {
+        try {
+            const { data, error } = await window.supabaseClient.auth.getUser();
+            if (error) {
+                console.error('Auth error:', error.message);
+                return null;
+            }
+            return data?.user || null;
+        } catch (err) {
+            console.error('Error getting user:', err);
+            return null;
+        }
+    }
+    return null;
+}
+
+/**
  * Initialize the assignment page
  */
 async function initAssignPage() {
-    // Check if user is logged in
-    const user = await getCurrentUser();
+    // Check if user is logged in using the global function or fallback
+    const getCurrentUserFn = window.getCurrentUser || getCurrentUserFallback;
+    const user = await getCurrentUserFn();
     
     if (!user) {
         window.location.href = './login.html';
         return;
     }
     
-    // Get DOM elements
-    tabButtons = document.querySelectorAll('.tab');
+    // DOM Elements
+    const tabs = document.getElementById('assignmentTabs');
+    tabButtons = document.querySelectorAll('.tab-button');
     tabContents = document.querySelectorAll('.tab-content');
     availableAssignmentsElement = document.getElementById('availableAssignments');
     acceptedAssignmentsElement = document.getElementById('acceptedAssignments');
@@ -439,7 +502,7 @@ function setupLocationElements() {
 function initLocationMap() {
     try {
         // Default center (San Francisco)
-        const defaultCenter = { lat: 37.7749, lng: -122.4194 };
+        const defaultCenter = CONFIG.map.locations.cities.sanFrancisco;
         
         // Create a new map if it doesn't exist
         if (!locationMap) {
@@ -451,9 +514,9 @@ function initLocationMap() {
             locationMap = L.map('locationMap').setView([defaultCenter.lat, defaultCenter.lng], 15);
             
             // Add OpenStreetMap tile layer
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 19
+            L.tileLayer(CONFIG.map.tileUrl, {
+                attribution: CONFIG.staticData.attributions.openStreetMap,
+                maxZoom: CONFIG.map.maxZoom
             }).addTo(locationMap);
             
             // Create a marker and add it to the map
@@ -570,7 +633,7 @@ async function updateLocationUI(lat, lng) {
     // Try to get the address from coordinates using OSM Nominatim reverse geocoding
     try {
         // Use OpenStreetMap Nominatim API for reverse geocoding
-        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+        const response = await fetch(`${CONFIG.staticData.urls.reverseGeocode}?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
             headers: {
                 'Accept': 'application/json',
                 'User-Agent': 'TrashDropCollectorApp' // Identifying the app as per Nominatim usage policy
@@ -639,11 +702,11 @@ async function loadAssignments() {
  */
 function generateDummyAssignments() {
     const locations = [
-        { name: 'Park Cleanup', lat: 37.7749, lng: -122.4194, distance: 0.5 },
-        { name: 'Beach Restoration', lat: 37.8199, lng: -122.4783, distance: 1.2 },
-        { name: 'Highway Median', lat: 37.7833, lng: -122.4324, distance: 0.8 },
-        { name: 'School Grounds', lat: 37.7694, lng: -122.4862, distance: 1.5 },
-        { name: 'Community Garden', lat: 37.7815, lng: -122.4158, distance: 0.3 }
+        { name: CONFIG.map.locations.pointsOfInterest.park.name, lat: CONFIG.map.locations.pointsOfInterest.park.lat, lng: CONFIG.map.locations.pointsOfInterest.park.lng, distance: 0.5 },
+        { name: CONFIG.map.locations.pointsOfInterest.beach.name, lat: CONFIG.map.locations.pointsOfInterest.beach.lat, lng: CONFIG.map.locations.pointsOfInterest.beach.lng, distance: 1.2 },
+        { name: CONFIG.map.locations.pointsOfInterest.highway.name, lat: CONFIG.map.locations.pointsOfInterest.highway.lat, lng: CONFIG.map.locations.pointsOfInterest.highway.lng, distance: 0.8 },
+        { name: CONFIG.map.locations.pointsOfInterest.school.name, lat: CONFIG.map.locations.pointsOfInterest.school.lat, lng: CONFIG.map.locations.pointsOfInterest.school.lng, distance: 1.5 },
+        { name: CONFIG.map.locations.pointsOfInterest.garden.name, lat: CONFIG.map.locations.pointsOfInterest.garden.lat, lng: CONFIG.map.locations.pointsOfInterest.garden.lng, distance: 0.3 }
     ];
     
     return [
@@ -1052,7 +1115,7 @@ function openDirections(lat, lng) {
         }
     } else {
         // Desktop - open in Google Maps
-        url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+        url = `${CONFIG.staticData.urls.googleMapsDirections}?api=1&destination=${lat},${lng}&travelmode=driving`;
     }
     
     // Open in new tab/window
@@ -1598,5 +1661,16 @@ function toggleRequestDetails(button) {
     }
 }
 
+/**
+ * Initialize the Assign UI components
+ * This is the function called by assign.html
+ */
+function initializeAssignUI() {
+    console.log('✅ initializeAssignUI called, forwarding to initAssignPage');
+    // Simply forward to our existing initialization function
+    initAssignPage();
+}
+
 // Initialize the assignment page when the DOM is loaded
+// Both entry points are maintained for compatibility
 document.addEventListener('DOMContentLoaded', initAssignPage);

@@ -3,6 +3,29 @@
  * This file provides a reliable mock authentication system for development
  */
 
+(function() {
+
+// Initialize TrashDrop namespace if not exists
+window.TrashDrop = window.TrashDrop || {};
+window.TrashDrop.auth = window.TrashDrop.auth || {};
+
+// Safe CONFIG access
+function getSafeConfig() {
+    return window.CONFIG || {
+        dev: {
+            testUser: {
+                id: 'mock-user-123',
+                email: 'demo@trashdrop.com',
+                name: 'Demo User',
+                role: 'collector'
+            },
+            auth: {
+                mockTokenPrefix: 'mock_token_'
+            }
+        }
+    };
+}
+
 // Mock user data in memory
 let currentUser = null;
 let authToken = null;
@@ -19,12 +42,15 @@ if (!isDev) {
     console.log('Development environment detected. Mock authentication enabled.');
 }
 
-// Mock user data
+// Get CONFIG safely
+const safeConfig = getSafeConfig();
+
+// Mock user data using centralized config
 const MOCK_USER = {
-    id: 'mock-user-12345',
-    email: 'test@example.com',
-    name: 'Test User',
-    role: 'collector',
+    id: safeConfig.dev?.testUser?.id || 'mock-user-123',
+    email: safeConfig.dev?.testUser?.email || 'demo@trashdrop.com',
+    name: safeConfig.dev?.testUser?.name || 'Demo User',
+    role: safeConfig.dev?.testUser?.role || 'collector',
     created_at: new Date().toISOString()
 };
 
@@ -32,7 +58,18 @@ const MOCK_USER = {
 if (isDev) {
     // Initialize with default user
     currentUser = MOCK_USER;
-    authToken = 'mock-token-' + Date.now();
+    
+    // Handle case where CONFIG is not available yet
+    let tokenPrefix = 'mock-token-';
+    try {
+        if (window.CONFIG && window.CONFIG.dev && window.CONFIG.dev.auth) {
+            tokenPrefix = window.CONFIG.dev.auth.mockTokenPrefix || tokenPrefix;
+        }
+    } catch (err) {
+        console.warn('CONFIG not fully loaded for mock-auth.js, using fallback token prefix');
+    }
+    
+    authToken = tokenPrefix + Date.now();
     
     // Override getCurrentUser
     window.getCurrentUser = function() {
@@ -52,7 +89,7 @@ if (isDev) {
         
         // Set the current user and token
         currentUser = { ...MOCK_USER, email };
-        authToken = 'mock-token-' + Date.now();
+        authToken = CONFIG.dev.auth.mockTokenPrefix + Date.now();
         
         // Store in sessionStorage to persist across page reloads
         sessionStorage.setItem('mock_user', JSON.stringify(currentUser));
@@ -62,7 +99,7 @@ if (isDev) {
             user: currentUser,
             session: {
                 access_token: authToken,
-                refresh_token: 'mock-refresh-token',
+                refresh_token: CONFIG.dev.auth.mockRefreshToken,
                 user: currentUser
             },
             error: null
@@ -93,5 +130,7 @@ if (isDev) {
         }
     }
     
-    console.log('Mock authentication initialized');
+    console.log('Mock authentication initialized successfully!');
 }
+
+})(); // Close IIFE

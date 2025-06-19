@@ -1,10 +1,17 @@
 // earnings.js - Handles earnings functionality for TrashDrop Collector
 
-// Use global supabaseClient
-const supabaseClient = window.supabaseClient || {};
+// Wrap all code in an IIFE to avoid global variable leakage
+(function() {
+
+// Use global supabaseClient - we'll access it via window.supabaseClient
+// No local declaration here to avoid variable shadowing
+
+// Initialize TrashDrop namespace if not exists
+window.TrashDrop = window.TrashDrop || {};
+window.TrashDrop.earnings = window.TrashDrop.earnings || {};
 
 // Create a backup mock implementation for immediate testing
-const mockData = {
+window.TrashDrop.earnings.mockData = {
     totalEarnings: 3856.50,
     completedJobs: 78,
     averagePerJob: 49.44,
@@ -65,19 +72,94 @@ const mockData = {
     ]
 };
 
-// Use the global supabaseClient without redeclaring it
-if (!window.supabaseClient) {
-  console.warn('Warning: Supabase client not initialized. Using window.supabase if available.');
-  window.supabaseClient = window.supabase || {};
+// Function to wait for Supabase client to be ready
+function waitForSupabaseClient(callback) {
+  console.log('Waiting for Supabase client initialization...');
+  if (window.supabaseClient) {
+    console.log('Supabase client already initialized, proceeding...');
+    callback();
+    return;
+  }
+
+  // Set up event listener for client initialization
+  const eventListener = function() {
+    console.log('Received supabaseClientReady event');
+    window.removeEventListener('supabaseClientReady', eventListener);
+    window.removeEventListener('supabaseClientInitialized', eventListener);
+    callback();
+  };
+
+  // Listen for both events for backward compatibility
+  window.addEventListener('supabaseClientReady', eventListener);
+  window.addEventListener('supabaseClientInitialized', eventListener);
+
+  // Also set a timeout fallback
+  setTimeout(function() {
+    if (!window.supabaseClient) {
+      console.warn('Timeout waiting for Supabase client, proceeding with fallback...');
+      callback();
+    }
+  }, 3000);
 }
 
-// Local reference
-const supabaseClient = window.supabaseClient;
+// Implement getCurrentUser function with fallback
+async function getCurrentUser() {
+  if (!window.supabaseClient || !window.supabaseClient.auth) {
+    console.warn('Supabase client not initialized, using mock user');
+    return getMockUser();
+  }
+  
+  try {
+    const { data, error } = await window.supabaseClient.auth.getUser();
+    if (error) {
+      console.warn('Auth error, using mock user:', error);
+      return getMockUser();
+    }
+    
+    if (data && data.user) {
+      return data.user;
+    }
+  } catch (error) {
+    console.warn('Error in auth.getUser, using mock user:', error);
+    
+    // Fallback for AuthSessionMissingError
+    if (error.name === 'AuthSessionMissingError' || 
+        (typeof error === 'object' && error.__isAuthError)) {
+      console.info('Using fallback authentication handler');
+    }
+  }
+  
+  return getMockUser();
+}
+
+// Helper to get mock user for development
+function getMockUser() {
+  try {
+    const mockUserString = localStorage.getItem('mockUser');
+    if (mockUserString) {
+      return JSON.parse(mockUserString);
+    }
+  } catch (e) {
+    console.warn('Error parsing mock user');
+  }
+  
+  return {
+    id: 'mock-user-' + Date.now(),
+    email: 'mock@example.com',
+    name: 'Mock User'
+  };
+}
+
+// Check for the global supabaseClient
+if (!window.supabaseClient) {
+  console.log('Supabase client not initialized yet. Will use mock data until client is ready.');
+}
 
 console.log('Earnings module: Supabase client', 
-  supabaseClient ? 'initialized successfully' : 'not available');
+  window.supabaseClient ? 'initialized successfully' : 'not available');
 
 // Global variables
+// Scope currentPeriod to this module
 let currentPeriod = 'week';
 let earningsChart = null;
 let userId = null;
@@ -406,10 +488,60 @@ function getLabelsForPeriod(period) {
     }
 }
 
+// Function to dynamically load Chart.js if not loaded
+async function ensureChartJsLoaded() {
+    if (window.Chart) {
+        console.log('Chart.js already loaded');
+        return true;
+    }
+
+    console.log('Attempting to load Chart.js dynamically...');
+    return new Promise((resolve) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+        script.onload = () => {
+            console.log('Chart.js loaded successfully');
+            resolve(true);
+        };
+        script.onerror = () => {
+            console.error('Failed to load Chart.js from CDN');
+            resolve(false);
+        };
+        document.head.appendChild(script);
+        
+        // Set timeout as a fallback
+        setTimeout(() => {
+            if (!window.Chart) {
+                console.warn('Timeout loading Chart.js');
+                resolve(false);
+            }
+        }, 3000);
+    });
+}
+
 // Initialize earnings chart
-function initializeEarningsChart() {
+async function initializeEarningsChart() {
     const ctx = document.getElementById('earningsChart');
-    if (!ctx) return;
+    if (!ctx) {
+        console.warn('Chart canvas not found');
+        return;
+    }
+    
+    // Ensure Chart.js is loaded
+    const chartJsLoaded = await ensureChartJsLoaded();
+    if (!chartJsLoaded) {
+        console.error('Chart.js could not be loaded, cannot render chart');
+        // Display fallback message
+        const fallbackContainer = document.createElement('div');
+        fallbackContainer.className = 'chart-fallback';
+        fallbackContainer.innerHTML = `
+            <p>Chart could not be displayed.</p>
+            <p>Your earnings data is still available in the summary section.</p>
+        `;
+        ctx.parentNode.insertBefore(fallbackContainer, ctx);
+        ctx.style.display = 'none';
+        return;
+    }
     
     const ctx2d = ctx.getContext('2d');
     
@@ -839,25 +971,36 @@ function loadMockData(period) {
 }
 
 // Initialize page when DOM is loaded
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM loaded for earnings page');
+  
   try {
-    if (!supabaseClient?.auth) {
-      console.error('Supabase client not properly initialized');
-      // Fall back to mock data if Supabase isn't available
-      loadMockData(currentPeriod);
-      return;
-    }
-    await initializeEarningsPage();
+    // Wait for Supabase client to be initialized with our improved function at the top
+    waitForSupabaseClient(function() {
+      console.log('Supabase client ready or timed out, initializing earnings page');
+      // Then initialize the earnings page
+      initializeEarningsPage().catch(function(error) {
+        console.error('Error during initialization:', error);
+        // Still load mock data if there's an error
+        loadMockData(currentPeriod);
+        // Try to initialize chart with fallback
+        initializeEarningsChart().catch(() => {
+          console.log('Using simplified view due to initialization errors');
+        });
+      });
+    });
   } catch (error) {
-    console.error('Error initializing earnings page:', error);
-    // Fall back to mock data on error
-    loadMockData(currentPeriod);
+    console.error('Critical error in earnings initialization:', error);
+    // Ensure we at least show some data
+    loadMockData('week');
   }
 });
 
 // Export functions for testing
 window.earningsModule = {
     loadEarningsData,
-    showCashOutModal,
-    processCashOut
+    updateEarningsUI,
+    generateChartData
 };
+
+})(); // Close IIFE

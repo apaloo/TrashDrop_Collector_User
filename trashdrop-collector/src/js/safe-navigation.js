@@ -7,71 +7,55 @@
 (function() {
     console.log('[Safe Navigation] Script loaded');
     
-    // Function to override all navigation links
+    // Function to set up safe navigation without replacing bottom nav HTML
     function setupSafeNavigation() {
         console.log('[Safe Navigation] Setting up safe navigation');
         
         // Always ensure we have a mock user in development mode
-        const mockUser = {
-            id: 'safe-nav-user-' + Date.now(),
-            email: 'dev-user@example.com',
-            name: 'Development User',
-            created_at: new Date().toISOString()
-        };
-        
-        // Store in localStorage
-        localStorage.setItem('mockUser', JSON.stringify(mockUser));
-        
-        // If app state exists, update it too
-        if (window.appState) {
-            window.appState.user = mockUser;
+        try {
+            const mockUser = {
+                id: 'safe-nav-user-' + Date.now(),
+                email: (CONFIG && CONFIG.staticData && CONFIG.staticData.emails && CONFIG.staticData.emails.devUser) || 'test@example.com',
+                name: 'Development User',
+                created_at: new Date().toISOString()
+            };
+            
+            // Store in localStorage
+            localStorage.setItem('mockUser', JSON.stringify(mockUser));
+            
+            // If app state exists, update it too
+            if (window.appState) {
+                window.appState.user = mockUser;
+            }
+        } catch (error) {
+            console.error('[Safe Navigation] Error setting up mock user:', error);
         }
         
-        // Replace all bottom navigation with direct JavaScript navigation
+        // Instead of replacing the entire navigation, let's make the safeNavigate function available globally
+        // This allows bottom-nav.js to use it without conflict
         document.addEventListener('DOMContentLoaded', function() {
-            // Short timeout to ensure DOM is fully loaded
-            setTimeout(() => {
-                // Find the bottom navigation
-                const bottomNav = document.querySelector('.bottom-nav');
-                
-                if (!bottomNav) {
-                    console.log('[Safe Navigation] Bottom navigation not found');
-                    return;
+            // Just ensure the safeNavigate function is available and not modifying the DOM
+            console.log('[Safe Navigation] Navigation handler ready');
+            
+            // Intercept any clicks on navigation items to use safeNavigate
+            document.body.addEventListener('click', function(event) {
+                // Find closest anchor inside bottom-nav
+                const navItem = event.target.closest('.bottom-nav a');
+                if (navItem && !navItem.hasAttribute('data-safe-nav-processed')) {
+                    // Add our handler
+                    navItem.setAttribute('data-safe-nav-processed', 'true');
+                    const href = navItem.getAttribute('href');
+                    if (href) {
+                        navItem.removeAttribute('href');
+                        navItem.style.cursor = 'pointer';
+                        navItem.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            safeNavigate(href);
+                            return false;
+                        });
+                    }
                 }
-                
-                console.log('[Safe Navigation] Found bottom navigation, replacing links');
-                
-                // Replace the entire bottom navigation HTML
-                bottomNav.innerHTML = `
-                    <a class="nav-item ${window.location.href.includes('map.html') ? 'active' : ''}" 
-                       onclick="safeNavigate('./map.html')">
-                        <span class="material-icons nav-icon">map</span>
-                        <span class="nav-label">Map</span>
-                    </a>
-                    <a class="nav-item ${window.location.href.includes('request.html') ? 'active' : ''}" 
-                       onclick="safeNavigate('./request.html')">
-                        <span class="material-icons nav-icon">add_circle</span>
-                        <span class="nav-label">Request</span>
-                    </a>
-                    <a class="nav-item ${window.location.href.includes('assign.html') ? 'active' : ''}" 
-                       onclick="safeNavigate('./assign.html')">
-                        <span class="material-icons nav-icon">assignment</span>
-                        <span class="nav-label">Assign</span>
-                    </a>
-                    <a class="nav-item ${window.location.href.includes('earnings.html') ? 'active' : ''}" 
-                       onclick="safeNavigate('./earnings.html')">
-                        <span class="material-icons nav-icon">account_balance_wallet</span>
-                        <span class="nav-label">Earnings</span>
-                    </a>
-                    <a class="nav-item ${window.location.href.includes('account.html') ? 'active' : ''}" 
-                       onclick="safeNavigate('./account.html')">
-                        <span class="material-icons nav-icon">person</span>
-                        <span class="nav-label">Account</span>
-                    </a>
-                `;
-                
-                console.log('[Safe Navigation] Successfully replaced navigation');
-            }, 100);
+            });
         });
     }
     
@@ -79,18 +63,39 @@
     window.safeNavigate = function(url) {
         console.log('[Safe Navigation] Navigating to:', url);
         
-        // Always update mock user before navigation
-        const mockUser = {
-            id: 'safe-nav-user-' + Date.now(),
-            email: 'dev-user@example.com',
-            name: 'Development User',
-            created_at: new Date().toISOString()
-        };
+        try {
+            // Safely access CONFIG with proper fallbacks
+            const mockUser = {
+                id: 'safe-nav-user-' + Date.now(),
+                // Use optional chaining and provide fallbacks
+                email: (window.CONFIG && CONFIG.staticData && CONFIG.staticData.emails && CONFIG.staticData.emails.devUser) || 'test@example.com',
+                name: 'Development User',
+                created_at: new Date().toISOString(),
+                role: 'collector' // Add role for consistency
+            };
+            
+            localStorage.setItem('mockUser', JSON.stringify(mockUser));
+        } catch (error) {
+            console.error('[Safe Navigation] Error setting mock user:', error);
+            // Create emergency fallback user
+            const fallbackUser = {
+                id: 'emergency-user-' + Date.now(),
+                email: 'test@example.com',
+                name: 'Emergency User',
+                created_at: new Date().toISOString(),
+                role: 'collector'
+            };
+            localStorage.setItem('mockUser', JSON.stringify(fallbackUser));
+        }
         
-        localStorage.setItem('mockUser', JSON.stringify(mockUser));
-        
-        // Direct navigation without using window.location.href
-        window.location = url;
+        // Ensure we're using assign method for proper navigation
+        try {
+            console.log('[Safe Navigation] Navigating to:', url);
+            window.location.assign(url);
+        } catch (e) {
+            // Fallback to direct assignment if assign fails
+            window.location = url;
+        }
     };
     
     // Set up safe navigation

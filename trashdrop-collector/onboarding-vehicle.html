@@ -9,12 +9,95 @@
     <link rel="stylesheet" href="./src/styles/onboarding.css">
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#4CAF50">
-    <!-- Supabase JS CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Configuration -->
-    <script src="./src/js/config.js"></script>
-    <!-- Authentication -->
-    <script src="./src/js/auth.js"></script>
+    <!-- Script Loading and Dependency Management -->
+    <script>
+        // Track loaded scripts to avoid duplicates
+        window.loadedScripts = window.loadedScripts || {};
+        
+        // Function to load scripts in sequence with better error handling
+        function loadScript(src, onLoad, onError) {
+            // Skip if already loaded
+            if (window.loadedScripts[src]) {
+                console.log('🔁 Script already loaded:', src);
+                if (onLoad) setTimeout(onLoad, 0);
+                return;
+            }
+            
+            console.log('📥 Loading script:', src);
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = function() {
+                console.log('✅ Loaded script:', src);
+                window.loadedScripts[src] = true;
+                if (onLoad) setTimeout(onLoad, 0);
+            };
+            script.onerror = function(e) {
+                console.error('❌ Error loading script:', src, e);
+                if (onError) onError(e);
+            };
+            document.head.appendChild(script);
+            return script;
+        }
+        
+        // Script loading sequence
+        console.log('🔁 Starting script loading sequence for onboarding-vehicle.html...');
+        
+        // 1. Load config.js first (sets window.CONFIG directly)
+        loadScript('./src/js/config.js', function() {
+            console.log('🔁 Config.js loaded callback fired');
+            
+            // Verify CONFIG is available
+            if (!window.CONFIG) {
+                console.error('❌ CONFIG not available after loading config.js');
+            } else {
+                console.log('✅ CONFIG loaded successfully');
+            }
+            
+            // 2. Load Supabase SDK with UMD build for global supabase object
+            loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js', function() {
+                console.log('🔁 Supabase SDK loaded, window.supabase available:', !!window.supabase);
+                
+                // 3. Then load our supabase client wrapper
+                loadScript('./src/js/supabase-client.js', function() {
+                    console.log('🔁 Supabase client initialized:', !!window.supabaseClient);
+                    
+                    // 4. Finally load auth.js which depends on supabase client
+                    loadScript('./src/js/auth.js', function() {
+                        console.log('✅ Auth script loaded');
+                        
+                        // 5. Load onboarding.js (if it exists) as final step
+                        loadScript('./src/js/onboarding.js', function() {
+                            console.log('✅ All core scripts loaded for onboarding-vehicle page');
+                            // Dispatch event when all core scripts are loaded
+                            window.dispatchEvent(new CustomEvent('onboardingScriptsLoaded'));
+                        }, function() {
+                            // Error handler if onboarding.js doesn't exist
+                            console.log('ℹ️ No dedicated onboarding.js found, continuing');
+                            window.dispatchEvent(new CustomEvent('onboardingScriptsLoaded'));
+                        });
+                    });
+                });
+            });
+        });
+    </script>
+    
+    <!-- Helper functions for script dependencies -->
+    <script>
+    // Wait for core scripts to be loaded
+    function waitForSupabaseClient(callback) {
+        if (window.supabaseClient) {
+            callback();
+        } else {
+            window.addEventListener('supabaseClientInitialized', callback);
+        }
+    }
+    
+    // Listen for Supabase client initialization
+    window.addEventListener('supabaseClientInitialized', function(e) {
+        console.log('✅ Supabase client initialized event received in onboarding-vehicle.html');
+    });
+    </script>
+    </script>
 </head>
 <body>
     <div class="app-container auth-page">

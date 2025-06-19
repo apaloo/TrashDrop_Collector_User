@@ -45,7 +45,7 @@
                     // Create a temporary user for navigation
                     const tempUser = {
                         id: 'nav-user-' + Date.now(),
-                        email: 'temp@example.com',
+                        email: CONFIG.staticData.emails.temp, // Using centralized email configuration
                         role: 'collector',
                         created_at: new Date().toISOString()
                     };

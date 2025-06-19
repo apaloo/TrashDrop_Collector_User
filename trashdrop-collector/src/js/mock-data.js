@@ -3,184 +3,246 @@
  * Provides mock data for development environment
  */
 
+// Prevent duplicate declarations if script is loaded multiple times
+(function() {
+  // Skip initialization if already loaded
+  if (window.mockDataLoaded) {
+    console.log('Mock data module already loaded, skipping initialization');
+    return;
+  }
+  
+  // Set flag to prevent duplicate initialization
+  window.mockDataLoaded = true;
+
+  // Initialize TrashDrop namespace if not exists
+  window.TrashDrop = window.TrashDrop || {};
+  window.TrashDrop.mockData = window.TrashDrop.mockData || {};
+
+  // Add config-fallback.js if CONFIG is not available
+  function ensureConfig() {
+    return new Promise((resolve) => {
+      if (window.CONFIG) {
+        resolve(window.CONFIG);
+        return;
+      }
+      
+      console.warn('CONFIG not available for mock-data, loading config-fallback.js');
+      const script = document.createElement('script');
+      script.src = './src/js/config-fallback.js';
+      script.onload = () => {
+        console.log('Successfully loaded config-fallback.js for mock-data');
+        resolve(window.CONFIG);
+      };
+      script.onerror = () => {
+        console.error('Failed to load config-fallback.js, using hardcoded defaults');
+        // Create minimal fallback config directly
+        window.CONFIG = window.CONFIG || {
+          coordinates: {
+            default: {
+              lat: 5.6037,
+              lng: -0.1870
+            }
+          }
+        };
+        resolve(window.CONFIG);
+      };
+      document.head.appendChild(script);
+    });
+  }
+  
+  // Access config safely - now scoped to this IIFE
+  let safeConfig;
+  
+  // Wait for ensureConfig to complete
+  ensureConfig().then(config => {
+    window.TrashDrop.mockData.config = config;
+    safeConfig = config;
+    console.log('Mock data config ready:', !!safeConfig);
+  });
+
 // Mock requests data
-const mockAvailableRequests = [
-    {
-        id: 'req-001',
-        name: 'John Doe',
-        address: '123 Main St, Anytown',
-        timestamp: new Date().toISOString(),
-        bags: 2,
-        points: 20,
-        fee: 5.00,
-        coordinates: { lat: 37.7749, lng: -122.4194 }
+const mockRequests = [
+  {
+    id: 'req-123',
+    location: {
+      lat: safeConfig?.coordinates?.default?.lat || 5.6037,
+      lng: safeConfig?.coordinates?.default?.lng || -0.1870
     },
-    {
-        id: 'req-002',
-        name: 'Jane Smith',
-        address: '456 Elm St, Otherville',
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-        bags: 1,
-        points: 10,
-        fee: 2.50,
-        coordinates: { lat: 37.7833, lng: -122.4167 }
+    trashType: 'recyclable',
+    status: 'open',
+    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    name: 'Plastic Bottles'
+  },
+  {
+    id: 'req-124',
+    location: {
+      lat: safeConfig?.coordinates?.default?.lat + 0.002 || 5.6057,
+      lng: safeConfig?.coordinates?.default?.lng + 0.003 || -0.1840
     },
-    {
-        id: 'req-003',
-        name: 'Bob Johnson',
-        address: '789 Oak St, Somewhere',
-        timestamp: new Date(Date.now() - 7200000).toISOString(),
-        bags: 3,
-        points: 30,
-        fee: 7.50,
-        coordinates: { lat: 37.7694, lng: -122.4862 }
-    }
+    trashType: 'general',
+    status: 'open',
+    createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+    name: 'Household Waste'
+  },
+  {
+    id: 'req-125',
+    location: {
+      lat: safeConfig?.coordinates?.default?.lat - 0.001 || 5.6027,
+      lng: safeConfig?.coordinates?.default?.lng + 0.001 || -0.1860
+    },
+    trashType: 'hazardous',
+    status: 'open',
+    createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+    name: 'Electronic Waste'
+  },
+  {
+    id: 'req-126',
+    location: {
+      lat: safeConfig?.coordinates?.default?.lat + 0.003 || 5.6067,
+      lng: safeConfig?.coordinates?.default?.lng - 0.002 || -0.1890
+    },
+    trashType: 'recyclable',
+    status: 'assigned',
+    createdAt: new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString(),
+    name: 'Glass Bottles'
+  },
+  {
+    id: 'req-127',
+    location: {
+      lat: safeConfig?.coordinates?.default?.lat - 0.002 || 5.6017,
+      lng: safeConfig?.coordinates?.default?.lng - 0.001 || -0.1880
+    },
+    trashType: 'general',
+    status: 'open',
+    createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+    name: 'Food Waste'
+  }
 ];
 
-const mockAcceptedRequests = [
-    {
-        id: 'req-004',
-        name: 'Alice Williams',
-        address: '321 Pine St, Nowhere',
-        timestamp: new Date(Date.now() - 10800000).toISOString(),
-        bags: 2,
-        points: 20,
-        fee: 5.00,
-        coordinates: { lat: 37.7815, lng: -122.4158 }
-    }
-];
-
-const mockPickedUpRequests = [
-    {
-        id: 'req-005',
-        name: 'Charlie Brown',
-        address: '654 Maple St, Elsewhere',
-        timestamp: new Date(Date.now() - 86400000).toISOString(),
-        bags: 1,
-        points: 10,
-        fee: 2.50,
-        coordinates: { lat: 37.7857, lng: -122.4057 }
-    }
-];
-
-/**
- * Load mock requests data
- */
-async function loadMockRequests() {
+// Load mock requests data
+function loadMockRequests() {
+  return new Promise((resolve) => {
     console.log('Loading mock requests data');
-    
-    // Populate global variables with mock data
-    if (typeof window.availableRequests !== 'undefined') {
-        window.availableRequests = mockAvailableRequests;
-    }
-    
-    if (typeof window.acceptedRequests !== 'undefined') {
-        window.acceptedRequests = mockAcceptedRequests;
-    }
-    
-    if (typeof window.pickedUpRequests !== 'undefined') {
-        window.pickedUpRequests = mockPickedUpRequests;
-    }
-    
-    // Render mock data to the UI if displaying elements exist
+    // Simulate network delay
     setTimeout(() => {
-        renderMockRequests();
-    }, 100);
-    
-    return { available: mockAvailableRequests, accepted: mockAcceptedRequests, pickedUp: mockPickedUpRequests };
+      window.mockRequestsData = mockRequests;
+      console.log(`Loaded ${mockRequests.length} mock requests`);
+      resolve(mockRequests);
+    }, 500);
+  });
 }
 
-/**
- * Render mock requests to the UI
- */
-function renderMockRequests() {
-    // Available requests
-    const availableEl = document.getElementById('availableRequests');
-    if (availableEl) {
-        availableEl.innerHTML = mockAvailableRequests.map(req => `
-            <div class="request-card" data-id="${req.id}">
-                <div class="request-header">
-                    <h3>${req.name}</h3>
-                    <span class="timestamp">${formatTimestamp(req.timestamp)}</span>
-                </div>
-                <p class="address">${req.address}</p>
-                <div class="request-details">
-                    <span class="bags">${req.bags} bag${req.bags !== 1 ? 's' : ''}</span>
-                    <span class="points">${req.points} points</span>
-                    <span class="fee">$${(typeof req.fee === 'number' ? req.fee.toFixed(2) : req.fee)}</span>
-                </div>
-                <button class="btn primary-btn accept-btn">Accept</button>
-            </div>
-        `).join('');
+// Render mock requests to the UI
+function renderMockRequests(requests = mockRequests) {
+  if (typeof document === 'undefined') {
+    console.warn('Not in browser environment, skipping UI rendering');
+    return;
+  }
+  
+  const requestsContainer = document.getElementById('requests-container');
+  if (!requestsContainer) {
+    console.warn('Requests container not found in DOM');
+    return;
+  }
+  
+  requestsContainer.innerHTML = '';
+  
+  if (!requests || requests.length === 0) {
+    requestsContainer.innerHTML = '<div class="empty-state">No requests found</div>';
+    return;
+  }
+  
+  requests.forEach(request => {
+    const requestCard = document.createElement('div');
+    requestCard.className = 'request-card';
+    requestCard.dataset.requestId = request.id;
+    
+    // Determine status class
+    let statusClass = '';
+    switch (request.status) {
+      case 'open':
+        statusClass = 'status-open';
+        break;
+      case 'assigned':
+        statusClass = 'status-assigned';
+        break;
+      case 'completed':
+        statusClass = 'status-completed';
+        break;
+      default:
+        statusClass = 'status-open';
     }
     
-    // Accepted requests
-    const acceptedEl = document.getElementById('acceptedRequests');
-    if (acceptedEl) {
-        acceptedEl.innerHTML = mockAcceptedRequests.map(req => `
-            <div class="request-card" data-id="${req.id}">
-                <div class="request-header">
-                    <h3>${req.name}</h3>
-                    <span class="timestamp">${formatTimestamp(req.timestamp)}</span>
-                </div>
-                <p class="address">${req.address}</p>
-                <div class="request-details">
-                    <span class="bags">${req.bags} bag${req.bags !== 1 ? 's' : ''}</span>
-                    <span class="points">${req.points} points</span>
-                    <span class="fee">$${(typeof req.fee === 'number' ? req.fee.toFixed(2) : req.fee)}</span>
-                </div>
-                <button class="btn primary-btn scan-btn">Scan QR</button>
-                <button class="btn secondary-btn map-btn">View on Map</button>
-            </div>
-        `).join('');
-    }
+    requestCard.innerHTML = `
+      <div class="request-header">
+        <h3>${request.name}</h3>
+        <span class="status-badge ${statusClass}">${request.status}</span>
+      </div>
+      <div class="request-details">
+        <p><strong>Type:</strong> ${request.trashType}</p>
+        <p><strong>Created:</strong> ${formatTimestamp(request.createdAt)}</p>
+        <p><strong>Location:</strong> ${request.location.lat.toFixed(4)}, ${request.location.lng.toFixed(4)}</p>
+      </div>
+      <div class="request-actions">
+        <button class="btn btn-primary">View Details</button>
+        <button class="btn btn-accept">Accept Request</button>
+      </div>
+    `;
     
-    // Picked up requests
-    const pickedUpEl = document.getElementById('pickedUpRequests');
-    if (pickedUpEl) {
-        pickedUpEl.innerHTML = mockPickedUpRequests.map(req => `
-            <div class="request-card" data-id="${req.id}">
-                <div class="request-header">
-                    <h3>${req.name}</h3>
-                    <span class="timestamp">${formatTimestamp(req.timestamp)}</span>
-                </div>
-                <p class="address">${req.address}</p>
-                <div class="request-details">
-                    <span class="bags">${req.bags} bag${req.bags !== 1 ? 's' : ''}</span>
-                    <span class="points">${req.points} points</span>
-                    <span class="fee">$${(typeof req.fee === 'number' ? req.fee.toFixed(2) : req.fee)}</span>
-                </div>
-            </div>
-        `).join('');
-    }
-    
-    console.log('Mock requests rendered to UI');
+    requestsContainer.appendChild(requestCard);
+  });
+  
+  console.log(`Rendered ${requests.length} requests to UI`);
 }
 
-/**
- * Format timestamp to readable string
- * @param {String} timestamp - ISO timestamp
- * @returns {String} - Formatted time string
- */
+// Format timestamp to readable string
+// @param {String} timestamp - ISO timestamp
+// @returns {String} - Formatted time string
 function formatTimestamp(timestamp) {
+  if (!timestamp) return 'Unknown';
+  
+  try {
     const date = new Date(timestamp);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+    
     const now = new Date();
     const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
     
-    if (diffMins < 60) {
-        return `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
+    if (diffDay > 0) {
+      return diffDay === 1 ? 'Yesterday' : `${diffDay} days ago`;
+    } else if (diffHour > 0) {
+      return `${diffHour} hours ago`;
+    } else if (diffMin > 0) {
+      return `${diffMin} minutes ago`;
+    } else {
+      return 'Just now';
     }
-    
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) {
-        return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
-    }
-    
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+  } catch (error) {
+    console.error('Error formatting timestamp:', error);
+    return 'Date error';
+  }
 }
 
-// Make functions available globally
-window.loadMockRequests = loadMockRequests;
-window.renderMockRequests = renderMockRequests;
+// Make functions available globally only if not already defined
+if (typeof window !== 'undefined') {
+  if (typeof window.loadMockRequests === 'undefined') {
+    window.loadMockRequests = loadMockRequests;
+  }
+
+  if (typeof window.renderMockRequests === 'undefined') {
+    window.renderMockRequests = renderMockRequests;
+  }
+
+  console.log('Mock data module loaded successfully');
+}
+
+// Close the IIFE that was opened at the beginning of the file
+})();

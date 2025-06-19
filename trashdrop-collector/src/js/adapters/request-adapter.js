@@ -310,7 +310,7 @@
         }
         
         // Default location (Accra, Ghana)
-        return { lat: 5.6037, lng: -0.1870 };
+        return CONFIG.map.locations.cities.accra;
     }
     
     /**

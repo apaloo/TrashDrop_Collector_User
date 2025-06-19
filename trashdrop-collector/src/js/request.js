@@ -3,7 +3,17 @@
  * Handles request listing, acceptance, and pickup functionality
  */
 
-// Store requests by status
+// Wrap all code in an IIFE to avoid global variable leakage
+(function() {
+
+// Initialize TrashDrop namespace if not exists
+window.TrashDrop = window.TrashDrop || {};
+
+// Use namespaced DOM references to prevent conflicts
+window.TrashDrop.requestElements = {};
+window.TrashDrop.requests = window.TrashDrop.requests || {};
+
+// Store requests by status - scoped to this function
 let availableRequests = [];
 let acceptedRequests = [];
 let pickedUpRequests = [];
@@ -18,7 +28,7 @@ let acceptedRequestsElement;
 let pickedUpRequestsElement;
 let qrScannerModal;
 let scanResultElement;
-let scannedBagsTable;
+// scannedBagsTable moved to namespace
 let totalPointsElement;
 let totalFeeElement;
 let completePickupBtn;
@@ -43,7 +53,7 @@ async function initRequestPage() {
         if (!localStorage.getItem('mockUser')) {
             const mockUser = {
                 id: 'dev-user-' + Date.now(),
-                email: 'dev@example.com',
+                email: CONFIG.staticData.emails.dev, // Using centralized email configuration
                 name: 'Development User',
                 created_at: new Date().toISOString(),
                 role: 'collector'
@@ -70,7 +80,7 @@ async function initRequestPage() {
     pickedUpRequestsElement = document.getElementById('pickedUpRequests');
     qrScannerModal = document.getElementById('qrScannerModal');
     scanResultElement = document.getElementById('scanResult');
-    scannedBagsTable = document.getElementById('scannedBagsTable');
+    window.TrashDrop.requestElements.scannedBagsTable = document.getElementById('scannedBagsTable');
     totalPointsElement = document.getElementById('totalPoints');
     totalFeeElement = document.getElementById('totalFee');
     completePickupBtn = document.getElementById('completePickupBtn');
@@ -194,7 +204,10 @@ async function loadRequests() {
 async function loadMockRequests() {
     console.log('Loading mock requests...');
     try {
-        const mockData = [
+        // Scope mock data to TrashDrop namespace
+        window.TrashDrop = window.TrashDrop || {};
+        window.TrashDrop.requests = window.TrashDrop.requests || {};
+        window.TrashDrop.requests.mockData = [
             {
                 id: 'mock-1',
                 status: 'pending',
@@ -269,7 +282,7 @@ async function loadMockRequests() {
  */
 async function generateDummyRequests() {
     // Get current location for realistic distances
-    let center = [5.6037, -0.1870]; // Default: Accra, Ghana
+    let center = CONFIG.map.defaultLocation.coordinates; // Default from centralized config
     
     // Use cached position if available instead of requesting new permissions
     if (window.appState && window.appState.lastKnownPosition) {
@@ -613,7 +626,7 @@ function openDirections(lat, lng) {
     if (isIOS) {
         url = `maps://maps.apple.com/?ll=${lat},${lng}&dirflg=d`;
     } else {
-        url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+        url = `${CONFIG.staticData.urls.googleMapsDirections}?api=1&destination=${lat},${lng}&travelmode=driving`;
     }
     
     // Open the URL in a new tab
@@ -630,7 +643,7 @@ function openQrScanner(requestId) {
     
     // Reset scanner UI
     scanResultElement.innerHTML = '';
-    scannedBagsTable.innerHTML = '';
+    window.TrashDrop.requestElements.scannedBagsTable.innerHTML = '';
     totalPointsElement.textContent = '0';
     totalFeeElement.textContent = '$0.00';
     
@@ -722,7 +735,7 @@ function updateScannedBagsTable() {
         totalFee += parseFloat(bag.fee);
     }
     
-    scannedBagsTable.innerHTML = html;
+    window.TrashDrop.requestElements.scannedBagsTable.innerHTML = html;
     totalPointsElement.textContent = totalPoints;
     totalFeeElement.textContent = `$${totalFee.toFixed(2)}`;
 }
@@ -1321,3 +1334,6 @@ window.toggleRequestDetails = toggleRequestDetails;
 
 // Initialize the request page when the DOM is loaded
 document.addEventListener('DOMContentLoaded', initRequestPage);
+
+// End of IIFE - properly closing the function
+})();

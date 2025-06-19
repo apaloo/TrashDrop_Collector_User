@@ -4,158 +4,338 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TrashDrop Collector</title>
-    <meta name="description" content="An eco-friendly waste collection service">
-    <link rel="stylesheet" href="./src/styles/main.css">
-    <link rel="manifest" href="./manifest.json">
-    <meta name="theme-color" content="#4CAF50">
-    <!-- Add PWA meta tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="TrashDrop">
-    <link rel="apple-touch-icon" href="./public/icons/icon-192x192.png">
-    <!-- Development Tools - Should be loaded first -->
-    <script src="./src/js/dev-tools.js"></script>
     
-    <!-- Supabase JS CDN -->
-     <script>
-       // Initialize Supabase client once
-       window.supabaseClient = window.supabase || {};  // or your actual Supabase initialization
-     </script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Configuration -->
-    <script src="./src/js/config.js"></script>
-    <!-- Leaflet CSS for maps -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-          crossorigin=""/>
+    <!-- Include the resource loader first -->
+    <script src="./src/js/resource-loader.js"></script>
+    
+    <!-- This script will attempt to load Supabase from multiple sources -->
+    <script src="./src/js/init-loader.js"></script>
+
+    <!-- Common CSS -->
+    <link rel="stylesheet" href="./src/styles/main.css">
+    <link rel="stylesheet" href="./src/styles/home.css">
+    
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="./assets/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <div class="app-container">
-        <header>
-            <div class="logo-container">
-                <img src="./public/logo.svg" alt="TrashDrop Logo" class="logo">
-                <h1>TrashDrop Collector</h1>
-            </div>
-            <div class="header-controls">
-                <button id="loginBtn" class="btn btn-outline">Login</button>
-                <button id="signupBtn" class="btn btn-primary">Sign Up</button>
+    <div class="splash-screen" id="splashScreen">
+        <div class="splash-content">
+            <img src="./assets/images/logo.png" alt="TrashDrop Collector" class="splash-logo">
+            <div class="splash-loader">Loading...</div>
+        </div>
+    </div>
+    
+    <div class="app-container" style="display: none;">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>TrashDrop</h1>
+                <div class="user-info">
+                    <span id="userName">User</span>
+                    <a href="#" id="btnLogout" class="btn-logout">Logout</a>
+                </div>
             </div>
         </header>
-
-        <main>
-            <section class="hero">
-                <div class="hero-content">
-                    <h2>Make Our Environment Cleaner</h2>
-                    <p>Join TrashDrop and help keep our communities clean while earning rewards.</p>
-                    <button id="getStartedBtn" class="btn btn-large btn-primary">Get Started</button>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="welcome-card">
+                <h2>Welcome to TrashDrop Collector</h2>
+                <p>Track your earnings, manage pickups, and more.</p>
+                <div class="action-buttons">
+                    <a href="map.html" class="btn btn-primary">View Map</a>
+                    <a href="assign.html" class="btn btn-secondary">Assignments</a>
                 </div>
-                <div class="hero-image">
-                    <img src="./public/hero-image.svg" alt="Clean Environment Illustration">
-                </div>
-            </section>
-
-            <section class="features">
-                <h2>How It Works</h2>
-                <div class="feature-cards">
-                    <div class="feature-card">
-                        <div class="feature-icon">🔍</div>
-                        <h3>Find Requests</h3>
-                        <p>View available trash collection requests and illegal dumping areas on the map.</p>
+            </div>
+            
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <span class="material-icons">recycling</span>
                     </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">✅</div>
-                        <h3>Accept Jobs</h3>
-                        <p>Choose the jobs that work best for your schedule and location.</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">♻️</div>
-                        <h3>Collect & Dispose</h3>
-                        <p>Collect trash and properly dispose of it at designated centers.</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">💰</div>
-                        <h3>Earn Rewards</h3>
-                        <p>Get paid for each completed job and earn additional eco-points.</p>
+                    <div class="stat-info">
+                        <h3>Today's Pickups</h3>
+                        <p class="stat-value" id="todayPickups">0</p>
                     </div>
                 </div>
-            </section>
-
-            <section class="cta">
-                <h2>Ready to Start Collecting?</h2>
-                <p>Join our network of eco-conscious collectors today!</p>
-                <button id="joinNowBtn" class="btn btn-large btn-primary">Join Now</button>
-            </section>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <span class="material-icons">payments</span>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Today's Earnings</h3>
+                        <p class="stat-value" id="todayEarnings">₵0.00</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <span class="material-icons">account_balance_wallet</span>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Total Balance</h3>
+                        <p class="stat-value" id="totalBalance">₵0.00</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section-header">
+                <h2>Recent Activity</h2>
+                <a href="#" class="view-all">View All</a>
+            </div>
+            
+            <div class="activity-list" id="recentActivity">
+                <div class="activity-placeholder">
+                    <span class="material-icons">info</span>
+                    <p>No recent activity</p>
+                </div>
+            </div>
+            
+            <div class="section-header">
+                <h2>Nearby Requests</h2>
+                <a href="map.html" class="view-all">View Map</a>
+            </div>
+            
+            <div class="requests-container" id="nearbyRequests">
+                <div class="request-placeholder">
+                    <span class="material-icons">location_off</span>
+                    <p>No nearby requests found</p>
+                </div>
+            </div>
         </main>
 
-        <footer>
-            <div class="footer-content">
-                <div class="footer-logo">
-                    <img src="./public/logo-small.svg" alt="TrashDrop Logo" class="logo-small">
-                    <p>TrashDrop Collector</p>
-                </div>
-                <div class="footer-links">
-                    <ul>
-                        <li><a href="./about.html">About Us</a></li>
-                        <li><a href="./privacy.html">Privacy Policy</a></li>
-                        <li><a href="./terms.html">Terms of Service</a></li>
-                        <li><a href="./contact.html">Contact Us</a></li>
-                    </ul>
-                </div>
-                <div class="footer-social">
-                    <a href="#" class="social-icon">📱</a>
-                    <a href="#" class="social-icon">💬</a>
-                    <a href="#" class="social-icon">📧</a>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2025 TrashDrop. All rights reserved.</p>
-            </div>
-        </footer>
+        <!-- Bottom Navigation will be injected here -->
+        <nav id="bottomNav" class="bottom-nav">
+            <!-- Populated by bottom-nav.js -->
+        </nav>
     </div>
-
-    <!-- Install Service Worker for PWA -->
+    
+    <!-- Modals -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <h2>Login Required</h2>
+            <p>Please log in to continue using TrashDrop Collector.</p>
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="btnGoToLogin">Login</button>
+                <button class="btn btn-secondary" id="btnCancelLogin">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- App Initialization -->
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./service-worker.js')
-                    .then(reg => console.log('Service Worker registered: ', reg))
-                    .catch(err => console.log('Service Worker registration failed: ', err));
+        // Wait for Supabase client to be ready
+        function waitForSupabaseClient(callback) {
+            console.log('Waiting for Supabase client initialization...');
+            if (window.supabaseClient) {
+                callback();
+            } else {
+                const handleInit = () => {
+                    window.removeEventListener('supabaseClientReady', handleInit);
+                    window.removeEventListener('supabaseClientInitialized', handleInit);
+                    callback();
+                };
+                
+                window.addEventListener('supabaseClientReady', handleInit);
+                window.addEventListener('supabaseClientInitialized', handleInit);
+                
+                // Add a timeout fallback
+                setTimeout(() => {
+                    if (!window.supabaseClient) {
+                        console.warn('Timeout waiting for Supabase client. Proceeding with fallback...');
+                        callback();
+                    }
+                }, 3000);
+            }
+        }
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            waitForSupabaseClient(function() {
+                console.log('Supabase client initialized or timed out, initializing app...');
+                const appContainer = document.querySelector('.app-container');
+                const splashScreen = document.getElementById('splashScreen');
+                
+                // Config check
+                if (!window.CONFIG) {
+                    console.log('CONFIG not found, attempting to load...');
+                    const configScript = document.createElement('script');
+                    configScript.src = './config.js';
+                    document.head.appendChild(configScript);
+                }
+                
+                // Show the app content
+                setTimeout(function() {
+                    splashScreen.style.display = 'none';
+                    appContainer.style.display = 'flex';
+                    
+                    // Load mock data for demo
+                    loadMockData();
+                }, 1000);
+                
+                // Listen for authentication changes
+                if (window.supabaseClient?.auth) {
+                    window.supabaseClient.auth.onAuthStateChange((event, session) => {
+                        if (event === 'SIGNED_OUT') {
+                            window.location.href = 'login.html';
+                        }
+                    });
+                }
+                
+                // Set up logout button
+                document.getElementById('btnLogout').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (window.supabaseClient?.auth) {
+                        window.supabaseClient.auth.signOut();
+                    } else {
+                        window.location.href = 'login.html';
+                    }
+                });
+                
+                // Set up login modal actions
+                document.getElementById('btnGoToLogin').addEventListener('click', function() {
+                    window.location.href = 'login.html';
+                });
+                
+                document.getElementById('btnCancelLogin').addEventListener('click', function() {
+                    document.getElementById('loginModal').style.display = 'none';
+                });
+            });
+        });
+        
+        // Load mock data for development
+        function loadMockData() {
+            // Set user name
+            document.getElementById('userName').textContent = 'Demo User';
+            
+            // Stats
+            document.getElementById('todayPickups').textContent = '3';
+            document.getElementById('todayEarnings').textContent = '₵25.00';
+            document.getElementById('totalBalance').textContent = '₵125.75';
+            
+            // Recent activity
+            const activityList = document.getElementById('recentActivity');
+            activityList.innerHTML = '';
+            
+            const activities = [
+                {
+                    type: 'pickup',
+                    location: 'Accra Mall',
+                    time: '2 hours ago',
+                    amount: '₵8.50',
+                    icon: 'recycling'
+                },
+                {
+                    type: 'payment',
+                    method: 'Mobile Money',
+                    time: 'Yesterday',
+                    amount: '₵45.00',
+                    icon: 'payments'
+                },
+                {
+                    type: 'pickup',
+                    location: 'University of Ghana',
+                    time: 'Yesterday',
+                    amount: '₵12.25',
+                    icon: 'recycling'
+                }
+            ];
+            
+            activities.forEach(activity => {
+                const activityItem = document.createElement('div');
+                activityItem.className = 'activity-item';
+                
+                let content = '';
+                if (activity.type === 'pickup') {
+                    content = `
+                        <div class="activity-icon">
+                            <span class="material-icons">${activity.icon}</span>
+                        </div>
+                        <div class="activity-details">
+                            <p class="activity-title">Trash Pickup at ${activity.location}</p>
+                            <p class="activity-time">${activity.time}</p>
+                        </div>
+                        <div class="activity-amount">
+                            <p class="amount-earned">+${activity.amount}</p>
+                        </div>
+                    `;
+                } else {
+                    content = `
+                        <div class="activity-icon">
+                            <span class="material-icons">${activity.icon}</span>
+                        </div>
+                        <div class="activity-details">
+                            <p class="activity-title">Payment via ${activity.method}</p>
+                            <p class="activity-time">${activity.time}</p>
+                        </div>
+                        <div class="activity-amount">
+                            <p class="amount-paid">-${activity.amount}</p>
+                        </div>
+                    `;
+                }
+                
+                activityItem.innerHTML = content;
+                activityList.appendChild(activityItem);
+            });
+            
+            // Nearby requests
+            const requestsContainer = document.getElementById('nearbyRequests');
+            requestsContainer.innerHTML = '';
+            
+            const requests = [
+                {
+                    id: 'req1',
+                    location: 'Legon Hall, University of Ghana',
+                    distance: '0.5 km',
+                    type: 'Recyclable',
+                    reward: '₵12.00'
+                },
+                {
+                    id: 'req2',
+                    location: 'Airport Residential Area',
+                    distance: '1.2 km',
+                    type: 'General',
+                    reward: '₵8.00'
+                }
+            ];
+            
+            requests.forEach(request => {
+                const requestCard = document.createElement('div');
+                requestCard.className = 'request-card';
+                requestCard.innerHTML = `
+                    <div class="request-header">
+                        <span class="request-type ${request.type.toLowerCase()}">${request.type}</span>
+                        <span class="request-distance">${request.distance}</span>
+                    </div>
+                    <div class="request-body">
+                        <h3>${request.location}</h3>
+                        <div class="request-reward">
+                            <span class="material-icons">payments</span>
+                            <span>${request.reward}</span>
+                        </div>
+                    </div>
+                    <div class="request-actions">
+                        <a href="map.html?request=${request.id}" class="btn btn-primary">View Details</a>
+                    </div>
+                `;
+                requestsContainer.appendChild(requestCard);
             });
         }
     </script>
     
-    <!-- Main JavaScript -->
-    <script>
-      // Check if Supabase loaded correctly
-      window.addEventListener('DOMContentLoaded', () => {
-        if (!window.supabase) {
-          console.error('Supabase failed to load. Check your internet connection and ensure the CDN is accessible.');
-        }
-        if (!window.SUPABASE_CONFIG) {
-          console.error('Supabase configuration is missing. Check config.js');
-        }
-      });
-    </script>
-    <script src="./src/js/main.js"></script>
-    <script src="./src/js/auth.js"></script>
+    <!-- Load improved navigation system and fixed Supabase client -->
+    <script src="./src/js/navigation-core.js"></script>
+    <script src="./src/js/supabase-client-improved.js"></script>
     
-    <!-- Event Listeners for Buttons -->
-    <script>
-        document.getElementById('loginBtn').addEventListener('click', () => {
-            window.location.href = './login.html';
-        });
-        
-        document.getElementById('signupBtn').addEventListener('click', () => {
-            window.location.href = './signup.html';
-        });
-        
-        document.getElementById('getStartedBtn').addEventListener('click', () => {
-            window.location.href = './signup.html';
-        });
-        
-        document.getElementById('joinNowBtn').addEventListener('click', () => {
-            window.location.href = './signup.html';
-        });
-    </script>
+    <!-- Load the safe navigation helpers -->
+    <script src="./src/js/safe-navigation.js"></script>
+    
+    <!-- Load the new bottom navigation component -->
+    <script src="./src/js/bottom-nav.js"></script>
 </body>
 </html>

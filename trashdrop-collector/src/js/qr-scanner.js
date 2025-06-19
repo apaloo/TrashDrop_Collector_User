@@ -104,7 +104,7 @@ function loadQRScannerLibrary() {
         // Create script element
         const script = document.createElement('script');
         script.type = 'text/javascript';
-        script.src = 'https://unpkg.com/html5-qrcode@2.2.1/html5-qrcode.min.js';
+        script.src = CONFIG.staticData.urls.qrScanner; // Using centralized URL configuration
         script.onload = () => resolve();
         script.onerror = () => reject(new Error('Failed to load QR scanner library'));
         

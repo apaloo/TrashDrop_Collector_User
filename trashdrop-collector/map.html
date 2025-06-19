@@ -7,6 +7,10 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>TrashDrop Collector - Map</title>
+    
+    <!-- Load improved navigation and Supabase client implementation first -->
+    <script src="./src/js/navigation-core.js"></script>
+    <script src="./src/js/supabase-client-improved.js"></script>
     <style>
         /* Hide zoom controls on mobile with important flag and multiple selectors for maximum specificity */
         @media (max-width: 968px) {
@@ -28,24 +32,42 @@
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#4CAF50">
     <link rel="stylesheet" href="./src/styles/top-nav.css">
+    <!-- Material Icons Font -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tX/miZyoHS5obTRR9BMY="
-          crossorigin=""/>
+    <!-- Core initialization loader - should be loaded first -->
+    <script src="./src/js/init-loader.js"></script>
     
-    <!-- Leaflet JavaScript -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-            crossorigin=""></script>
-            
-    <!-- Leaflet Locate Control CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol@0.76.1/dist/L.Control.Locate.min.css" />
+    <!-- Load Leaflet CSS directly -->    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol@0.79.0/dist/L.Control.Locate.min.css" />
     
-    <!-- Leaflet Locate Control JavaScript -->
-    <script src="https://unpkg.com/leaflet.locatecontrol@0.76.1/dist/L.Control.Locate.min.js"></script>
+    <!-- Load Leaflet JS directly -->    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.locatecontrol@0.79.0/dist/L.Control.Locate.min.js"></script>
     
-    <!-- Simple geolocation fallback -->
+    <!-- Dynamic resource loading for additional resources -->    
+    <script type="module">
+        import { loadResources } from './src/js/resource-loader.js';
+        
+        // Wait for core initialization before loading additional resources
+        window.addEventListener('coreInitialized', () => {
+            // Load required resources with options (excluding already loaded Leaflet) 
+            window.resourceLoadPromise = loadResources({
+                loadLeaflet: false, // We're loading Leaflet directly now
+                loadLeafletPlugins: false, // We're loading essential plugins directly
+                loadFonts: true
+            }).then(() => {
+                console.log('✅ Additional resources loaded successfully');
+                // Dispatch an event when resources are loaded
+                window.dispatchEvent(new CustomEvent('resourcesLoaded'));
+            }).catch(error => {
+                console.error('❌ Failed to load resources:', error);
+            });
+        });
+    </script>
+    
+    <!-- Simple geolocation fallback (now Leaflet is available) -->
     <script>
     // Simple geolocation fallback
     if (!L.control || !L.control.locate) {
@@ -132,8 +154,7 @@
         }
     </style>
     
-    <!-- Material Icons -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Material Icons are now loaded via resource-loader.js -->
     
     <!-- Mock Data for Development -->
     <script src="./src/js/mock-data.js"></script>
@@ -141,16 +162,94 @@
     <!-- Fixed Navigation - Simple and reliable -->
     <script src="./src/js/fixed-navigation.js"></script>
     
-    <!-- Leaflet CSS for maps -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-          crossorigin=""/>
+    <!-- Leaflet CSS is now loaded via resource-loader.js -->
     
-    <!-- Configuration -->
-    <script src="./src/js/config.js"></script>
+    <!-- Script Loading and Dependency Management -->
+    <script>
+        // Track loaded scripts to avoid duplicates
+        window.loadedScripts = window.loadedScripts || {};
+        
+        // Function to load scripts in sequence with better error handling
+        function loadScript(src, onLoad, onError) {
+            // Skip if already loaded
+            if (window.loadedScripts[src]) {
+                console.log('🔁 Script already loaded:', src);
+                if (onLoad) setTimeout(onLoad, 0);
+                return;
+            }
+            
+            console.log('📥 Loading script:', src);
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = function() {
+                console.log('✅ Loaded script:', src);
+                window.loadedScripts[src] = true;
+                if (onLoad) setTimeout(onLoad, 0);
+            };
+            script.onerror = function(e) {
+                console.error('❌ Error loading script:', src, e);
+                if (onError) onError(e);
+            };
+            document.head.appendChild(script);
+            return script;
+        }
+        
+        // Script loading sequence
+        console.log('🔁 Starting script loading sequence for map.html...');
+        
+        // 1. Load config.js first (sets window.CONFIG directly)
+        loadScript('./src/js/config.js', function() {
+            console.log('🔁 Config.js loaded callback fired');
+            
+            // Verify CONFIG is available
+            if (!window.CONFIG) {
+                console.error('❌ CONFIG not available after loading config.js');
+            } else {
+                console.log('✅ CONFIG loaded successfully');
+            }
+            
+            // 2. Load Supabase SDK with UMD build for global supabase object
+            loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js', function() {
+                console.log('🔁 Supabase SDK loaded, window.supabase available:', !!window.supabase);
+                
+                // 3. Then load our supabase client wrapper
+                loadScript('./src/js/supabase-client.js', function() {
+                    console.log('🔁 Supabase client initialized:', !!window.supabaseClient);
+                    
+                    // 4. Finally load auth.js which depends on supabase client
+                    loadScript('./src/js/auth.js', function() {
+                        // 5. Load map.js after auth is ready
+                        loadScript('./src/js/map.js', function() {
+                            console.log('✅ All core scripts loaded for map page');
+                            // Dispatch event when all core scripts are loaded
+                            window.dispatchEvent(new CustomEvent('mapScriptsLoaded'));
+                        });
+                    });
+                });
+            });
+        });
+    </script>
     
-    <!-- Authentication -->
-    <script src="./src/js/auth.js"></script>
+    <!-- Helper functions for script dependencies -->
+    <script>
+    // Wait for core scripts to be loaded
+    function waitForSupabaseClient(callback) {
+        if (window.supabaseClient) {
+            callback();
+        } else {
+            // Listen for both event names for consistency
+            window.addEventListener('supabaseClientInitialized', callback);
+            window.addEventListener('supabaseClientReady', callback);
+        }
+    }
+    
+    // Listen for Supabase client initialization (both event types)
+    function handleSupabaseInitialized(e) {
+        console.log('✅ Supabase client initialized event received in map.html');
+    }
+    window.addEventListener('supabaseClientInitialized', handleSupabaseInitialized);
+    window.addEventListener('supabaseClientReady', handleSupabaseInitialized);
+    </script>
 </head>
 <body>
     <!-- Top Navigation Bar with Account Dropdown -->
@@ -196,7 +295,7 @@
             <div class="status-toggle-container" style="position:fixed; top:70px; left:50%; transform:translateX(-50%); z-index:1010;">
                 <div style="background-color:white; border-radius:24px; padding:0.25rem 0.5rem; box-shadow:0 2px 6px rgba(0,0,0,0.15); display:flex; align-items:center;">
                     <label for="onlineToggle" style="display:flex; align-items:center; white-space:nowrap; font-size:0.9rem;">
-                        <span id="statusText" style="margin-right:0.5rem;">Offline</span>
+                        <span id="statusText" class="offline">Offline</span>
                         <div style="position:relative; width:36px; height:18px;">
                             <input type="checkbox" id="onlineToggle" class="toggle-input" style="opacity:0; width:0; height:0;">
                             <span class="toggle-slider" style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#ccc; transition:.4s; border-radius:34px;">
@@ -211,6 +310,43 @@
             <div class="list-view-btn-container" style="position:fixed; top:120px; right:10px; z-index:2000;">
                 <button id="listViewBtn" style="background-color:#4CAF50; color:white; border-radius:24px; padding:0.6rem 1.25rem; font-weight:500; box-shadow:0 2px 6px rgba(0,0,0,0.2); border:none; font-size:0.95rem; cursor:pointer;">List View</button>
             </div>
+            <script>
+            // Direct event listener for list view button to navigate to request page
+            (function() {
+                function handleRequestPageClick() {
+                    console.log('Request page button clicked');
+                    
+                    // Save current filters and radius
+                    const currentTrashType = document.querySelector('.filter-btn.active')?.getAttribute('data-type') || 'all';
+                    const currentRadius = document.getElementById('radiusSlider')?.value || 5;
+                    
+                    console.log('Navigating to request page with filters:', { currentTrashType, currentRadius });
+                    
+                    // Store in sessionStorage
+                    sessionStorage.setItem('currentTrashType', currentTrashType);
+                    sessionStorage.setItem('currentRadius', currentRadius);
+                    
+                    // Navigate to request page with filters
+                    window.location.href = `request.html?type=${encodeURIComponent(currentTrashType)}&radius=${encodeURIComponent(currentRadius)}`;
+                }
+                
+                // Add event listener when DOM is loaded
+                document.addEventListener('DOMContentLoaded', function() {
+                    const listViewBtn = document.getElementById('listViewBtn');
+                    if (listViewBtn) {
+                        // Update button text to be more descriptive
+                        listViewBtn.textContent = 'View Requests';
+                        // Remove any existing listeners and add new one
+                        listViewBtn.replaceWith(listViewBtn.cloneNode(true));
+                        const newBtn = document.getElementById('listViewBtn');
+                        newBtn.addEventListener('click', handleRequestPageClick);
+                        console.log('Request page button initialized');
+                    } else {
+                        console.error('Request page button not found');
+                    }
+                });
+            })();
+            </script>
             
             <!-- Request count badge container -->            
             <div class="request-count-badge-container" style="position:absolute; top:160px; left:10px; z-index:2000;">
@@ -228,7 +364,7 @@
                             Radius: 
                             <span style="background:#4CAF50; color:white; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:0.85rem;" id="radiusValue">5</span>
                         </label>
-                        <input type="range" id="radiusSlider" min="1" max="10" value="5" style="width:100%; margin:8px 0; height:6px; -webkit-appearance:none; background:#e0e0e0; border-radius:3px; outline:none;">
+                        <input type="range" id="radiusSlider" min="1" max="10" value="5" style="width:100%; margin:8px 0; height:6px; -webkit-appearance:none; appearance:none; background:#e0e0e0; border-radius:3px; outline:none;">
                     </div>
                     
                     <!-- Filter buttons with grid layout to prevent wrapping issues -->
@@ -245,19 +381,27 @@
             </div>
         </div>
         
-        <!-- Mobile bottom navigation (only visible on mobile) -->
-        <div class="mobile-nav" style="position:fixed;bottom:0;left:0;right:0;height:60px;background-color:#fff;display:flex;justify-content:space-around;align-items:center;box-shadow:0 -2px 10px rgba(0,0,0,0.1);z-index:1001;">
-            <a href="./map.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#4CAF50;">
-                <i class="material-icons" style="font-size:24px;">map</i>
-                <span style="font-size:12px;margin-top:4px;display:block;">Map</span>
+        <!-- Bottom Navigation Bar -->
+        <div class="bottom-nav">
+            <!-- This will be populated by bottom-nav.js -->
+        </div>
+        
+        <!-- Load the new bottom navigation component -->
+        <script src="./src/js/bottom-nav.js"></script>
+        
+        <!-- Legacy mobile navigation - hidden but kept for compatibility -->
+        <div class="mobile-nav" style="display:none;">
+            <a href="./map.html">
+                <i class="material-icons">map</i>
+                <span>Map</span>
             </a>
-            <a href="./request.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
-                <i class="material-icons" style="font-size:24px;">add_circle</i>
-                <span style="font-size:12px;margin-top:4px;display:block;">Request</span>
+            <a href="./request.html">
+                <i class="material-icons">add_circle</i>
+                <span>Request</span>
             </a>
-            <a href="./assign.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
-                <i class="material-icons" style="font-size:24px;">assignment</i>
-                <span style="font-size:12px;margin-top:4px;display:block;">Assign</span>
+            <a href="./assign.html">
+                <i class="material-icons">assignment</i>
+                <span>Assign</span>
             </a>
             <a href="./earnings.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
                 <i class="material-icons" style="font-size:24px;">account_balance_wallet</i>
@@ -661,11 +805,25 @@
             backface-visibility: hidden;
         }
         
+        /* Status text styling */
+        #statusText {
+            font-weight: 500;
+            margin-right: 0.5rem;
+            transition: color 0.3s ease;
+            display: inline-block;
+        }
+        
+        #statusText.online {
+            color: #4CAF50; /* Green for online status */
+        }
+        
+        #statusText.offline {
+            color: #9E9E9E; /* Gray for offline status */
+        }
+
         /* Prevent layout shifts */
         html, body {
             overflow: hidden;
-            width: 100%;
-            height: 100%;
             margin: 0;
             padding: 0;
         }
@@ -679,8 +837,172 @@
         }
     </style>
     
-    <!-- Map JavaScript -->
-    <script src="./src/js/map.js"></script>
+    <!-- Configuration scripts - MUST LOAD FIRST -->
+    <script>
+        // Track loaded scripts to avoid duplicates
+        window.loadedScripts = window.loadedScripts || {};
+        
+        // Function to load scripts in sequence
+        function loadScript(src, onLoad, onError) {
+            // Skip if already loaded
+            if (window.loadedScripts[src]) {
+                console.log('Script already loaded:', src);
+                if (onLoad) onLoad();
+                return;
+            }
+            
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = function() {
+                console.log('✅ Loaded script:', src);
+                window.loadedScripts[src] = true;
+                if (onLoad) onLoad();
+            };
+            script.onerror = function(e) {
+                console.error('❌ Error loading script:', src, e);
+                if (onError) onError(e);
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Load config.js first (sets window.CONFIG directly)
+        loadScript('./src/js/config.js', function() {
+            // Ensure we wait for the next tick after config loads
+            setTimeout(function() {
+                // Verify CONFIG is available
+                if (!window.CONFIG) {
+                    console.error('❌ CONFIG not available after loading config.js');
+                    return;
+                }
+                
+                console.log('✅ CONFIG loaded successfully');
+                
+                // For Supabase configuration - explicitly set with URL and key properties
+                window.SUPABASE_CONFIG = {
+                    url: window.CONFIG.supabase.url || '',
+                    key: window.CONFIG.supabase.key || ''
+                };
+                
+                // Debug info (without showing sensitive data)
+                console.log('SUPABASE_CONFIG set with URL available:', !!window.SUPABASE_CONFIG.url);
+                
+                // Load Supabase JS library next (using UMD version to expose global supabase object)
+                loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js', function() {
+                    // Then load our supabase client wrapper
+                    loadScript('./src/js/supabase-client.js', function() {
+                        // Finally load auth.js which depends on supabase client
+                        loadScript('./src/js/auth.js');
+                    });
+                });
+            }, 0);
+        });
+        
+        // The configLoaded event is now dispatched in the loadScript callback chain
+        // after CONFIG is properly loaded and SUPABASE_CONFIG is set
+    </script>
+    
+    <!-- Script Loader to ensure proper loading sequence -->
+    <script>
+    // Global flag to track initialization state
+    window.initState = window.initState || {};
+    
+    // Wait for config to be loaded
+    function waitForConfig(callback) {
+        if (window.CONFIG && window.SUPABASE_CONFIG) {
+            callback();
+        } else {
+            window.addEventListener('configLoaded', callback);
+        }
+    }
+    
+    // Better script loader with dependency tracking
+    function loadScript(src, onLoad) {
+        // Skip if already loaded
+        if (window.initState[src]) {
+            console.log(`Script ${src} already loaded, skipping`);
+            if (onLoad) onLoad();
+            return;
+        }
+        
+        console.log(`Loading script: ${src}`);
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = function() {
+            console.log(`Script loaded successfully: ${src}`);
+            window.initState[src] = true;
+            if (onLoad) onLoad();
+        };
+        script.onerror = function(e) {
+            console.error(`Error loading script ${src}:`, e);
+        };
+        document.head.appendChild(script);
+    }
+    
+    // Listen for Supabase client initialization (both event types)
+    function handleSupabaseClientReady(e) {
+        console.log('\u2705 Supabase client ready event received in map.html');
+        // Load auth.js once Supabase client is ready
+        loadScript('./src/js/auth.js');
+    }
+    window.addEventListener('supabaseClientInitialized', handleSupabaseClientReady);
+    window.addEventListener('supabaseClientReady', handleSupabaseClientReady);
+    
+    // No need to load Supabase again as it's already loaded in the previous script block
+    </script>
+    
+    <!-- Define getCurrentUser function if it doesn't exist -->
+    <script>
+    if (typeof window.getCurrentUser !== 'function') {
+        console.log('📌 Adding getCurrentUser function');
+        window.getCurrentUser = async function() {
+            console.log('🔍 Checking authentication status...');
+            
+            // Check if auth module's getCurrentUser exists first (preferable)
+            if (window.auth && typeof window.auth.getCurrentUser === 'function') {
+                return window.auth.getCurrentUser();
+            }
+            
+            // Fall back to Supabase client if available
+            if (window.supabaseClient && window.supabaseClient.auth) {
+                try {
+                    if (typeof window.supabaseClient.auth.getSession === 'function') {
+                        console.log('🔑 Using auth.getSession() method');
+                        const { data, error } = await window.supabaseClient.auth.getSession();
+                        if (error) throw error;
+                        return { user: data.session?.user || null };
+                    } else if (typeof window.supabaseClient.auth.getUser === 'function') {
+                        console.log('🔑 Using auth.getUser() method');
+                        const { data, error } = await window.supabaseClient.auth.getUser();
+                        if (error) throw error;
+                        return { user: data.user || null };
+                    } else {
+                        console.warn('⚠️ No compatible auth method found, checking localStorage');
+                    }
+                } catch (error) {
+                    console.error('Error getting user:', error);
+                    // Fall through to localStorage check
+                }
+            }
+            
+            // Fall back to localStorage
+            try {
+                const storedUser = localStorage.getItem('auth_user');
+                if (storedUser) {
+                    console.log('🗄 Using stored user data from localStorage');
+                    return { user: JSON.parse(storedUser) };
+                }
+            } catch (e) {
+                console.error('Error reading from localStorage:', e);
+            }
+            
+            // No user found
+            return { error: 'Not authenticated', user: null };
+        };
+    }
+    </script>
+    
+    <!-- Load mock data script if needed -->
+    <script src="./src/js/mock-data.js"></script>
     
     <script>
     // Global state management
@@ -803,14 +1125,64 @@
             }
         }
         
-        // Simple logout function
+        // Enhanced logout function with better UX
         window.logout = async function() {
+            let logoutButton;
             try {
-                await window.signOut();
+                // Show loading state
+                logoutButton = document.querySelector('.logout-button');
+                if (logoutButton) {
+                    const originalText = logoutButton.innerHTML;
+                    logoutButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Logging out...';
+                    logoutButton.disabled = true;
+                }
+                
+                // Clear auth state
+                console.log('Starting sign out process...');
+                const result = await window.signOut();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+                
+                console.log('Sign out successful, updating UI...');
+                
+                // Force clear any remaining auth data
+                ['auth_token', 'auth_user', 'auth_session', 'justLoggedIn'].forEach(key => {
+                    localStorage.removeItem(key);
+                    sessionStorage.removeItem(key);
+                });
+                
+                // Update UI immediately
+                const loginSection = document.getElementById('loginSection');
+                const userSection = document.getElementById('userSection');
+                if (loginSection) loginSection.style.display = 'block';
+                if (userSection) userSection.style.display = 'none';
+                
+                // Show logged out message briefly before redirect
+                showNotification('Successfully logged out', 'success');
+                
+                // Wait a moment for the UI to update before redirecting
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Force a hard redirect to login page with cache busting
+                console.log('Redirecting to login page...');
+                window.location.replace('login.html?t=' + Date.now());
+                
             } catch (error) {
                 console.error('Logout error:', error);
-            } finally {
-                window.location.href = 'login.html';
+                showNotification('Error during logout: ' + (error.message || 'Unknown error'), 'error');
+                
+                // Still try to redirect even if there was an error
+                if (logoutButton) {
+                    logoutButton.disabled = false;
+                    logoutButton.innerHTML = 'Log Out';
+                }
+                
+                // Force redirect after a short delay
+                setTimeout(() => {
+                    window.location.replace('login.html?t=' + Date.now());
+                }, 1000);
             }
         };
 
@@ -1043,11 +1415,40 @@
             console.log('Initializing TrashDrop Collector...');
             
             // Check Supabase connection
-            if (!window.supabase) {
-                console.error('Supabase client not initialized');
-                showNotification('Error: Authentication service not available', 'error');
-                return;
+            if (!window.supabaseClient) {
+                console.log('Waiting for Supabase client initialization...');
+                // Instead of failing, wait for the client to be initialized
+                return new Promise((resolve) => {
+                    // Listen for both event types
+                    const handleSupabaseInitialized = () => {
+                        console.log('Supabase client initialized event received');
+                        window.removeEventListener('supabaseClientInitialized', handleSupabaseInitialized);
+                        window.removeEventListener('supabaseClientReady', handleSupabaseInitialized);
+                        // Continue app initialization
+                        resolve(initAppAfterSupabase());
+                    };
+                    
+                    window.addEventListener('supabaseClientInitialized', handleSupabaseInitialized);
+                    window.addEventListener('supabaseClientReady', handleSupabaseInitialized);
+                    
+                    // Set a timeout to fall back to mock data if Supabase never initializes
+                    setTimeout(() => {
+                        console.warn('Supabase client initialization timed out, continuing with limited functionality');
+                        window.removeEventListener('supabaseClientInitialized', handleSupabaseInitialized);
+                        window.removeEventListener('supabaseClientReady', handleSupabaseInitialized);
+                        resolve(initAppAfterSupabase());
+                    }, 10000); // 10 second timeout
+                });
             }
+            
+            // Continue with normal initialization
+            return initAppAfterSupabase();
+        }
+        
+        // Continuation of app initialization after Supabase is ready
+        async function initAppAfterSupabase() {
+            // Log Supabase connection status for debugging
+            console.log('Continuing with initialization, Supabase client status:', !!window.supabaseClient);
             
             // Check if we're in mobile view
             const isMobile = window.innerWidth <= 768;
@@ -1068,7 +1469,7 @@
                 },
                 map: null,
                 markers: {},
-                supabase: window.supabase // Reference to Supabase client
+                supabase: window.supabaseClient // Reference to Supabase client
             };
             
             // Set up filter buttons first
@@ -1282,13 +1683,26 @@
                 topNavSignOut.addEventListener('click', async (e) => {
                     e.preventDefault();
                     try {
-                        const { error } = await window.supabase.auth.signOut();
-                        if (error) throw error;
-                        localStorage.removeItem('auth_token');
-                        window.location.href = './login.html';
+                        // Show loading state
+                        topNavSignOut.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Logging out...';
+                        topNavSignOut.disabled = true;
+                        
+                        // Use our enhanced signOut function
+                        await window.signOut();
+                        
+                        // Force clear all auth data
+                        localStorage.clear();
+                        sessionStorage.clear();
+                        
+                        // Force redirect to login page with cache busting
+                        window.location.replace('login.html?t=' + Date.now());
+                        
                     } catch (error) {
                         console.error('Error signing out:', error);
                         showNotification('Error signing out. Please try again.', 'error');
+                        
+                        // Still try to redirect
+                        window.location.replace('login.html?t=' + Date.now());
                     }
                 });
             }
@@ -1436,7 +1850,8 @@
                             }
                             
                             // Create radius circle using the addRadiusCircle function from map.js
-                            radiusCircle = addRadiusCircle(coords, radius);
+                            // Using window.TrashDrop to avoid global variable conflicts
+                            window.TrashDrop.radiusCircle = addRadiusCircle(coords, radius);
                             
                             // Set current position and radius (global variables in map.js)
                             currentPosition = coords;
@@ -1472,9 +1887,17 @@
             
             // Restore online status from localStorage if available
             const savedStatus = localStorage.getItem('collectorOnlineStatus');
-            if (savedStatus) {
-                const isOnline = savedStatus === 'online';
-                onlineToggle.checked = isOnline;
+            const initialStatus = savedStatus ? savedStatus === 'online' : false;
+            
+            // Initialize the toggle and status text
+            onlineToggle.checked = initialStatus;
+            updateStatusText(initialStatus);
+            
+            // Log the initial status for debugging
+            console.log('Initial status loaded:', { savedStatus, initialStatus });
+            
+            // Update status text immediately when toggle changes
+            function updateStatusText(isOnline) {
                 statusText.textContent = isOnline ? 'Online' : 'Offline';
                 if (isOnline) {
                     statusText.classList.add('online');
@@ -1485,26 +1908,75 @@
                 }
             }
             
-            onlineToggle.addEventListener('change', async () => {
-                const isOnline = onlineToggle.checked;
-                statusText.textContent = isOnline ? 'Online' : 'Offline';
+            // Make sure updateUserStatus is available in this scope
+            const updateUserStatus = window.TrashDrop?.updateUserStatus || 
+                (async function(isOnline) {
+                    // Fallback implementation if updateUserStatus is not available
+                    return new Promise((resolve) => {
+                        console.log(`Simulating status update to ${isOnline ? 'online' : 'offline'}`);
+                        setTimeout(() => resolve({ success: true }), 300);
+                    });
+                });
+
+            // Update status when toggle changes
+            onlineToggle.addEventListener('change', async function() {
+                const isOnline = this.checked;
+                console.log('Toggle changed to:', isOnline);
                 
-                if (isOnline) {
-                    statusText.classList.add('online');
-                    statusText.classList.remove('offline');
-                    showNotification('You are now online and available for requests', 'success');
-                } else {
-                    statusText.classList.add('offline');
-                    statusText.classList.remove('online');
-                    showNotification('You are now offline', 'info');
-                }
+                // Immediately update the UI to reflect the new state
+                updateStatusText(isOnline);
                 
-                // Update user status in database
+                // Show loading state
+                this.disabled = true;
+                const notificationId = showNotification(
+                    isOnline ? 'Going online...' : 'Going offline...', 
+                    'info',
+                    true // persistent
+                );
+                
                 try {
-                    await updateUserStatus(isOnline);
+                    // Update user status in database
+                    const result = await updateUserStatus(isOnline);
+                    console.log('Update result:', result);
+                    
+                    if (result && result.success) {
+                        // Update UI to reflect successful status change
+                        updateStatusText(isOnline);
+                        
+                        // Store the new status in localStorage
+                        localStorage.setItem('collectorOnlineStatus', isOnline ? 'online' : 'offline');
+                        
+                        // Show success notification
+                        showNotification(
+                            isOnline ? 'You are now online and available for requests' : 'You are now offline',
+                            'success'
+                        );
+                    } else {
+                        throw new Error('Failed to update status');
+                    }
                 } catch (error) {
-                    console.error('Failed to update status:', error);
-                    showNotification('Failed to update your status', 'error');
+                    console.error('Status update failed:', error);
+                    
+                    // Revert the toggle if the update fails
+                    this.checked = !isOnline;
+                    updateStatusText(!isOnline);
+                    
+                    // Show error notification
+                    showNotification(
+                        `Failed to go ${isOnline ? 'online' : 'offline'}. Please try again.`,
+                        'error'
+                    );
+                } finally {
+                    // Re-enable the toggle and remove loading state
+                    this.disabled = false;
+                    
+                    // Remove the loading notification if it still exists
+                    if (notificationId) {
+                        const notification = document.getElementById(notificationId);
+                        if (notification) {
+                            notification.remove();
+                        }
+                    }
                 }
             });
             
@@ -1519,7 +1991,8 @@
             
             // Initialize radius circle with current value on page load
             const initialRadius = parseInt(radiusSlider.value);
-            radiusCircle = addRadiusCircle(currentPosition, initialRadius);
+            // Using window.TrashDrop to avoid global variable conflicts
+            window.TrashDrop.radiusCircle = addRadiusCircle(currentPosition, initialRadius);
             
             radiusSlider.addEventListener('input', () => {
                 const radius = parseInt(radiusSlider.value);
@@ -1529,7 +2002,8 @@
                 currentRadius = radius;
                 
                 // Always update radius circle - ensures it displays regardless of geolocation
-                radiusCircle = addRadiusCircle(currentPosition, radius);
+                // Using window.TrashDrop to avoid global variable conflicts
+                window.TrashDrop.radiusCircle = addRadiusCircle(currentPosition, radius);
                 
                 // Store selected radius in session
                 sessionStorage.setItem('currentRadius', radius);
@@ -1593,21 +2067,30 @@
             
             setupFilterButtons();
             
-            const listViewBtn = document.getElementById('listViewBtn');
-            if (listViewBtn) {
-                listViewBtn.addEventListener('click', () => {
-                    // Save current filters and radius
-                    const currentTrashType = document.querySelector('.filter-btn.active')?.getAttribute('data-type') || 'all';
-                    const currentRadius = document.getElementById('radiusSlider')?.value || 5000;
-                    
-                    // Store in sessionStorage
-                    sessionStorage.setItem('currentTrashType', currentTrashType);
-                    sessionStorage.setItem('currentRadius', currentRadius);
-                    
-                    // Navigate to list view
-                    window.location.href = `list-view.html?type=${encodeURIComponent(currentTrashType)}&radius=${encodeURIComponent(currentRadius)}`;
-                });
-            }
+            // Add click handler for list view button
+            document.addEventListener('click', function(e) {
+                // Check if the clicked element or its parent is the list view button
+                const listViewBtn = e.target.closest('#listViewBtn');
+                if (!listViewBtn) return;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('List view button clicked');
+                
+                // Save current filters and radius
+                const currentTrashType = document.querySelector('.filter-btn.active')?.getAttribute('data-type') || 'all';
+                const currentRadius = document.getElementById('radiusSlider')?.value || 5; // Default to 5km
+                
+                console.log('Navigating to list view with:', { currentTrashType, currentRadius });
+                
+                // Store in sessionStorage
+                sessionStorage.setItem('currentTrashType', currentTrashType);
+                sessionStorage.setItem('currentRadius', currentRadius);
+                
+                // Navigate to list view
+                window.location.href = `list-view.html?type=${encodeURIComponent(currentTrashType)}&radius=${encodeURIComponent(currentRadius)}`;
+            });
             
             // Initialize filters with stored values if available
             try {
@@ -1720,13 +2203,13 @@ function finalInitialization() {
         window.checkAuth = async function() {
             console.log('Checking authentication status...');
             
-            if (!window.supabase) {
+            if (!window.supabaseClient) {
                 console.error('Supabase client not available');
                 return false;
             }
             
             try {
-                const { data: { session }, error } = await window.supabase.auth.getSession();
+                const { data: { session }, error } = await window.supabaseClient.auth.getSession();
                 
                 if (error) {
                     console.error('Error checking auth status:', error);

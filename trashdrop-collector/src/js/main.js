@@ -76,9 +76,10 @@ function handleAuthNavigation(user) {
     if (!user && isDevelopment) {
         console.log('Creating mock user for development');
         const mockUser = {
-            id: 'mock-user-' + Date.now(),
-            email: 'dev@example.com',
-            name: 'Development User',
+            id: CONFIG.dev.testUser.id + '-' + Date.now(),
+            email: CONFIG.dev.testUser.email,
+            name: CONFIG.dev.testUser.name,
+            role: CONFIG.dev.testUser.role,
             created_at: new Date().toISOString()
         };
         localStorage.setItem('mockUser', JSON.stringify(mockUser));
@@ -149,19 +150,48 @@ function setupEventListeners() {
  */
 async function handleLogout() {
     try {
-        const { success, error } = await signOut();
-        
-        if (error) throw error;
+        // Make sure we access the global signOut function
+        if (typeof window.signOut === 'function') {
+            const result = await window.signOut();
+            if (result && result.error) throw result.error;
+        } else {
+            // Fallback logout implementation if signOut isn't available
+            console.warn('signOut function not found, using fallback logout');
+            // Clear auth data regardless of environment
+            localStorage.removeItem('auth_user');
+            localStorage.removeItem('auth_token');
+            sessionStorage.removeItem('justLoggedIn');
+            // Clear Supabase session if possible
+            if (window.supabaseClient && window.supabaseClient.auth) {
+                try {
+                    await window.supabaseClient.auth.signOut();
+                } catch (e) {
+                    console.warn('Error in Supabase signOut:', e);
+                }
+            }
+        }
         
         // Clear local app state
-        appState.user = null;
-        appState.isOnline = false;
+        if (typeof appState !== 'undefined') {
+            appState.user = null;
+            appState.isOnline = false;
+        }
+        
+        // Clear any other local storage items that might contain user data
+        try {
+            localStorage.removeItem('supabase.auth.token');
+            localStorage.removeItem('currentUser');
+        } catch (e) {}
         
         // Redirect to login page
         window.location.href = './login.html';
     } catch (error) {
         console.error('Logout error:', error);
-        showNotification('Failed to log out. Please try again.', 'error');
+        alert('Failed to log out. Please try again.');
+        // Forceful redirect as a last resort
+        setTimeout(() => {
+            window.location.href = './login.html'; 
+        }, 1000);
     }
 }
 
@@ -225,8 +255,8 @@ function registerServiceWorker() {
     if ('serviceWorker' in navigator && (isProduction || isLocalhost)) {
         // For development environment using 5server or similar dev servers
         // don't try to register service worker as it will cause CORS errors
-        if (window.location.port === '5500' || window.location.port === '5501') {
-            console.log('Development environment detected. Service Worker registration skipped.');
+        if (CONFIG.environment.isDevelopment) {
+            console.log('Running in development mode');
             return;
         }
         

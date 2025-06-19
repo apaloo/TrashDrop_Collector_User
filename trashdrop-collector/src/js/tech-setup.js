@@ -66,8 +66,8 @@ async function initTechSetup() {
             const mapContainer = document.getElementById('map');
             if (mapContainer) {
                 try {
-                    // Default coordinates (Accra, Ghana)
-                    let coords = [5.6037, -0.1870];
+                    // Default coordinates from centralized config
+                    let coords = CONFIG.map.defaultLocation.coordinates;
                     
                     // Add location permission request button to the map
                     const locationBtn = document.createElement('button');
@@ -158,12 +158,8 @@ async function initTechSetup() {
                     
                     // Initialize geofencing with disposal center locations, but don't start tracking until permission is granted
                     if (typeof window.initGeofencing === 'function') {
-                        // Sample disposal center locations - these should come from the database in production
-                        const disposalCenters = [
-                            [5.6050, -0.1875], // Sample disposal center 1
-                            [5.6100, -0.1800], // Sample disposal center 2
-                            [5.5980, -0.1920]  // Sample disposal center 3
-                        ];
+                        // Sample disposal center locations from centralized config
+                        const disposalCenters = CONFIG.map.locations.disposalCenters;
                         
                         // Initialize but don't start geofence tracking yet - wait for user permission
                         window.initGeofencing(disposalCenters);

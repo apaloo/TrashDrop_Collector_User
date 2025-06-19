@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrashDrop Collector</title>
+    <meta name="description" content="An eco-friendly waste collection service">
+    <link rel="stylesheet" href="./src/styles/main.css">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <!-- Add PWA meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="TrashDrop">
+    <link rel="apple-touch-icon" href="./public/icons/icon-192x192.png">
+    <!-- Core initialization loader - should be loaded first -->
+    <script src="./src/js/init-loader.js"></script>
+    
+    <!-- Development Tools -->
+    <script src="./src/js/dev-tools.js"></script>
+    
+    <!-- Dynamic resource loading - replaced hardcoded CDN links -->
+    <script type="module">
+        import { loadResources } from './src/js/resource-loader.js';
+        
+        // Load all required resources after core initialization
+        window.addEventListener('coreInitialized', () => {
+            window.resourceLoadPromise = loadResources({
+                loadSupabase: true,
+                loadLeaflet: true,
+                loadFonts: true
+        }).then(() => {
+            console.log('✅ All resources loaded successfully');
+            window.dispatchEvent(new CustomEvent('resourcesLoaded'));
+        }).catch(error => {
+            console.error('❌ Failed to load resources:', error);
+        });
+    </script>
+    
+    <!-- Script Loading and Dependency Management -->
+    <script>
+        // Track loaded scripts to avoid duplicates
+        window.loadedScripts = window.loadedScripts || {};
+        
+        // Function to load scripts in sequence with better error handling
+        function loadScript(src, onLoad, onError) {
+            // Skip if already loaded
+            if (window.loadedScripts[src]) {
+                console.log('🔁 Script already loaded:', src);
+                if (onLoad) setTimeout(onLoad, 0);
+                return;
+            }
+            
+            console.log('📥 Loading script:', src);
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = function() {
+                console.log('✅ Loaded script:', src);
+                window.loadedScripts[src] = true;
+                if (onLoad) setTimeout(onLoad, 0);
+            };
+            script.onerror = function(e) {
+                console.error('❌ Error loading script:', src, e);
+                if (onError) onError(e);
+            };
+            document.head.appendChild(script);
+            return script;
+        }
+        
+        // Script loading sequence
+        console.log('🔁 Starting script loading sequence for index.html...');
+        
+        // 1. Load config.js first (sets window.CONFIG directly)
+        loadScript('./src/js/config.js', function() {
+            console.log('🔁 Config.js loaded callback fired');
+            
+            // Verify CONFIG is available
+            if (!window.CONFIG) {
+                console.error('❌ CONFIG not available after loading config.js');
+                // Load fallback config
+                loadScript('./src/js/config-fallback.js', function() {
+                    console.log('✅ Fallback CONFIG loaded successfully');
+                    proceedWithScriptLoading();
+                }, function(error) {
+                    console.error('❌ Failed to load fallback config:', error);
+                    // Continue anyway to avoid blocking the app
+                    proceedWithScriptLoading();
+                });
+            } else {
+                console.log('✅ CONFIG loaded successfully');
+                proceedWithScriptLoading();
+            }
+        });
+        
+        function proceedWithScriptLoading() {
+            // 2. Load Supabase SDK with UMD build for global supabase object
+            loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js', function() {
+                console.log('🔁 Supabase SDK loaded, window.supabase available:', !!window.supabase);
+                
+                // 3. Then load our supabase client wrapper
+                loadScript('./src/js/supabase-client.js', function() {
+                    console.log('🔁 Supabase client initialized:', !!window.supabaseClient);
+                    
+                    // 4. Finally load auth.js which depends on supabase client
+                    loadScript('./src/js/auth.js', function() {
+                        // 5. Load main.js after auth is ready
+                        loadScript('./src/js/main.js', function() {
+                            console.log('✅ All core scripts loaded for index page');
+                            // Dispatch event when all core scripts are loaded
+                            window.dispatchEvent(new CustomEvent('indexScriptsLoaded'));
+                        });
+                    });
+                });
+            });
+        }
+    </script>
+    
+    <!-- Helper functions for script dependencies -->
+    <script>
+    // Wait for core scripts to be loaded
+    function waitForSupabaseClient(callback) {
+        if (window.supabaseClient) {
+            callback();
+        } else {
+            // Listen for both event names for consistency
+            window.addEventListener('supabaseClientInitialized', callback);
+            window.addEventListener('supabaseClientReady', callback);
+        }
+    }
+    
+    // Listen for Supabase client initialization
+    window.addEventListener('supabaseClientInitialized', function(e) {
+        console.log('✅ Supabase client initialized event received in index.html');
+    });
+    </script>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo-container">
+                <img src="./public/logo.svg" alt="TrashDrop Logo" class="logo">
+                <h1>TrashDrop Collector</h1>
+            </div>
+            <div class="header-controls">
+                <button id="loginBtn" class="btn btn-outline">Login</button>
+                <button id="signupBtn" class="btn btn-primary">Sign Up</button>
+            </div>
+        </header>
+
+        <main>
+            <section class="hero">
+                <div class="hero-content">
+                    <h2>Make Our Environment Cleaner</h2>
+                    <p>Join TrashDrop and help keep our communities clean while earning rewards.</p>
+                    <button id="getStartedBtn" class="btn btn-large btn-primary">Get Started</button>
+                </div>
+                <div class="hero-image">
+                    <img src="./public/hero-image.svg" alt="Clean Environment Illustration">
+                </div>
+            </section>
+
+            <section class="features">
+                <h2>How It Works</h2>
+                <div class="feature-cards">
+                    <div class="feature-card">
+                        <div class="feature-icon">🔍</div>
+                        <h3>Find Requests</h3>
+                        <p>View available trash collection requests and illegal dumping areas on the map.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">✅</div>
+                        <h3>Accept Jobs</h3>
+                        <p>Choose the jobs that work best for your schedule and location.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">♻️</div>
+                        <h3>Collect & Dispose</h3>
+                        <p>Collect trash and properly dispose of it at designated centers.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">💰</div>
+                        <h3>Earn Rewards</h3>
+                        <p>Get paid for each completed job and earn additional eco-points.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="cta">
+                <h2>Ready to Start Collecting?</h2>
+                <p>Join our network of eco-conscious collectors today!</p>
+                <button id="joinNowBtn" class="btn btn-large btn-primary">Join Now</button>
+            </section>
+        </main>
+
+        <footer>
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="./public/logo-small.svg" alt="TrashDrop Logo" class="logo-small">
+                    <p>TrashDrop Collector</p>
+                </div>
+                <div class="footer-links">
+                    <ul>
+                        <li><a href="./about.html">About Us</a></li>
+                        <li><a href="./privacy.html">Privacy Policy</a></li>
+                        <li><a href="./terms.html">Terms of Service</a></li>
+                        <li><a href="./contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <a href="#" class="social-icon">📱</a>
+                    <a href="#" class="social-icon">💬</a>
+                    <a href="#" class="social-icon">📧</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 TrashDrop. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Install Service Worker for PWA -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => console.log('Service Worker registered: ', reg))
+                    .catch(err => console.log('Service Worker registration failed: ', err));
+            });
+        }
+    </script>
+    
+    <!-- Main JavaScript -->
+    <script>
+      // Check if Supabase loaded correctly
+      window.addEventListener('DOMContentLoaded', () => {
+        if (!window.supabase) {
+          console.error('Supabase failed to load. Check your internet connection and ensure the CDN is accessible.');
+        }
+        if (!window.SUPABASE_CONFIG) {
+          console.error('Supabase configuration is missing. Check config.js');
+        }
+      });
+    </script>
+    <script src="./src/js/main.js"></script>
+    <script src="./src/js/auth.js"></script>
+    
+    <!-- Event Listeners for Buttons -->
+    <script>
+        document.getElementById('loginBtn').addEventListener('click', () => {
+            window.location.href = './login.html';
+        });
+        
+        document.getElementById('signupBtn').addEventListener('click', () => {
+            window.location.href = './signup.html';
+        });
+        
+        document.getElementById('getStartedBtn').addEventListener('click', () => {
+            window.location.href = './signup.html';
+        });
+        
+        document.getElementById('joinNowBtn').addEventListener('click', () => {
+            window.location.href = './signup.html';
+        });
+    </script>
+    
+    <!-- Bottom Navigation Bar -->
+    <div class="bottom-nav">
+        <!-- This will be populated by bottom-nav.js -->
+    </div>
+    
+    <!-- Load the new bottom navigation component -->
+    <script src="./src/js/bottom-nav.js"></script>
+</body>
+</html>

@@ -13,9 +13,31 @@
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#4CAF50">
     <link rel="stylesheet" href="./src/styles/top-nav.css">
-    
-    <!-- Material Icons -->
+    <!-- Material Icons Font -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Core initialization loader - should be loaded first -->
+    <script src="./src/js/init-loader.js"></script>
+    
+    <!-- Dynamic resource loading - Material Icons -->
+    <script type="module">
+        import { loadResources } from './src/js/resource-loader.js';
+        
+        // Wait for core initialization before loading additional resources
+        window.addEventListener('coreInitialized', () => {
+            // Load font resources
+            window.fontLoadPromise = loadResources({
+                loadFonts: true,
+                loadSupabase: false,
+                loadLeaflet: false
+            }).then(() => {
+                console.log('✅ Font resources loaded successfully');
+                window.dispatchEvent(new CustomEvent('fontsLoaded'));
+            }).catch(error => {
+                console.error('❌ Failed to load font resources:', error);
+            });
+        });
+    </script>
     
     <!-- Mock Data for Development -->
     <script src="./src/js/mock-data.js"></script>
@@ -29,21 +51,95 @@
     <!-- Mock Authentication for Development -->
     <script src="./src/js/mock-auth.js"></script>
     
-    <!-- Supabase JS CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Script Loading and Dependency Management -->
+    <script>
+        // Track loaded scripts to avoid duplicates
+        window.loadedScripts = window.loadedScripts || {};
+        
+        // Function to load scripts in sequence with better error handling
+        function loadScript(src, onLoad, onError) {
+            // Skip if already loaded
+            if (window.loadedScripts[src]) {
+                console.log('🔁 Script already loaded:', src);
+                if (onLoad) setTimeout(onLoad, 0);
+                return;
+            }
+            
+            console.log('📥 Loading script:', src);
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = function() {
+                console.log('✅ Loaded script:', src);
+                window.loadedScripts[src] = true;
+                if (onLoad) setTimeout(onLoad, 0);
+            };
+            script.onerror = function(e) {
+                console.error('❌ Error loading script:', src, e);
+                if (onError) onError(e);
+            };
+            document.head.appendChild(script);
+            return script;
+        }
+        
+        // Script loading sequence
+        console.log('🔁 Starting script loading sequence for request.html...');
+        
+        // 1. Load config.js first (sets window.CONFIG directly)
+        loadScript('./src/js/config.js', function() {
+            console.log('🔁 Config.js loaded callback fired');
+            
+            // Verify CONFIG is available
+            if (!window.CONFIG) {
+                console.error('❌ CONFIG not available after loading config.js');
+            } else {
+                console.log('✅ CONFIG loaded successfully');
+            }
+            
+            // 2. Load Supabase SDK with UMD build for global supabase object
+            loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js', function() {
+                console.log('🔁 Supabase SDK loaded, window.supabase available:', !!window.supabase);
+                
+                // 3. Then load our supabase client wrapper
+                loadScript('./src/js/supabase-client.js', function() {
+                    console.log('🔁 Supabase client initialized:', !!window.supabaseClient);
+                    
+                    // 4. Finally load auth.js which depends on supabase client
+                    loadScript('./src/js/auth.js', function() {
+                        console.log('✅ Auth script loaded');
+                        
+                        // 5. Load request.js as final step
+                        loadScript('./src/js/request.js', function() {
+                            console.log('✅ All core scripts loaded for request page');
+                            // Dispatch event when all core scripts are loaded
+                            window.dispatchEvent(new CustomEvent('requestScriptsLoaded'));
+                        });
+                        
+                        // Load additional scripts that depend on auth
+                        loadScript('./src/js/main.js');
+                        loadScript('./src/js/tech-setup.js');
+                        loadScript('./src/js/pwa-install.js');
+                    });
+                });
+            });
+        });
+    </script>
     
-    <!-- Configuration -->
-    <script src="./src/js/config.js"></script>
+    <!-- Helper functions for script dependencies -->
+    <script>
+    // Wait for core scripts to be loaded
+    function waitForSupabaseClient(callback) {
+        if (window.supabaseClient) {
+            callback();
+        } else {
+            window.addEventListener('supabaseClientInitialized', callback);
+        }
+    }
     
-    <!-- Authentication -->
-    <script src="./src/js/auth.js"></script>
-    
-    <!-- Core functionality -->
-    <script src="./src/js/main.js"></script>
-    
-    <!-- Technical setup components -->
-    <script src="./src/js/tech-setup.js"></script>
-    <script src="./src/js/pwa-install.js"></script>
+    // Listen for Supabase client initialization
+    window.addEventListener('supabaseClientInitialized', function(e) {
+        console.log('✅ Supabase client initialized event received in request.html');
+    });
+    </script>
     <script src="./src/js/qr-scanner.js"></script>
     <script src="./src/js/notifications.js"></script>
     
@@ -360,25 +456,13 @@
         </div>
     </div>
     
-    <!-- Bottom Navigation Bar without Account section -->
-    <div style="position:fixed;bottom:0;left:0;right:0;height:60px;background-color:#fff;display:flex;justify-content:space-around;align-items:center;box-shadow:0 -2px 10px rgba(0,0,0,0.1);z-index:1001;">
-        <a href="./map.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
-            <i class="material-icons" style="font-size:24px;">map</i>
-            <span style="font-size:12px;margin-top:4px;display:block;">Map</span>
-        </a>
-        <a href="./request.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#4CAF50;">
-            <i class="material-icons" style="font-size:24px;">add_circle</i>
-            <span style="font-size:12px;margin-top:4px;display:block;">Request</span>
-        </a>
-        <a href="./assign.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
-            <i class="material-icons" style="font-size:24px;">assignment</i>
-            <span style="font-size:12px;margin-top:4px;display:block;">Assign</span>
-        </a>
-        <a href="./earnings.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
-            <i class="material-icons" style="font-size:24px;">account_balance_wallet</i>
-            <span style="font-size:12px;margin-top:4px;display:block;">Earnings</span>
-        </a>
+    <!-- Bottom Navigation Bar -->
+    <div class="bottom-nav">
+        <!-- This will be populated by bottom-nav.js -->
     </div>
+    
+    <!-- Load the new bottom navigation component -->
+    <script src="./src/js/bottom-nav.js"></script>
     
     <!-- Top Navigation JavaScript -->
     <script src="./src/js/top-nav.js"></script>

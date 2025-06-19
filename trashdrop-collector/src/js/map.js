@@ -3,22 +3,27 @@
  * Handles map functionality and geolocation
  */
 
-// Map instance
-let map;
-// User marker
-let userMarker;
-// Request markers array
-let requestMarkers = [];
-// Radius circle
-let radiusCircle;
+// Wrap all code in an IIFE to avoid global variable leakage
+(function() {
 
-// Initialize global state if not exists
+// Initialize global namespace if not exists
 window.TrashDrop = window.TrashDrop || {};
 window.TrashDrop.state = window.TrashDrop.state || {
     currentPosition: null,
     currentRadius: 5,
     currentTrashType: 'all'
 };
+
+// Map instance - scoped to this function
+let map;
+// User marker
+let userMarker;
+// Request markers array
+let requestMarkers = [];
+// Explicitly declare radiusCircle - this was missing
+let radiusCircle = null;
+// Store it in the global namespace for access from other modules
+window.TrashDrop.radiusCircle = null;
 
 // Alias for easier access
 const state = window.TrashDrop.state;
@@ -28,7 +33,7 @@ const state = window.TrashDrop.state;
  * @param {Array} coords - Initial coordinates [latitude, longitude]
  * @returns {Object} - Leaflet map instance
  */
-function initMap(coords = [5.6037, -0.1870]) {
+function initMap(coords = CONFIG.map.defaultLocation.coordinates) {
     // Check if map container exists and is not already initialized
     const mapElement = document.getElementById('map');
     if (!mapElement) {
@@ -97,9 +102,10 @@ function initMap(coords = [5.6037, -0.1870]) {
         map.getContainer().classList.add('leaflet-touch');
     }
     
-    // Add OpenStreetMap tile layer with optimized options
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
+    // Add tile layer using CONFIG
+    L.tileLayer(CONFIG.map.tileUrl, {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: CONFIG.map.maxZoom || 19,
         detectRetina: true,      // Better rendering on retina displays
         attribution: '',         // Empty attribution to avoid any overlay
         updateWhenIdle: false,   // Only update when panning is done
@@ -351,14 +357,47 @@ function initMap(coords = [5.6037, -0.1870]) {
                         resolve(map);
                     }
                 },
-                (err) => {
-                    console.warn('Geolocation permission denied or error:', err);
+                (error) => {
+                    // More specific error handling
+                    let errorMessage = 'Location services: ';
+                    let errorType = 'warning';
+                    
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage += 'Access to your location was denied. Please check your browser settings.';
+                            errorType = 'error';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage += 'Location information is currently unavailable.';
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage += 'The request to get your location timed out. Please try again.';
+                            break;
+                        default:
+                            errorMessage += 'Unable to determine your location. Using default location.';
+                    }
+                    
+                    console.warn(`Geolocation error (code ${error.code}):`, errorMessage);
+                    
+                    // Only show error notification if it's a permission issue
+                    if (error.code === error.PERMISSION_DENIED) {
+                        showNotification(errorMessage, errorType);
+                    }
+                    
+                    // Fall back to default location (Accra, Ghana)
+                    const defaultCoords = CONFIG.map.defaultLocation.coordinates;
+                    map.setView(defaultCoords, CONFIG.map.defaultLocation.zoom || 13);
+                    
+                    // Update state with default location
+                    state.currentPosition = { lat: defaultCoords[0], lng: defaultCoords[1] };
+                    updateUserLocationMarker(defaultCoords);
+                    
                     resolve(map);
                 },
                 { 
-                    enableHighAccuracy: true, 
+                    enableHighAccuracy: false, // Start with low accuracy for better compatibility
                     timeout: 10000, 
-                    maximumAge: 0 
+                    maximumAge: 5 * 60 * 1000, // 5 minutes
                 }
             );
         } else {
@@ -374,23 +413,73 @@ function initMap(coords = [5.6037, -0.1870]) {
  * @returns {Promise} - Promise containing coords or error
  */
 async function getUserLocation() {
+    const MAX_RETRIES = 2;
+    let retryCount = 0;
+    const ATTEMPT_TIMEOUT = 15000; // 15 seconds per attempt
+
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
-            reject(new Error('Geolocation is not supported by your browser'));
+            const error = new Error('Geolocation is not supported by your browser');
+            console.error(error);
+            showNotification('Your browser does not support geolocation. Using default location.', 'warning');
+            reject(error);
             return;
         }
-        
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const coords = [position.coords.latitude, position.coords.longitude];
-                currentPosition = coords;
-                resolve(coords);
-            },
-            (error) => {
-                reject(error);
-            },
-            { enableHighAccuracy: true }
-        );
+
+        const attemptGetLocation = () => {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const coords = [position.coords.latitude, position.coords.longitude];
+                    currentPosition = coords;
+                    if (retryCount > 0) {
+                        showNotification('Location found!', 'success');
+                    }
+                    resolve(coords);
+                },
+                (error) => {
+                    let errorMessage = '';
+                    let shouldRetry = false;
+
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage = 'Location access was denied. Please enable location services in your browser settings.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage = 'Location information is currently unavailable.';
+                            shouldRetry = true;
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage = 'Location request timed out.';
+                            shouldRetry = retryCount < MAX_RETRIES;
+                            break;
+                        default:
+                            errorMessage = 'Unable to determine your location.';
+                            shouldRetry = retryCount < MAX_RETRIES;
+                    }
+
+                    
+                    console.warn(`Geolocation attempt ${retryCount + 1} failed:`, errorMessage);
+
+                    if (shouldRetry) {
+                        retryCount++;
+                        const delay = Math.min(1000 * Math.pow(2, retryCount), 10000); // Exponential backoff with max 10s
+                        console.log(`Retrying in ${delay}ms...`);
+                        showNotification(`${errorMessage} Retrying (${retryCount}/${MAX_RETRIES})...`, 'warning');
+                        setTimeout(attemptGetLocation, delay);
+                    } else {
+                        showNotification('Using default location. ' + errorMessage, 'error');
+                        reject(error);
+                    }
+                },
+                { 
+                    enableHighAccuracy: false, // Start with low accuracy for better success rate
+                    timeout: ATTEMPT_TIMEOUT,
+                    maximumAge: 0 // Always get fresh position
+                }
+            );
+        };
+
+        attemptGetLocation();
     });
 }
 
@@ -429,22 +518,24 @@ function addUserMarker(coords) {
  * @returns {Object} - Leaflet circle object
  */
 function addRadiusCircle(coords, radius = 5) {
-    // Remove existing circle if it exists
+    // Remove existing circle if any
     if (radiusCircle) {
         map.removeLayer(radiusCircle);
     }
     
-    // Create new circle with the specified radius
+    // Create circle with the given radius in kilometers
     radiusCircle = L.circle(coords, {
-        radius: radius * 1000, // Convert km to meters
         color: '#4CAF50',
         fillColor: '#4CAF50',
-        fillOpacity: 0.2, // Increase opacity for better visibility
+        fillOpacity: 0.2, // Increased for better visibility
+        radius: radius * 1000, // Convert km to meters
         weight: 2
     }).addTo(map);
     
-    currentRadius = radius;
+    // Also store in global namespace for external access
+    window.TrashDrop.radiusCircle = radiusCircle;
     
+    console.log(`✅ Added radius circle at ${JSON.stringify(coords)} with radius ${radius}km`);
     return radiusCircle;
 }
 
@@ -496,7 +587,7 @@ async function fetchNearbyRequests(coords, radius = 5, trashType = 'all') {
             // In production or ngrok, use real API
             try {
                 console.log('🌐 Fetching requests from API...');
-                const response = await fetch(window.SUPABASE_CONFIG.getApiUrl('REQUESTS_NEARBY'), {
+                const response = await fetch(window.SUPABASE_CONFIG.getApiUrl('requests.NEARBY'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -753,7 +844,7 @@ async function acceptRequest(requestId) {
         } else {
             // In production or ngrok, use real API
             console.log(`🌐 Accepting request #${requestId} via API...`);
-            const response = await fetch(window.SUPABASE_CONFIG.getApiUrl('ACCEPT_REQUEST'), {
+            const response = await fetch(window.SUPABASE_CONFIG.getApiUrl('requests.ACCEPT'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -897,7 +988,7 @@ async function updateUserStatus(isOnline) {
         } else {
             // In production or ngrok, use real API
             console.log(`🌐 Updating collector status to ${isOnline ? 'online' : 'offline'}...`);
-            const response = await fetch(window.SUPABASE_CONFIG.getApiUrl('UPDATE_STATUS'), {
+            const response = await fetch(window.SUPABASE_CONFIG.getApiUrl('collectors.UPDATE_STATUS'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -960,3 +1051,5 @@ if (!window.TrashDrop) {
         locateControl: null
     };
 }
+
+})();

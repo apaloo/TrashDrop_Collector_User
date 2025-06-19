@@ -6,22 +6,79 @@
 (function() {
     console.log('[Fixed Navigation] Initializing...');
     
+    // Safe access to CONFIG with fallbacks
+    function getSafeConfig() {
+        const fallbackConfig = {
+            dev: {
+                testUser: {
+                    id: 'mock-user-id'
+                }
+            },
+            staticData: {
+                emails: {
+                    dev: 'test@example.com',
+                    mock: 'test@example.com'
+                }
+            }
+        };
+
+        if (typeof window.CONFIG === 'undefined') {
+            console.warn('[Fixed Navigation] CONFIG not available, using fallbacks');
+            return fallbackConfig;
+        }
+        
+        // Create a safe merged config with fallbacks for missing properties
+        return {
+            dev: {
+                testUser: {
+                    id: (window.CONFIG?.dev?.testUser?.id || fallbackConfig.dev.testUser.id)
+                }
+            },
+            staticData: {
+                emails: {
+                    dev: (window.CONFIG?.staticData?.emails?.dev || fallbackConfig.staticData.emails.dev),
+                    mock: (window.CONFIG?.staticData?.emails?.mock || fallbackConfig.staticData.emails.mock)
+                }
+            }
+        };
+    }
+    
     // Create a mock user for development (won't override existing)
     function ensureMockUser() {
         if (!localStorage.getItem('mockUser')) {
-            const mockUser = {
-                id: 'mock-user-' + Date.now(),
-                email: 'dev@example.com',
-                name: 'Development User',
-                created_at: new Date().toISOString(),
-                role: 'collector'
-            };
-            localStorage.setItem('mockUser', JSON.stringify(mockUser));
-            console.log('[Fixed Navigation] Created mock user');
-            
-            // Also update global app state if it exists
-            if (window.appState) {
-                window.appState.user = mockUser;
+            try {
+                // Get config safely
+                const safeConfig = getSafeConfig();
+                
+                // Generate a unique ID safely with fallbacks
+                const userId = safeConfig?.dev?.testUser?.id || 'mock-user-id';
+                const email = safeConfig?.staticData?.emails?.dev || 'test@example.com';
+                
+                const mockUser = {
+                    id: userId + '-' + Date.now(),
+                    email: email,
+                    name: 'Development User',
+                    created_at: new Date().toISOString(),
+                    role: 'collector'
+                };
+                localStorage.setItem('mockUser', JSON.stringify(mockUser));
+                console.log('[Fixed Navigation] Created mock user');
+                
+                // Also update global app state if it exists
+                if (window.appState) {
+                    window.appState.user = mockUser;
+                }
+            } catch (error) {
+                console.error('[Fixed Navigation] Error creating mock user:', error);
+                // Create a basic mock user as fallback
+                const fallbackUser = {
+                    id: 'mock-user-' + Date.now(),
+                    email: 'fallback@example.com',
+                    name: 'Fallback User',
+                    created_at: new Date().toISOString(),
+                    role: 'collector'
+                };
+                localStorage.setItem('mockUser', JSON.stringify(fallbackUser));
             }
         }
     }

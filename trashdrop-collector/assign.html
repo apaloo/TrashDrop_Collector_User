@@ -12,12 +12,53 @@
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#4CAF50">
     <link rel="stylesheet" href="./src/styles/top-nav.css">
-    
-    <!-- Material Icons -->
+    <!-- Material Icons Font -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     
-    <!-- Supabase JS CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Load improved navigation and Supabase client implementation first -->
+    <script src="./src/js/navigation-core.js"></script>
+    <script src="./src/js/supabase-client-improved.js"></script>
+    
+    <script>
+    // Special assign page setup 
+    (function() {
+        console.log('🔒 Assign page entry handler active');
+        
+        // CRITICAL: Mark that the assign page has been accessed
+        sessionStorage.setItem('assign_page_accessed', 'true');
+        sessionStorage.setItem('last_access_assign', Date.now());
+        
+        // Debug info
+        console.log('💯 Assign page debug:', {
+            url: window.location.href,
+            pathname: window.location.pathname,
+            hasMockUser: !!localStorage.getItem('mockUser')
+        });
+    })();
+    </script>
+    
+    <!-- Core initialization loader - should be loaded first -->
+    <script src="./src/js/init-loader.js"></script>
+    
+    <!-- Dynamic resource loading - replaced hardcoded CDN links -->
+    <script type="module">
+        import { loadResources } from './src/js/resource-loader.js';
+        
+        // Wait for core initialization before loading additional resources
+        window.addEventListener('coreInitialized', () => {
+            // Load required resources
+            window.resourceLoadPromise = loadResources({
+                loadSupabase: true,
+                loadFonts: true
+            }).then(() => {
+                console.log('✅ Base resources loaded successfully');
+                // Dispatch an event when resources are loaded
+                window.dispatchEvent(new CustomEvent('baseResourcesLoaded'));
+            }).catch(error => {
+                console.error('❌ Failed to load resources:', error);
+            });
+        });
+    </script>
     
     <style>
         /* Hide scrollbar for Chrome, Safari, and Opera */
@@ -305,15 +346,263 @@
         }
     </style>
     
-    <!-- Configuration -->
-    <script src="./src/js/config.js"></script>
+    <!-- Script Loading and Dependency Management -->
+    <script>
+        // Track loaded scripts to avoid duplicates
+        window.loadedScripts = window.loadedScripts || {};
+        
+        // Function to load scripts in sequence
+        function loadScript(src, onLoad, onError) {
+            // Skip if already loaded
+            if (window.loadedScripts[src]) {
+                console.log('🔁 Script already loaded:', src);
+                if (onLoad) setTimeout(onLoad, 0);
+                return;
+            }
+            
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = function() {
+                console.log('✅ Loaded script:', src);
+                window.loadedScripts[src] = true;
+                if (onLoad) setTimeout(onLoad, 0);
+            };
+            script.onerror = function(e) {
+                console.error('❌ Error loading script:', src, e);
+                if (onError) onError(e);
+            };
+            document.head.appendChild(script);
+            return script;
+        }
+        
+        // Script loading sequence
+        console.log('🔁 Starting script loading sequence...');
+        
+        // 1. Load config.js first (sets window.CONFIG directly)
+        loadScript('./src/js/config.js', function() {
+            console.log('✅ Config loaded, initializing app');
+            
+            // Continue with other scripts
+            continueScriptLoading();
+        }, function() {
+            // On error loading config.js, try the fallback
+            console.warn('⚠️ Failed to load config.js, attempting to load fallback');
+            loadScript('./src/js/config-fallback.js', function() {
+                console.log('✅ Config fallback loaded, initializing app');
+                
+                // Continue with other scripts
+                continueScriptLoading();
+            });
+        });
+        
+        // Helper function to continue loading scripts after config
+        function continueScriptLoading() {
+            // 2. Load utility scripts
+            loadScript('./src/js/utils.js', function() {
+                // Continue with other essential scripts
+                loadScript('./src/js/notifications.js');
+                loadScript('./src/js/ratings.js');
+            });
+
+            // 3. Load page-specific scripts
+            loadScript('./src/js/assign.js');
+            
+            // 4. Load Supabase SDK with UMD build for global supabase object
+            loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js', function() {
+                console.log('🔁 Supabase SDK loaded, window.supabase available:', !!window.supabase);
+                
+                // 3. Then load our supabase client wrapper
+                loadScript('./src/js/supabase-client.js', function() {
+                    console.log('🔁 Supabase client initialized:', !!window.supabaseClient);
+                    
+                    // 4. Finally load auth.js which depends on supabase client
+                    loadScript('./src/js/auth.js', function() {
+                        // 5. Dispatch event when all core scripts are loaded
+                        window.dispatchEvent(new CustomEvent('coreScriptsLoaded'));
+                        console.log('✅ All core scripts loaded');
+                    });
+                });
+            });
+        }
+    </script>
     
-    <!-- Authentication -->
-    <script src="./src/js/auth.js"></script>
+    <!-- Helper functions for script dependencies -->
+    <script>
+    // Wait for configuration to be available with timeout safety
+    function waitForConfig(callback, timeoutMs = 3000) {
+        // If config is already available, call the callback immediately
+        if (window.CONFIG) {
+            console.log('CONFIG already available in assign.html');
+            setTimeout(callback, 0);
+            return;
+        }
+        
+        // Check if config is being loaded through init-loader.js
+        if (window.initializeCore) {
+            console.log('Using initializeCore to ensure config loads');
+            window.addEventListener('configReady', function() {
+                console.log('Config ready event received in assign.html');
+                callback();
+            }, {once: true});
+            return;
+        }
+        
+        // Create minimal emergency config as a last resort
+        function createEmergencyConfig() {
+            console.warn('Creating emergency config in assign.html');
+            window.CONFIG = window.CONFIG || {
+                environment: { isDevelopment: true },
+                supabase: {
+                    url: 'https://cpeyavpxqcloupolbvyh.supabase.co',
+                    key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZXlhdnB4cWNsb3Vwb2xidnloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU0OTY4OTYsImV4cCI6MjA2MTA3Mjg5Nn0.5rxsiRuLHCpeJZ5TqoIA5X4UwoAAuxIpNu_reafwwbQ'
+                }
+            };
+            window.SUPABASE_CONFIG = window.SUPABASE_CONFIG || {
+                url: window.CONFIG.supabase.url,
+                key: window.CONFIG.supabase.key
+            };
+            callback();
+        }
+        
+        // Set timeout to ensure we don't block indefinitely
+        const timeoutId = setTimeout(() => {
+            console.warn(`Config loading timed out after ${timeoutMs}ms`);
+            createEmergencyConfig();
+        }, timeoutMs);
+        
+        // Listen for config loaded events
+        window.addEventListener('configLoaded', function() {
+            clearTimeout(timeoutId);
+            console.log('configLoaded event received');
+            callback();
+        }, {once: true});
+        
+        // Load config.js if not already loading
+        if (!window._configLoading) {
+            window._configLoading = true;
+            console.log('Loading config.js in assign.html...');
+            const configScript = document.createElement('script');
+            configScript.src = './src/js/config.js';
+            
+            configScript.onload = function() {
+                if (window.CONFIG) {
+                    clearTimeout(timeoutId);
+                    console.log('Config.js loaded successfully');
+                    callback();
+                } else {
+                    // If still not available, try the fallback config
+                    console.log('Loading fallback config...');
+                    const fallbackScript = document.createElement('script');
+                    fallbackScript.src = './src/js/config-fallback.js';
+                    
+                    fallbackScript.onload = function() {
+                        clearTimeout(timeoutId);
+                        console.log('Fallback config loaded successfully');
+                        callback();
+                    };
+                    
+                    fallbackScript.onerror = function() {
+                        console.error('Failed to load fallback config');
+                        createEmergencyConfig();
+                    };
+                    
+                    document.head.appendChild(fallbackScript);
+                }
+            };
+            
+            configScript.onerror = function() {
+                console.error('Failed to load config.js, trying fallback');
+                const fallbackScript = document.createElement('script');
+                fallbackScript.src = './src/js/config-fallback.js';
+                
+                fallbackScript.onload = function() {
+                    clearTimeout(timeoutId);
+                    console.log('Fallback config loaded successfully after config.js failed');
+                    callback();
+                };
+                
+                fallbackScript.onerror = function() {
+                    console.error('All config loading attempts failed');
+                    createEmergencyConfig();
+                };
+                
+                document.head.appendChild(fallbackScript);
+            };
+            
+            document.head.appendChild(configScript);
+        }
+    }
     
-    <!-- Leaflet CSS and JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    // Wait for core scripts to be loaded
+    function waitForCoreScripts(callback) {
+        if (window.supabaseClient) {
+            callback();
+        } else {
+            // Listen for both event names for consistency
+            window.addEventListener('supabaseClientInitialized', callback);
+            window.addEventListener('supabaseClientReady', callback);
+        }
+    }
+    
+    // Initialize tracking state if not exists
+    window.initState = window.initState || {};
+    
+    // Better script loader with dependency tracking
+    function loadScript(src, onLoad) {
+        // Skip if already loaded
+        if (window.initState && window.initState[src]) {
+            console.log(`Script ${src} already loaded, skipping`);
+            if (onLoad) onLoad();
+            return;
+        }
+        
+        console.log(`Loading script: ${src}`);
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = function() {
+            console.log(`Script loaded successfully: ${src}`);
+            window.initState[src] = true;
+            if (onLoad) onLoad();
+        };
+        script.onerror = function(e) {
+            console.error(`Error loading script ${src}:`, e);
+        };
+        document.head.appendChild(script);
+    }
+    
+    // Start loading sequence when config is available
+    waitForConfig(function() {
+        console.log('CONFIG is available, loading dependent scripts');
+        
+        // Load Supabase library
+        loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', function() {
+            // Load supabase client
+            loadScript('./src/js/supabase-client.js', function() {
+                // Load auth.js
+                loadScript('./src/js/auth.js');
+            });
+        });
+    });
+    </script>
+    
+    <!-- Leaflet resources loaded dynamically -->
+    <script type="module">
+        import { loadResources } from './src/js/resource-loader.js';
+        
+        // Load Leaflet resources separately (after other resources are loaded)
+        window.addEventListener('baseResourcesLoaded', () => {
+            loadResources({
+                loadLeaflet: true,
+                loadFonts: false,
+                loadSupabase: false
+            }).then(() => {
+                console.log('✅ Leaflet resources loaded successfully');
+                window.dispatchEvent(new CustomEvent('leafletLoaded'));
+            }).catch(error => {
+                console.error('❌ Failed to load Leaflet resources:', error);
+            });
+        });
+    </script>
 </head>
 <body>
     <!-- Top Navigation Bar with Account Dropdown -->
@@ -526,25 +815,173 @@
     </div>
     
     <!-- Bottom Navigation Bar -->
-    <div style="position:fixed;bottom:0;left:0;right:0;height:60px;background-color:#fff;display:flex;justify-content:space-around;align-items:center;box-shadow:0 -2px 10px rgba(0,0,0,0.1);z-index:1001;">
-        <a href="./map.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
-            <i class="material-icons" style="font-size:24px;">map</i>
-            <span style="font-size:12px;margin-top:4px;display:block;">Map</span>
-        </a>
-        <a href="./request.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
-            <i class="material-icons" style="font-size:24px;">add_circle</i>
-            <span style="font-size:12px;margin-top:4px;display:block;">Request</span>
-        </a>
-        <a href="./assign.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#4CAF50;">
-            <i class="material-icons" style="font-size:24px;">assignment</i>
-            <span style="font-size:12px;margin-top:4px;display:block;">Assign</span>
-        </a>
-        <a href="./earnings.html" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;color:#757575;">
-            <i class="material-icons" style="font-size:24px;">account_balance_wallet</i>
-            <span style="font-size:12px;margin-top:4px;display:block;">Earnings</span>
-        </a>
-
+    <div class="bottom-nav">
+        <!-- This will be populated by bottom-nav.js -->
     </div>
+    
+    <!-- Load the new bottom navigation component -->
+    <script src="./src/js/bottom-nav.js"></script>
+    
+    <!-- Assign page access guard -->
+    <script>
+    (function() {
+        // Alert the system that we're on the assign page
+        console.log('✅ Assign page loaded successfully');
+        
+        // Make sure we have a proper navigation function
+        if (typeof window.safeNavigate !== 'function') {
+            window.safeNavigate = function(url) {
+                console.log('Direct navigation to:', url);
+                window.location = url;
+            };
+        }
+        
+        // Set a flag in sessionStorage that we've accessed this page
+        sessionStorage.setItem('assign_page_accessed', 'true');
+        
+        // Override any potential redirect attempts away from this page
+        const originalReplace = window.location.replace;
+        window.location.replace = function(url) {
+            if (!url.includes('assign.html')) {
+                console.log('Intercepted redirect away from assign.html to:', url);
+                if (!confirm('Leave the Assign page?')) {
+                    console.log('Blocked navigation away from assign page');
+                    return;
+                }
+            }
+            return originalReplace.call(window.location, url);
+        };
+    })();
+    </script>
+    
+    <!-- Add error message display container -->
+    <div id="error-container" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);max-width:400px;background-color:white;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.15);padding:20px;z-index:2000;">
+        <h3 style="margin-top:0;color:#d32f2f;">Connection Error</h3>
+        <p>We're having trouble connecting to our services. This could be due to:</p>
+        <ul>
+            <li>Network connectivity issues</li>
+            <li>Server maintenance</li>
+        </ul>
+        <p>The app will continue to work with limited functionality.</p>
+        <button onclick="document.getElementById('error-container').style.display='none'" style="background-color:#4CAF50;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;">
+            Continue Anyway
+        </button>
+    </div>
+    
+    <!-- Enhanced application initialization script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Assign page DOM loaded, initializing application...');
+            
+            // Set up tracking state objects
+            window.trackingState = window.trackingState || {};
+            window.trackingState.pendingRequests = window.trackingState.pendingRequests || 0;
+            
+            // Define waitForSupabaseClient function that's missing
+            function waitForSupabaseClient(callback, timeoutMs = 3000) {
+                console.log('Waiting for Supabase client initialization...');
+                
+                if (window.supabaseClient) {
+                    console.log('Supabase client already initialized');
+                    setTimeout(callback, 0); // Execute callback asynchronously
+                    return;
+                }
+                
+                // Set up event listener for client initialization
+                const handleInit = () => {
+                    console.log('Supabase client initialized event received');
+                    window.removeEventListener('supabaseClientReady', handleInit);
+                    window.removeEventListener('supabaseClientInitialized', handleInit);
+                    callback();
+                };
+                
+                // Listen for both events for backward compatibility
+                window.addEventListener('supabaseClientReady', handleInit);
+                window.addEventListener('supabaseClientInitialized', handleInit);
+                
+                // Add fallback timeout
+                setTimeout(function() {
+                    if (!window.supabaseClient) {
+                        console.warn('⚠️ Timeout waiting for Supabase client initialization. Proceeding with fallback...');
+                        // Remove the event listeners to prevent multiple callbacks
+                        window.removeEventListener('supabaseClientReady', handleInit);
+                        window.removeEventListener('supabaseClientInitialized', handleInit);
+                        callback();
+                    }
+                }, timeoutMs);
+            }
+            
+            // Trigger proper initialization sequence with fallbacks
+            function initAssignPage() {
+                console.log('Starting assign page initialization sequence');
+                
+                // First ensure we have Supabase client
+                waitForSupabaseClient(function() {
+                    console.log('✅ Supabase client ready in assign page');
+                    
+                    // Check if initializeAssignUI function exists
+                    if (typeof initializeAssignUI === 'function') {
+                        try {
+                            console.log('Initializing assign UI components...');
+                            initializeAssignUI();
+                            
+                            // Hide loading overlay if it exists
+                            const loadingEl = document.getElementById('loading');
+                            if (loadingEl) loadingEl.style.display = 'none';
+                        } catch (error) {
+                            console.error('❌ Error initializing assign UI:', error);
+                            
+                            // Show error message but allow app to continue
+                            document.getElementById('error-container').style.display = 'block';
+                            
+                            // Hide loading indicator if present
+                            const loadingEl = document.getElementById('loading');
+                            if (loadingEl) loadingEl.style.display = 'none';
+                        }
+                    } else {
+                        console.warn('⚠️ initializeAssignUI function not found');
+                        
+                        // Load assign.js dynamically as fallback
+                        const script = document.createElement('script');
+                        script.src = './src/js/assign.js';
+                        script.onload = function() {
+                            if (typeof initializeAssignUI === 'function') {
+                                console.log('Assign.js loaded dynamically, initializing UI');
+                                initializeAssignUI();
+                            }
+                            
+                            // Hide loading overlay
+                            const loadingEl = document.getElementById('loading');
+                            if (loadingEl) loadingEl.style.display = 'none';
+                        };
+                        script.onerror = function() {
+                            console.error('❌ Failed to load assign.js');
+                            document.getElementById('error-container').style.display = 'block';
+                            
+                            // Hide loading indicator
+                            const loadingEl = document.getElementById('loading');
+                            if (loadingEl) loadingEl.style.display = 'none';
+                        };
+                        document.head.appendChild(script);
+                    }
+                });
+            }
+            
+            // Start initialization when resources are ready
+            if (window.resourceLoadPromise) {
+                window.resourceLoadPromise.then(function() {
+                    console.log('Resources loaded, starting page initialization');
+                    initAssignPage();
+                }).catch(function(error) {
+                    console.warn('Resource loading had errors, continuing anyway:', error);
+                    initAssignPage();
+                });
+            } else {
+                console.log('No resource load promise found, initializing directly');
+                initAssignPage();
+            }
+        });
+    </script>
     
     <!-- Top Navigation JavaScript -->
     <script src="./src/js/top-nav.js"></script>

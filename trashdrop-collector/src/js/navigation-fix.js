@@ -7,15 +7,36 @@
     // Immediately ensure we have a mock user in localStorage (development mode)
     function createMockUserIfNeeded() {
         if (!localStorage.getItem('mockUser')) {
-            const mockUser = {
-                id: 'mock-user-' + Date.now(),
-                email: 'mock@example.com',
-                name: 'Mock User',
-                created_at: new Date().toISOString(),
-                role: 'collector'
-            };
-            localStorage.setItem('mockUser', JSON.stringify(mockUser));
-            console.log('[Navigation Fix] Created mock user');
+            try {
+                // Safely access CONFIG with fallbacks
+                const config = window.CONFIG || {};
+                const userId = (config.dev && config.dev.testUser && config.dev.testUser.id) ? 
+                    config.dev.testUser.id : 'mock-user-id';
+                const email = (config.staticData && config.staticData.emails && config.staticData.emails.mock) ? 
+                    config.staticData.emails.mock : 'test@example.com';
+                
+                const mockUser = {
+                    id: userId + '-' + Date.now(),
+                    email: email,
+                    name: 'Mock User',
+                    created_at: new Date().toISOString(),
+                    role: 'collector'
+                };
+                localStorage.setItem('mockUser', JSON.stringify(mockUser));
+                console.log('[Navigation Fix] Created mock user');
+            } catch (error) {
+                console.error('[Navigation Fix] Error creating mock user:', error);
+                // Create a fallback mock user if there's any error
+                const fallbackUser = {
+                    id: 'mock-user-' + Date.now(),
+                    email: 'test@example.com',
+                    name: 'Emergency Mock User',
+                    created_at: new Date().toISOString(),
+                    role: 'collector'
+                };
+                localStorage.setItem('mockUser', JSON.stringify(fallbackUser));
+                console.log('[Navigation Fix] Created emergency fallback user');
+            }
         }
     }
 

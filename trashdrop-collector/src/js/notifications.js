@@ -107,7 +107,7 @@ function loadOneSignalScript() {
         
         // Create script element
         const script = document.createElement('script');
-        script.src = 'https://cdn.onesignal.com/sdks/OneSignalSDK.js';
+        script.src = CONFIG.staticData.urls.oneSignalSDK; // Using centralized URL configuration
         script.async = true;
         
         script.onload = () => {
@@ -260,9 +260,11 @@ function createSupabaseClient() {
     const { url, key } = window.SUPABASE_CONFIG;
     
     // Make sure we have access to the Supabase client
-    if (typeof supabase === 'undefined' && typeof window.supabase !== 'undefined') {
-        return window.supabase.createClient(url, key);
+    if (window.supabaseClient) {
+        // Client is already initialized
+        return window.supabaseClient;
     } else if (typeof supabase !== 'undefined') {
+        // Create client with global supabase constructor
         return supabase.createClient(url, key);
     } else {
         console.error('Supabase client not available');
@@ -292,7 +294,7 @@ async function getCurrentUser() {
         
         return {
             id: 'notifications-user-' + Date.now(),
-            email: 'dev@example.com',
+            email: CONFIG.staticData.emails.dev, // Using centralized email configuration
             role: 'collector'
         };
     }

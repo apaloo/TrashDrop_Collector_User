@@ -5,11 +5,16 @@
 
 // Initialize Supabase client if not already initialized
 if (!window.supabaseClient) {
-  window.supabaseClient = window.supabase || createMockClient();
+  window.supabaseClient = createMockClient(); // Create mock client if no client exists yet
 }
 
 // Export the client
-export const supabaseClient = window.supabaseClient;
+// Make supabaseClient accessible through global namespace
+if (typeof window.TrashDrop === 'undefined') {
+  window.TrashDrop = {};
+}
+
+window.TrashDrop.supabaseClient = window.supabaseClient;
 
 // Mock client for development
 function createMockClient() {
@@ -19,7 +24,7 @@ function createMockClient() {
       signUp: async (params) => ({
         data: {
           user: {
-            id: 'mock-user-' + Date.now(),
+            id: CONFIG.dev.testUser.id + '-' + Date.now(),
             email: params.email,
             created_at: new Date().toISOString()
           },
@@ -30,11 +35,11 @@ function createMockClient() {
       signInWithPassword: async (params) => ({
         data: {
           user: {
-            id: 'mock-user-' + Date.now(),
+            id: CONFIG.dev.testUser.id + '-' + Date.now(),
             email: params.email,
             created_at: new Date().toISOString()
           },
-          session: { access_token: 'mock-token' }
+          session: { access_token: CONFIG.dev.auth.mockTokenPrefix + Date.now() }
         },
         error: null
       }),

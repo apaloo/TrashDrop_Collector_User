@@ -1,0 +1,698 @@
+/**
+ * TrashDrop Collector - Initialization Loader
+ * This script ensures all core configurations and clients are properly loaded
+ * before the application starts
+ */
+
+// Initialize essential global objects
+window.CONFIG = window.CONFIG || {};
+window.SUPABASE_CONFIG = window.SUPABASE_CONFIG || {};
+window.loadedScripts = window.loadedScripts || {};
+window.initState = window.initState || {};
+window.supabaseClient = window.supabaseClient || null;
+
+// Default fallback configuration
+const DEFAULT_CONFIG = {
+    apiUrl: 'https://api.trashdrop.example',
+    appName: 'TrashDrop Collector',
+    version: '1.0.0',
+    dev: {
+        mockEnabled: true,
+        logLevel: 'debug',
+        auth: {
+            mockTokenPrefix: 'mock-token-'
+        }
+    }
+};
+
+// Enhanced script loader with better error handling
+function loadScript(src, onLoad, onError) {
+    return new Promise((resolve, reject) => {
+        // Skip if already loaded
+        if (window.loadedScripts[src]) {
+            console.log(`Script already loaded: ${src}`);
+            if (onLoad) setTimeout(() => {
+                onLoad();
+                resolve();
+            }, 0);
+            else resolve();
+            return;
+        }
+        
+        console.log(`Loading script: ${src}`);
+        const script = document.createElement('script');
+        script.src = src;
+        
+        script.onload = function() {
+            console.log(`✅ Successfully loaded: ${src}`);
+            window.loadedScripts[src] = true;
+            window.initState[src] = true;
+            if (onLoad) setTimeout(() => {
+                onLoad();
+                resolve();
+            }, 0);
+            else resolve();
+        };
+        
+        script.onerror = function(e) {
+            console.error(`❌ Error loading ${src}:`, e);
+            if (onError) onError(e);
+            reject(e);
+        };
+        
+        document.head.appendChild(script);
+    });
+}
+
+// Wait for configuration to be loaded
+async function ensureConfig() {
+    if (window.CONFIG && Object.keys(window.CONFIG).length > 0) {
+        console.log('CONFIG already available');
+        return window.CONFIG;
+    }
+    
+    try {
+        // First try to load the main config
+        await loadScript('./src/js/config.js');
+        
+        // Check if CONFIG was loaded
+        if (window.CONFIG && Object.keys(window.CONFIG).length > 0) {
+            console.log('CONFIG loaded from config.js');
+            return window.CONFIG;
+        }
+        
+        // If not loaded, try the fallback
+        console.warn('CONFIG not loaded from main config, trying fallback');
+        await loadScript('./src/js/config-fallback.js');
+        
+        // Check again if CONFIG is loaded
+        if (window.CONFIG && Object.keys(window.CONFIG).length > 0) {
+            console.log('CONFIG loaded from fallback');
+            return window.CONFIG;
+        }
+        
+        // If still not loaded, use default config
+        console.warn('CONFIG not found in any source, using default');
+        window.CONFIG = DEFAULT_CONFIG;
+        return window.CONFIG;
+    } catch (error) {
+        console.error('Failed to load config:', error);
+        // Use default config as last resort
+        window.CONFIG = DEFAULT_CONFIG;
+        return window.CONFIG;
+    }
+}
+
+// Ensure Supabase SDK is loaded
+async function ensureSupabaseSDK() {
+    // Force refresh supabase if it exists but is causing errors
+    const refreshClient = window.localStorage.getItem('forceSupabaseRefresh') === 'true';
+    
+    if (window.supabase && !refreshClient) {
+        console.log('Supabase SDK already available');
+        try {
+            // Test if the available SDK is actually working
+            if (typeof window.supabase.createClient === 'function') {
+    }
+    
+    // First try the bundled version (much more reliable)
+    try {
+        console.log('Loading bundled Supabase minimal client');
+        await loadScript('./src/js/vendors/supabase-minimal.js');
+        
+        // Double check it loaded correctly
+        if (window.supabase && typeof window.supabase.createClient === 'function') {
+            console.log('✅ Bundled minimal client loaded successfully');
+            return true;
+        }
+    } catch (error) {
+        console.warn('Failed to load bundled minimal client:', error);
+    }
+    
+    // Try loading our pre-bundled backup file
+    try {
+        console.log('Loading backup Supabase minimal implementation');
+        const minimalImplementation = `
+            window.supabase = window.supabase || {};
+            window.supabase.createClient = function createClient(url, key, options = {}) {
+                try {
+                    console.log('Creating emergency minimal client with:', url);
+                    try {
+                        // Simple mock client with basic functionality
+                        return {
+                            _isEmergencyClient: true
+                        };
+                    } catch (error) {
+                        console.error('Error creating emergency client:', error);
+                        return { _isEmergencyClient: true, _hasError: true };
+                    }
+                } catch (error) {
+                    console.error('Error creating emergency client:', error);
+                    return { _isEmergencyClient: true, _error: error };
+                }
+            };
+            window.supabase.createClient.onAuthStateChange = function(event, callback) {
+                try {
+                    // Try to get mock user
+                    let mockUser = null;
+                    try {
+                        const userStr = localStorage.getItem('mockUser');
+                        if (userStr) mockUser = JSON.parse(userStr);
+                    } catch (e) {}
+                    
+                    // Create mock user if needed
+                    if (!mockUser) {
+                        mockUser = {
+                            id: 'inline-mock-user-' + Date.now(),
+                            email: 'test@example.com',
+                            name: 'Inline Fallback User',
+                            created_at: new Date().toISOString(),
+                            role: 'collector'
+                        };
+                        localStorage.setItem('mockUser', JSON.stringify(mockUser));
+                    }
+                    
+                    // Call callback asynchronously
+                    setTimeout(function() {
+                        if (typeof callback === 'function') {
+                            callback('SIGNED_IN', { user: mockUser });
+                            } catch (e) {}
+                            
+                            // Create mock user if needed
+                            if (!mockUser) {
+                                mockUser = {
+                                    id: 'inline-mock-user-' + Date.now(),
+                                    email: 'test@example.com',
+                                    name: 'Inline Fallback User',
+                                    created_at: new Date().toISOString(),
+                                    role: 'collector'
+                                };
+                                localStorage.setItem('mockUser', JSON.stringify(mockUser));
+                            }
+                            
+                            // Call callback asynchronously
+                            setTimeout(function() {
+                                if (typeof callback === 'function') {
+                                    callback('SIGNED_IN', { user: mockUser });
+                                }
+                            }, 0);
+                            
+                            return { data: { subscription: { unsubscribe: function(){} } } };
+                        },
+                        getSession: function() { 
+                            return Promise.resolve({ 
+                                data: { 
+                                    session: {
+                                        access_token: 'mock-token-' + Date.now(),
+                                        user: JSON.parse(localStorage.getItem('mockUser') || '{}')
+                                    }
+                                }, 
+                                error: null 
+                            }); 
+                        },
+                        getUser: function() { 
+                            return Promise.resolve({ 
+                                data: { 
+                                    user: JSON.parse(localStorage.getItem('mockUser') || '{}') 
+                                }, 
+                                error: null 
+                            }); 
+                        },
+                        signOut: function() {
+                            return Promise.resolve({ error: null });
+                        }
+                    },
+                    from: function(table) {
+                        return {
+                            select: function() {
+                                return {
+                                    eq: function() { return Promise.resolve({ data: [], error: null }); },
+                                    match: function() { return Promise.resolve({ data: [], error: null }); }
+                                };
+                            },
+                            insert: function(data) { 
+                                return Promise.resolve({ 
+                                    data: Object.assign({}, data, { id: 'mock-id-' + Date.now() }),
+                                    error: null
+                                }); 
+                            },
+                            update: function(data) {
+                                return {
+                                    eq: function() { 
+                                        return Promise.resolve({ 
+                                            data: Object.assign({}, data),
+                                            error: null
+                                        }); 
+                                    }
+                                };
+                            },
+                            delete: function() {
+                                return {
+                                    eq: function() { return Promise.resolve({ data: null, error: null }); }
+                                };
+                            }
+                        };
+                    },
+                    storage: {
+                        from: function(bucket) {
+                            return {
+                                upload: function(path, file) {
+                                    return Promise.resolve({
+                                        data: { path: bucket + '/' + path },
+                                        error: null
+                                    });
+                                },
+                                getPublicUrl: function(path) {
+                                    return {
+                                        data: { publicUrl: 'https://mock-storage/' + bucket + '/' + path }
+                                    };
+                                }
+                            };
+                        }
+                    },
+                    _isMinimalClient: true
+                };
+            };
+        `;
+        
+        // Create script tag and evaluate
+        const script = document.createElement('script');
+        script.textContent = minimalImplementation;
+        document.head.appendChild(script);
+        
+        // Verify implementation succeeded
+        if (window.supabase && typeof window.supabase.createClient === 'function') {
+            console.log('✅ Backup inline implementation loaded');
+            return true;
+        }
+    } catch (error) {
+        console.warn('Failed to load backup implementation:', error);
+    }
+    
+    // Try multiple CDN sources as additional backup
+    const cdnUrls = [
+        'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js',
+        'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js',
+        'https://cdn.skypack.dev/@supabase/supabase-js',
+        './src/js/vendors/supabase.js' // Fallback to full local copy if exists
+    ];
+    
+    // Try each URL in sequence until one works
+    for (const url of cdnUrls) {
+        try {
+            console.log(`Trying to load Supabase SDK from: ${url}`);
+            await loadScript(url);
+            
+            // Check if SDK is properly loaded
+            if (window.supabase && typeof window.supabase.createClient === 'function') {
+                console.log(`✅ Supabase SDK loaded successfully from ${url}`);
+                return true;
+            }
+            console.warn(`SDK didn't load properly from ${url}, trying next source...`);
+        } catch (error) {
+            console.warn(`Failed to load from ${url}, trying next source...`, error);
+        }
+    }
+    
+    console.error('❌ Failed to load Supabase SDK from all sources');
+    
+    // Create an absolute minimal implementation as last resort
+    console.warn('Creating emergency minimal Supabase implementation');
+    window.supabase = window.supabase || {};
+    window.supabase.createClient = function(url, key) {
+        try {
+            console.log('Creating emergency minimal client with:', url);
+            return {
+                auth: {
+                onAuthStateChange: function(event, callback) {
+                    // Get mock user from storage
+                    let mockUser;
+                    try {
+                        const userStr = localStorage.getItem('mockUser');
+                        if (userStr) mockUser = JSON.parse(userStr);
+                    } catch (e) {}
+                    
+                    // Create one if none exists
+                    if (!mockUser) {
+                        mockUser = {
+                            id: 'last-resort-user-' + Date.now(),
+                            email: 'test@example.com',
+                            name: 'Last Resort User',
+                            created_at: new Date().toISOString(),
+                            role: 'collector'
+                        };
+                        localStorage.setItem('mockUser', JSON.stringify(mockUser));
+                    }
+                    
+                    // Return subscription and trigger callback
+                    setTimeout(function() {
+                        if (typeof callback === 'function') {
+                            callback('SIGNED_IN', { user: mockUser });
+                        }
+                    }, 0);
+                    
+                    return { data: { subscription: { unsubscribe: function(){} } } };
+                },
+                getSession: function() { 
+                    return Promise.resolve({ 
+                        data: { 
+                            session: {
+                                access_token: 'emergency-token-' + Date.now(),
+                                user: JSON.parse(localStorage.getItem('mockUser') || '{}')
+                            }
+                        }, 
+                        error: null 
+                    }); 
+                },
+                getUser: function() { 
+                    return Promise.resolve({ 
+                        data: { user: JSON.parse(localStorage.getItem('mockUser') || '{}') }, 
+                        error: null 
+                    }); 
+                },
+                signOut: function() {
+                    return Promise.resolve({ error: null });
+                }
+            },
+            from: function(table) {
+                return {
+                    select: function() {
+                        return {
+                            eq: function() { return Promise.resolve({ data: [], error: null }); },
+                            match: function() { return Promise.resolve({ data: [], error: null }); }
+                        };
+                    },
+                    insert: function(data) { 
+                        return Promise.resolve({ 
+                            data: Object.assign({}, data, { id: 'emergency-id-' + Date.now() }), 
+                            error: null 
+                        }); 
+                    }
+                };
+            },
+            _isEmergencyClient: true
+            };
+        } catch (error) {
+            console.error('Error creating emergency client:', error);
+            return { _isEmergencyClient: true, _hasError: true };
+        }
+    };
+    return true;
+}
+
+// Ensure Supabase client is initialized
+async function ensureSupabaseClient() {
+    try {
+        if (window.supabaseClient) {
+            console.log('Supabase client already initialized');
+            return window.supabaseClient;
+        }
+    } catch (e) {
+        console.warn('Error checking existing Supabase client:', e);
+    }
+    
+    // We'll try multiple times to initialize the client
+    const maxRetries = 3;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`Supabase client initialization attempt ${attempt}/${maxRetries}`);
+            
+            // Make sure config is loaded first
+            await ensureConfig();
+            
+            // Then make sure Supabase SDK is loaded
+            const sdkLoaded = await ensureSupabaseSDK();
+            if (!sdkLoaded) {
+                console.error('Cannot initialize Supabase client: SDK unavailable');
+                
+                // Create a minimal mock client for fallback
+                if (attempt === maxRetries) {
+                    console.warn('Creating minimal mock Supabase client for fallback');
+                    window.supabaseClient = createMockSupabaseClient();
+                    return window.supabaseClient;
+                }
+                
+                // Wait a bit before retry
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                continue;
+            }
+            
+            // Load our client
+            await loadScript('./src/js/supabase-client.js');
+            
+            // Check if client was successfully initialized
+            if (window.supabaseClient) {
+                console.log('✅ Supabase client initialized successfully');
+                return window.supabaseClient;
+            } else {
+                console.warn('Supabase client script loaded but client not initialized');
+                
+                // Try direct initialization if the script didn't do it
+                if (window.supabase && window.CONFIG && window.CONFIG.supabase) {
+                    try {
+                        const { supabaseUrl, supabaseKey } = window.CONFIG.supabase;
+                        window.supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+                        console.log('Created Supabase client directly');
+                        return window.supabaseClient;
+                    } catch (e) {
+                        console.error('Failed direct Supabase client creation:', e);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error(`Attempt ${attempt} failed:`, error);
+            
+            // Wait longer between retries
+            if (attempt < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            }
+        }
+    }
+    
+    // All attempts failed, create a minimal mock client
+    console.error('❌ All Supabase client initialization attempts failed');
+    window.supabaseClient = createMockSupabaseClient();
+    return window.supabaseClient;
+}
+
+// Create a minimal mock Supabase client for fallback
+function createMockSupabaseClient() {
+    console.warn('Creating mock Supabase client');
+    // Create a minimal mock client that won't throw errors
+    return {
+        auth: {
+            onAuthStateChange: () => ({ data: null, error: null }),
+            getSession: () => ({ data: { session: null }, error: null }),
+            getUser: () => ({ data: { user: null }, error: null })
+        },
+        from: (table) => ({
+            select: () => ({
+                eq: () => ({ data: [], error: null }),
+                then: (fn) => { fn([]); return { catch: (fn) => {} }; }
+            }),
+            insert: () => ({ data: null, error: null }),
+            update: () => ({ data: null, error: null }),
+            delete: () => ({ data: null, error: null })
+        }),
+        // Add more mock functions as needed
+        _isMock: true
+    };
+}
+
+// Initialize auth
+async function ensureAuth() {
+    try {
+        // Make sure Supabase client is loaded
+        await ensureSupabaseClient();
+        
+        // Load auth.js
+        await loadScript('./src/js/auth.js');
+        
+        // Check if auth functions were loaded
+        if (window.getCurrentUser) {
+            console.log('Auth system initialized');
+            return true;
+        } else {
+            // Try mock auth as fallback
+            console.warn('Auth system not fully initialized, trying mock auth');
+            await loadScript('./src/js/mock-auth.js');
+            
+            if (window.getCurrentUser) {
+                console.log('Mock auth initialized');
+                return true;
+            } else {
+                console.error('Both auth systems failed to initialize');
+                return false;
+            }
+        }
+    } catch (error) {
+        console.error('Failed to initialize auth system:', error);
+        return false;
+    }
+}
+
+// Check readiness and dispatch events
+function notifyInitialized(component) {
+    try {
+        if (component === 'supabase' && window.supabaseClient) {
+            // Detect if this is a real client or our mock fallback
+            const isMockClient = window.supabaseClient._isMock === true;
+            if (isMockClient) {
+                console.log('Dispatching events for mock Supabase client');
+            } else {
+                console.log('Dispatching events for real Supabase client');
+            }
+            
+            // This dispatches both events for compatibility
+            const initEvent = new CustomEvent('supabaseClientInitialized', { 
+                detail: { client: window.supabaseClient, isMock: isMockClient } 
+            });
+            window.dispatchEvent(initEvent);
+            
+            const readyEvent = new CustomEvent('supabaseClientReady', { 
+                detail: { client: window.supabaseClient, isMock: isMockClient } 
+            });
+            window.dispatchEvent(readyEvent);
+            
+            // Set global flag for direct checking
+            window.supabaseClientReady = true;
+        } else if (component === 'config' && window.CONFIG) {
+            console.log('Dispatching config ready event');
+            const configEvent = new CustomEvent('configReady', { detail: { config: window.CONFIG } });
+            window.dispatchEvent(configEvent);
+            
+            // Set global flag
+            window.configReady = true;
+        } else if (component === 'auth' && window.getCurrentUser) {
+            console.log('Dispatching auth ready event');
+            const authEvent = new CustomEvent('authReady');
+            window.dispatchEvent(authEvent);
+            
+            // Set global flag
+            window.authReady = true;
+        }
+    } catch (error) {
+        console.error(`Error in notifyInitialized for ${component}:`, error);
+    }
+}
+
+// Main initialization sequence
+async function initializeCore() {
+    try {
+        console.log('✨ Starting core initialization sequence...');
+        
+        // Step 1: Load configuration
+        const config = await ensureConfig();
+        console.log('Config step completed');
+        notifyInitialized('config');
+        
+        // Step 2: Initialize Supabase
+        const supabaseClient = await ensureSupabaseClient();
+        if (supabaseClient) {
+            console.log('Supabase step completed');
+            notifyInitialized('supabase');
+        } else {
+            console.warn('Supabase initialization returned null client');
+        }
+        
+        // Step 3: Setup auth
+        const authReady = await ensureAuth();
+        if (authReady) {
+            console.log('Auth step completed');
+            notifyInitialized('auth');
+        } else {
+            console.warn('Auth initialization not fully ready');
+        }
+        
+        // Set global completion state
+        window.coreInitialized = true;
+        
+        // Complete - always dispatch the event even if some components failed
+        console.log('✅ Core initialization complete!');
+        const coreInitEvent = new CustomEvent('coreInitialized', {
+            detail: {
+                configLoaded: !!config,
+                supabaseLoaded: !!supabaseClient, 
+                authLoaded: authReady,
+                hasMockClient: supabaseClient && supabaseClient._isMock === true
+            }
+        });
+        window.dispatchEvent(coreInitEvent);
+        
+        return {
+            configLoaded: !!config,
+            supabaseLoaded: !!supabaseClient,
+            authLoaded: authReady,
+            hasMockClient: supabaseClient && supabaseClient._isMock === true
+        };
+    } catch (error) {
+        console.error('❌ Core initialization encountered an error:', error);
+        
+        // Still set global completion state as true to allow application to proceed
+        window.coreInitialized = true;
+        
+        // Dispatch error event
+        const errorEvent = new CustomEvent('coreInitError', { 
+            detail: { 
+                error,
+                configLoaded: !!window.CONFIG,
+                supabaseLoaded: !!window.supabaseClient,
+                authLoaded: !!window.getCurrentUser 
+            } 
+        });
+        window.dispatchEvent(errorEvent);
+        
+        // Also dispatch regular completion event to unblock dependent code
+        const coreInitEvent = new CustomEvent('coreInitialized', {
+            detail: {
+                configLoaded: !!window.CONFIG,
+                supabaseLoaded: !!window.supabaseClient,
+                authLoaded: !!window.getCurrentUser,
+                error: true
+            }
+        });
+        window.dispatchEvent(coreInitEvent);
+        
+        return {
+            configLoaded: !!window.CONFIG,
+            supabaseLoaded: !!window.supabaseClient,
+            authLoaded: !!window.getCurrentUser,
+            error: true
+        };
+    }
+}
+
+// Export global functions
+window.waitForSupabaseClient = function(callback) {
+    if (window.supabaseClient) {
+        callback();
+    } else {
+        window.addEventListener('supabaseClientInitialized', callback);
+        window.addEventListener('supabaseClientReady', callback);
+    }
+};
+
+window.waitForConfig = function(callback) {
+    if (window.CONFIG && Object.keys(window.CONFIG).length > 0) {
+        callback();
+    } else {
+        window.addEventListener('configReady', callback);
+    }
+};
+
+window.waitForCoreInitialized = function(callback) {
+    if (window.coreInitialized) {
+        callback();
+    } else {
+        window.addEventListener('coreInitialized', callback);
+    }
+};
+
+window.initializeCore = initializeCore;
+
+// Auto-start initialization when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, starting core initialization');
+    initializeCore();
+});
