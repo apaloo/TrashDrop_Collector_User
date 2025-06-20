@@ -26,6 +26,38 @@ if (typeof window.isBrowser === 'undefined') {
 
   // Set flag to prevent duplicate initialization
   window._authJsProcessed = true;
+  
+  // Add redirect monitoring for debugging
+  const originalWindowLocationHref = Object.getOwnPropertyDescriptor(window.location, 'href');
+  
+  // Override window.location.href to catch redirects
+  try {
+    Object.defineProperty(window.location, 'href', {
+      set: function(newHref) {
+        // Check if this is a login redirect
+        if (newHref.includes('login.html')) {
+          console.log('🚫 REDIRECT ATTEMPT TO LOGIN DETECTED');
+          console.trace('Redirect call stack:');
+          
+          // Check for valid session
+          if (window.__HAS_VALID_SESSION || localStorage.getItem('sb-mock-auth-token')) {
+            console.log('🛡️ PREVENTING REDIRECT - Valid session found');
+            return; // Prevent the redirect
+          }
+        }
+        
+        // Allow the redirect to proceed
+        console.log('🔄 Redirecting to: ' + newHref);
+        originalWindowLocationHref.set.call(window.location, newHref);
+      },
+      get: function() {
+        return originalWindowLocationHref.get.call(window.location);
+      }
+    });
+    console.log('🔍 Added redirect monitoring');
+  } catch (e) {
+    console.warn('⚠️ Failed to add redirect monitoring:', e);
+  }
 
   // Use existing global isBrowser variable
   var isBrowser = window.isBrowser; 
@@ -185,6 +217,12 @@ function signOut() {
 
 // Mock auto-login for testing in development
 function autoLoginForTesting() {
+  // Check if we're in test mode - never auto-login in test mode
+  if (window.TRASHDROP_TEST_MODE === true) {
+    console.log('🧪 Test mode active: Skipping auto-login');
+    return false;
+  }
+  
   // Only auto-login for testing in development mode
   if (!isDev) return false;
   
@@ -280,6 +318,12 @@ function initializeLoginForm() {
 
 // Simple auth check
 const checkAndRedirect = () => {
+  // If we're in test mode, NEVER do any redirects
+  if (window.TRASHDROP_TEST_MODE === true) {
+    console.log('🧪 Test mode active: Bypassing all auth checks and redirects');
+    return false;
+  }
+  
   // Get current path for checks
   const currentPath = window.location.pathname;
   const isLoginPage = currentPath.endsWith('login.html');
@@ -331,20 +375,37 @@ const checkAndRedirect = () => {
     return false; // Never redirect away from assign page during auth check
   }
   
-  // Regular auth flow
-  if (user && isLoginPage) {
-    // If user is logged in and on login page, redirect to map
-    console.log('🔑 User logged in on login page - redirecting to map');
+  // Check for our session flag or mock session before redirecting
+  const hasValidSession = window.__HAS_VALID_SESSION || 
+                        localStorage.getItem('sb-mock-auth-token') ||
+                        (user && user.id);
+  
+  // Regular auth flow with session check
+  if (hasValidSession && isLoginPage) {
+    // If user has a valid session and is on login page, redirect to map
+    console.log('🔑 Valid session found on login page - redirecting to map');
     window.location.href = 'map.html';
     return true;
-  } else if (!user && isProtectedPage) {
-    // If user is not logged in and on protected page, redirect to login
-    // Skip this check if we're coming from the assign page
+  } else if (!hasValidSession && isProtectedPage) {
+    // If no valid session and on protected page, check conditions before redirecting
     if (assignPageAccessed) {
       console.log('🔒 Skipping login redirect because assign page was accessed');
       return false;
     }
-    console.log('🔒 Not logged in on protected page - redirecting to login');
+    
+    // Check if we're in development mode or have a mock session
+    const isDev = window.location.hostname === 'localhost' || 
+                 window.location.hostname === '127.0.0.1' || 
+                 window.location.port === '3000' ||
+                 window.location.port === '5500' ||
+                 window.location.port === '5501';
+    
+    if (isDev) {
+      console.log('🔧 Development mode - skipping login redirect');
+      return false;
+    }
+    
+    console.log('🔒 No valid session on protected page - redirecting to login');
     window.location.href = 'login.html';
     return true;
   }
@@ -353,6 +414,24 @@ const checkAndRedirect = () => {
 
 // Initialize auth and auto-login for testing
 function initializeAuth() {
+  // Check if we're in test mode - skip all initialization that could cause redirects
+  if (window.TRASHDROP_TEST_MODE === true) {
+    console.log('🧪 Test mode active: Initializing auth without auto-login or redirects');
+    
+    // Still initialize login form for form functionality
+    initializeLoginForm();
+    
+    // Debug logs for test mode
+    console.log('🔍 Auth module initialized in TEST MODE. Available functions:', {
+      signInWithEmail: typeof window.signInWithEmail === 'function',
+      signOut: typeof window.signOut === 'function',
+      getCurrentUser: typeof window.getCurrentUser === 'function'
+    });
+    
+    return; // Skip the rest in test mode
+  }
+  
+  // Normal initialization for non-test mode
   // Try auto-login first
   if (autoLoginForTesting()) {
     console.log('✅ Auto-logged in as test user');

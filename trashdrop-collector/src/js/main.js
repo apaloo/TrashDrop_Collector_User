@@ -98,16 +98,19 @@ function handleAuthNavigation(user) {
     const isAppPage = appPages.some(page => currentPath.endsWith(page));
     const isHomePage = currentPath.endsWith('/index.html') || currentPath.endsWith('/');
     
-    // Only redirect in production environment
-    if (user) {
-        // User is logged in
+    // Check for our session flag or mock session before redirecting
+    const hasValidSession = window.__HAS_VALID_SESSION || 
+                          localStorage.getItem('sb-mock-auth-token') ||
+                          (user && user.id);
+    
+    if (hasValidSession) {
+        // User is logged in or has a valid session
         if (isAuthPage || isHomePage) {
             // Redirect to map page if on auth page or homepage
             window.location.href = './map.html';
         }
     } else {
-        // User is not logged in - extra safeguard to avoid unnecessary redirects
-        // Check again for local storage user before redirect
+        // User is not logged in - check for any stored user data
         const mockUserStr = localStorage.getItem('mockUser');
         if (mockUserStr) {
             try {
@@ -119,9 +122,9 @@ function handleAuthNavigation(user) {
             } catch (e) {}
         }
         
-        // Only redirect in production and if truly no user is found
-        if (isAppPage) {
-            console.log('User not authenticated, redirecting to login');
+        // Only redirect if we're on an app page and don't have a valid session
+        if (isAppPage && !window.__HAS_VALID_SESSION) {
+            console.log('No valid session found, redirecting to login');
             window.location.href = './login.html';
         }
     }

@@ -3,769 +3,621 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - TrashDrop Collector</title>
-    <!-- Material Icons Font -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <title>Sign In | TrashDrop Collector</title>
+    <meta name="description" content="TrashDrop Collector App for waste management professionals">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    
+    <!-- Clear storage for clean testing -->
+    <script>
+        localStorage.clear();
+        sessionStorage.clear();
+        console.log('🧹 All storage cleared for clean authentication testing');
+    </script>
+    
+    <!-- Consolidated styles (unchanged) -->
     <style>
-        * {
+        :root {
+            --primary-color: #4CAF50;
+            --primary-dark: #388E3C;
+            --primary-light: #A5D6A7;
+            --text-dark: #333333;
+            --text-light: #666666;
+            --border-radius: 24px;
+            --input-radius: 50px;
+            --card-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            --accent-color: #FF9800;
+            --text-color: #333333;
+            --text-white: #FFFFFF;
+            --error-color: #E53935;
+            --border-color: #E0E0E0;
+            --input-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+        }
+        /* Rest of the styles remain unchanged */
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
+            color: var(--text-color);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .spinner {
-            display: inline-block;
-            width: 1em;
-            height: 1em;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 0.6s linear infinite;
-            margin-right: 8px;
-            vertical-align: middle;
-        }
-        
-        button.success {
-            background-color: #4CAF50 !important;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background-color: #f5f5f5;
-            height: 100vh;
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 1rem;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
-            overflow: hidden;
+            min-height: 100vh;
+            box-sizing: border-box;
         }
-        
         .login-container {
-            background: white;
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
             padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             width: 100%;
-            max-width: 400px;
+            max-width: 450px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            margin: 1rem;
+            box-sizing: border-box;
         }
-        
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: -50px;
+            right: -30px;
+            width: 200px;
+            height: 200px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%234CAF50" d="M20,80 Q40,60 60,80 T100,80 Q80,40 80,20 Q40,40 20,20 Q20,60 20,80 Z"/></svg>');
+            background-repeat: no-repeat;
+            background-size: contain;
+            opacity: 0.2;
+            z-index: 0;
+            transform: rotate(45deg);
+        }
+        .header {
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 1;
+        }
         .logo {
-            text-align: center;
-            margin-bottom: 1.5rem;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem;
+            border-radius: 50%;
+            background-color: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
         }
-        
         .logo img {
-            max-width: 120px;
-            height: auto;
+            max-width: 100%;
+            max-height: 100%;
         }
-        
         h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 1.5rem;
-            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin: 0;
+            font-size: 2.2rem;
+            font-weight: 600;
+            letter-spacing: -0.5px;
         }
-        
-        .form-group {
+        .subtitle {
+            margin-top: 0.5rem;
+            color: var(--text-light);
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
+        h2 {
+            font-size: 1.8rem;
             margin-bottom: 1rem;
+            color: var(--text-dark);
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
         }
-        
+        .auth-subtitle {
+            color: var(--text-light);
+            font-weight: normal;
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+        .auth-card {
+            padding: 2rem;
+        }
+        .form-group {
+            margin-bottom: 1.8rem;
+            text-align: left;
+            position: relative;
+            z-index: 1;
+        }
         label {
             display: block;
             margin-bottom: 0.5rem;
-            color: #555;
+            color: var(--text-dark);
+            font-weight: 500;
+            font-size: 0.95rem;
         }
-        
-        input[type="email"],
-        .form-group input {
+        input[type="text"],
+        input[type="tel"] {
             width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-            transition: all 0.3s ease;
+            padding: 0.9rem 1.2rem;
+            border: 1px solid #e0e0e0;
+            border-radius: var(--input-radius);
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+            background-color: #fcfcfc;
         }
-        
-        .form-group input.error {
-            border-color: #ff4444;
-            background-color: #fff8f8;
-        }
-        
-        .form-group input:focus {
-            border-color: #4CAF50;
-            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        input:focus {
             outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+            background-color: #fff;
         }
-        
-        button[type="submit"] {
-            width: 100%;
-            padding: 12px;
-            background-color: #4CAF50;
+        input::placeholder {
+            color: #aaa;
+            font-size: 0.95rem;
+        }
+        .input-error {
+            color: #f44336;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            margin-left: 0.2rem;
+            font-weight: 500;
+        }
+        .btn-primary {
+            background-color: var(--primary-color);
             color: white;
             border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            font-weight: 500;
+            border-radius: var(--input-radius);
+            padding: 1rem 1.5rem;
+            font-size: 1rem;
             cursor: pointer;
+            width: 100%;
+            margin-top: 1rem;
             transition: all 0.3s ease;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
             position: relative;
-            overflow: hidden;
+            z-index: 1;
         }
-        
-        button:disabled {
-            background-color: #a5d6a7;
-            cursor: not-allowed;
-        }
-        
-        button:hover:not(:disabled) {
-            background-color: #43A047;
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
             transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
-        
-        button:active:not(:disabled) {
-            transform: translateY(0);
+        .btn-primary:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 5px rgba(76, 175, 80, 0.3);
+        }
+        .btn-primary:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
             box-shadow: none;
         }
-        
-        .error-message {
-            color: #e74c3c;
-            margin-top: 1rem;
+        #phoneNumber, #verification-code {
+            padding-left: 1.2rem;
+            font-size: 1.05rem;
+            letter-spacing: 0.5px;
+        }
+        #verification-code {
+            letter-spacing: 3px;
+            font-weight: 600;
             text-align: center;
+        }
+        .status-indicator {
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: inline-block;
+        }
+        .status-pending {
+            background-color: #f39c12;
+            color: white;
+        }
+        .status-success {
+            background-color: #2ecc71;
+            color: white;
+        }
+        .status-error {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .hidden {
             display: none;
         }
+        .auth-footer {
+            margin: 20px 0;
+            text-align: center;
+            font-size: 0.95rem;
+            color: var(--text-light);
+        }
+        
+        .auth-footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+        
+        .auth-footer a:hover {
+            color: var(--primary-dark);
+            text-decoration: underline;
+        }
+
+        /* Mobile-first responsive adjustments */
+        @media (max-width: 480px) {
+            .container {
+                padding: 0.5rem;
+                min-height: 100vh;
+            }
+            
+            .login-container {
+                padding: 1.5rem;
+                margin: 0.5rem;
+                border-radius: 16px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+                margin-bottom: 0.8rem;
+            }
+            
+            .subtitle, .auth-subtitle {
+                font-size: 0.95rem;
+            }
+            
+            .form-group {
+                margin-bottom: 1.2rem;
+            }
+            
+            input[type="text"],
+            input[type="tel"] {
+                padding: 0.8rem 1rem;
+                font-size: 1rem;
+            }
+            
+            .btn-primary {
+                padding: 0.9rem 1rem;
+                font-size: 1rem;
+            }
+            
+            .logo {
+                width: 70px;
+                height: 70px;
+            }
+        }
+        
+        /* Desktop specific adjustments */
+        @media (min-width: 768px) {
+            .login-container {
+                padding: 2.5rem 3rem;
+            }
+            
+            .login-container::before {
+                width: 250px;
+                height: 250px;
+            }
+        }
+        
+        /* Large desktop screens */
+        @media (min-width: 1200px) {
+            .login-container {
+                padding: 3rem 4rem;
+            }
+        }
+        
+        .dev-mode-notice {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #fff9e6;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #b38a00;
+            text-align: center;
+        }
+        .dev-mode-notice code {
+            background: rgba(0,0,0,0.05);
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
     </style>
+    
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Authentication Script -->
+    <script>
+        // Load scripts dynamically
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        // Load Supabase library
+        async function loadSupabase() {
+            try {
+                await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2');
+                console.log('Supabase loaded successfully');
+            } catch (error) {
+                console.warn('Primary Supabase load failed, trying fallback:', error);
+                await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js');
+            }
+        }
+
+        // Create a mock Supabase client
+        function createMockClient() {
+            return {
+                isMock: true,
+                auth: {
+                    signInWithOtp: async ({ phone }) => {
+                        console.log('Mock: Sending OTP to', phone);
+                        localStorage.setItem('mock_auth_phone', phone);
+                        return { error: null };
+                    },
+                    verifyOtp: async ({ phone, token }) => {
+                        console.log('Mock: Verifying OTP', token, 'for', phone);
+                        if (phone === '+12345678901' && token === '123456') {
+                            const session = { 
+                                user: { 
+                                    id: 'mock-user', 
+                                    phone: phone,
+                                    email: `${phone.replace('+', '')}@mock.trashdrop.com`
+                                }, 
+                                access_token: 'mock-access-token',
+                                refresh_token: 'mock-refresh-token'
+                            };
+                            localStorage.setItem('sb-mock-auth-token', JSON.stringify(session));
+                            return { data: { user: session.user, session }, error: null };
+                        } else {
+                            return { error: { message: 'Invalid code' } };
+                        }
+                    },
+                    getSession: async () => {
+                        const session = localStorage.getItem('sb-mock-auth-token');
+                        return { data: { session: session ? JSON.parse(session) : null }, error: null };
+                    },
+                    onAuthStateChange: (callback) => {
+                        const handleStorageChange = (e) => {
+                            if (e.key === 'sb-mock-auth-token') {
+                                const session = e.newValue ? JSON.parse(e.newValue) : null;
+                                callback(session ? 'SIGNED_IN' : 'SIGNED_OUT', session);
+                            }
+                        };
+                        window.addEventListener('storage', handleStorageChange);
+                        return { data: { subscription: { unsubscribe: () => window.removeEventListener('storage', handleStorageChange) } } };
+                    },
+                    signOut: async () => {
+                        localStorage.removeItem('sb-mock-auth-token');
+                        localStorage.removeItem('mock_auth_phone');
+                        window.dispatchEvent(new Event('storage'));
+                        return { error: null };
+                    }
+                }
+            };
+        }
+
+        // Initialize Supabase client (real or mock)
+        function initializeSupabase() {
+            const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const supabaseUrl = window.CONFIG?.supabase?.url || 'https://your-supabase-url.supabase.co';
+            const supabaseKey = window.CONFIG?.supabase?.key || 'your-supabase-anon-key';
+            if (isDev || supabaseUrl.includes('your-') || supabaseKey.includes('your-')) {
+                console.log('Using mock Supabase client');
+                return createMockClient();
+            }
+            if (typeof window.supabase?.createClient !== 'function') {
+                console.error('Supabase library not properly loaded');
+                return createMockClient(); // Fallback to mock if library fails
+            }
+            return window.supabase.createClient(supabaseUrl, supabaseKey, {
+                auth: { persistSession: false }
+            });
+        }
+
+        // Show status message
+        function showStatus(message, type = 'pending') {
+            const statusContainer = document.getElementById('status-container');
+            if (statusContainer) {
+                statusContainer.innerHTML = `<div class="status-indicator status-${type}">${message}</div>`;
+            }
+        }
+
+        // Handle OTP sending
+        async function sendOtp(supabaseClient) {
+            const phoneInput = document.getElementById('phoneNumber');
+            const phoneError = document.getElementById('phone-error');
+            const sendOtpBtn = document.getElementById('send-otp-btn');
+
+            if (!phoneInput || !phoneError || !sendOtpBtn) return;
+
+            const phoneNumber = phoneInput.value.trim();
+            if (!phoneNumber) {
+                phoneError.textContent = 'Please enter a phone number';
+                return;
+            }
+            phoneError.textContent = '';
+            sendOtpBtn.disabled = true;
+            showStatus('Sending verification code...', 'pending');
+
+            try {
+                const { error } = await supabaseClient.auth.signInWithOtp({ phone: phoneNumber });
+                if (error) throw error;
+                showStatus('Verification code sent!', 'success');
+                document.getElementById('verification-section').classList.remove('hidden');
+                if (supabaseClient.isMock) {
+                    document.querySelector('.dev-mode-notice').classList.remove('hidden');
+                }
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+            } finally {
+                sendOtpBtn.disabled = false;
+            }
+        }
+
+        // Handle OTP verification
+        async function verifyOtp(supabaseClient) {
+            const phoneInput = document.getElementById('phoneNumber');
+            const verificationInput = document.getElementById('verification-code');
+            const verificationError = document.getElementById('verification-error');
+            const verifyOtpBtn = document.getElementById('verify-otp-btn');
+
+            if (!phoneInput || !verificationInput || !verificationError || !verifyOtpBtn) return;
+
+            const phoneNumber = phoneInput.value.trim();
+            const verificationCode = verificationInput.value.trim();
+            if (!verificationCode) {
+                verificationError.textContent = 'Please enter the verification code';
+                return;
+            }
+            verificationError.textContent = '';
+            verifyOtpBtn.disabled = true;
+            showStatus('Verifying code...', 'pending');
+
+            try {
+                const { data, error } = await supabaseClient.auth.verifyOtp({
+                    phone: phoneNumber,
+                    token: verificationCode,
+                    type: 'sms'
+                });
+                if (error) throw error;
+                
+                // SUCCESS: User authenticated
+                showStatus('Authentication successful!', 'success');
+                
+                // Save to session if appropriate
+                if (data && data.user && data.session) {
+                    console.log('%c✅ User authenticated!', 'color:green;font-weight:bold;font-size:14px');
+                    
+                    // Store session data multiple ways to ensure it persists
+                    localStorage.setItem('sb-mock-auth-token', JSON.stringify(data.session));
+                    sessionStorage.setItem('sb-mock-auth-token', JSON.stringify(data.session));
+                    
+                    // Store user data
+                    localStorage.setItem('mockUser', JSON.stringify(data.user));
+                    
+                    // Set global flag to prevent redirects
+                    window.__HAS_VALID_SESSION = true;
+                    
+                    // Create a global persisted flag
+                    try {
+                        document.cookie = 'trashdrop_auth_active=true; path=/; max-age=86400';
+                    } catch (e) {}
+                    
+                    // Prepare redirect with forced auth
+                    const forcedRedirect = () => {
+                        const script = document.createElement('script');
+                        script.textContent = `
+                            // Force flag in target page
+                            window.localStorage.setItem('sb-mock-auth-token', '${JSON.stringify(data.session)}');
+                            window.__HAS_VALID_SESSION = true;
+                            window.location.href = 'map.html';
+                        `;
+                        document.head.appendChild(script);
+                    };
+                    
+                    // First attempt immediate redirect
+                    setTimeout(forcedRedirect, 1500);
+                } else {
+                    // Fallback if data structure is unexpected
+                    setTimeout(() => window.location.href = 'map.html', 2000);
+                }
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+            } finally {
+                verifyOtpBtn.disabled = false;
+            }
+        }
+
+        // DOMContentLoaded event listener
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadSupabase();
+            const supabaseClient = initializeSupabase();
+
+            const sendOtpBtn = document.getElementById('send-otp-btn');
+            const verifyOtpBtn = document.getElementById('verify-otp-btn');
+            const phoneInput = document.getElementById('phoneNumber');
+            const verificationInput = document.getElementById('verification-code');
+
+            if (sendOtpBtn) {
+                sendOtpBtn.addEventListener('click', () => sendOtp(supabaseClient));
+            }
+            if (verifyOtpBtn) {
+                verifyOtpBtn.addEventListener('click', () => verifyOtp(supabaseClient));
+            }
+            if (phoneInput) {
+                phoneInput.addEventListener('keyup', (e) => {
+                    if (e.key === 'Enter') sendOtp(supabaseClient);
+                });
+            }
+            if (verificationInput) {
+                verificationInput.addEventListener('keyup', (e) => {
+                    if (e.key === 'Enter') verifyOtp(supabaseClient);
+                });
+            }
+        });
+    </script>
 </head>
 <body>
-    <div class="login-container">
-        <div class="logo">
-            <img src="./public/logo.svg" alt="TrashDrop Logo">
-            <h1>TrashDrop Collector</h1>
+    <div class="container">
+        <div class="login-container">
+            <div class="header">
+                <div class="logo">
+                    <img src="src/img/logo.png" alt="TrashDrop Logo" onerror="this.src='https://ui-avatars.com/api/?name=Trash+Drop&background=4CAF50&color=fff&size=128&bold=true'">
+                </div>
+                <h1>TrashDrop</h1>
+                <p class="subtitle">Collector Login</p>
+            </div>
+            
+            <div class="auth-card" id="phone-number-auth-section">
+                <h2>Sign In</h2>
+                <p class="auth-subtitle">Enter your phone number to receive a verification code</p>
+                <div class="form-group">
+                    <label for="phoneNumber">Phone Number</label>
+                    <input type="tel" id="phoneNumber" placeholder="+1 (555) 555-5555">
+                    <div id="phone-error" class="input-error"></div>
+                </div>
+                <button id="send-otp-btn" class="btn-primary">Send Verification Code</button>
+                
+                <div id="verification-section" class="hidden">
+                    <div class="form-group">
+                        <label for="verification-code">Verification Code</label>
+                        <input type="text" id="verification-code" placeholder="Enter 6-digit code" maxlength="6">
+                        <div id="verification-error" class="input-error"></div>
+                    </div>
+                    <button id="verify-otp-btn" class="btn-primary">Sign In</button>
+                </div>
+                
+                <div id="status-container"></div>
+                <div class="auth-footer">
+                    <p>Don't have an account? <a href="signup.html" class="signup-link">Sign up</a></p>
+                </div>
+                <div class="dev-mode-notice hidden">
+                    <p><strong>Development Mode:</strong> Use phone <code>+12345678901</code> and code <code>123456</code></p>
+                </div>
+            </div>
         </div>
-        
-        <form id="loginForm">
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            
-            <button type="submit">Login</button>
-            <div id="loginError" class="error-message"></div>
-        </form>
     </div>
-
-    <!-- Script Loading and Dependency Management -->
-    <script>
-        // Debug script loading
-        console.log('🔍 Checking script loading...');
-        
-        // Check for script loading errors
-        window.addEventListener('error', function(e) {
-            console.log('🔴 Script loading error detected:', e);
-            if (e.target.tagName === 'SCRIPT') {
-                console.error('❌ Error loading script:', e.target.src);
-            }
-        }, true);
-        
-        // Track loaded scripts to avoid duplicates
-        window.loadedScripts = window.loadedScripts || {};
-        
-        // Function to load scripts in sequence with better error handling
-        function loadScript(src, onLoad, onError) {
-            // Skip if already loaded
-            if (window.loadedScripts[src]) {
-                console.log('🔁 Script already loaded:', src);
-                if (onLoad) setTimeout(onLoad, 0);
-                return;
-            }
-            
-            console.log('📥 Loading script:', src);
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = function() {
-                console.log('✅ Loaded script:', src);
-                window.loadedScripts[src] = true;
-                if (onLoad) setTimeout(onLoad, 0);
-            };
-            script.onerror = function(e) {
-                console.error('❌ Error loading script:', src, e);
-                if (onError) onError(e);
-            };
-            document.head.appendChild(script);
-            return script;
-        }
-        
-        // Script loading sequence
-        console.log('🔁 Starting script loading sequence for login.html...');
-        
-        // 1. Load config.js first (sets window.CONFIG directly)
-        loadScript('./src/js/config.js', function() {
-            console.log('🔁 Config.js loaded callback fired');
-            
-            // Verify CONFIG is available
-            if (!window.CONFIG) {
-                console.error('❌ CONFIG not available after loading config.js');
-            } else {
-                console.log('✅ CONFIG loaded successfully');
-            }
-            
-            // 2. Load Supabase SDK with UMD build for global supabase object
-            loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js', function() {
-                console.log('🔁 Supabase SDK loaded, window.supabase available:', !!window.supabase);
-                
-                // 3. Then load our supabase client wrapper
-                loadScript('./src/js/supabase-client.js', function() {
-                    console.log('🔁 Supabase client initialized:', !!window.supabaseClient);
-                    
-                    // 4. Finally load auth.js which depends on supabase client
-                    loadScript('./src/js/auth.js', function() {
-                        console.log('✅ All core scripts loaded for login page');
-                        // Dispatch event when all core scripts are loaded
-                        window.dispatchEvent(new CustomEvent('loginScriptsLoaded'));
-                    });
-                });
-            });
-        });
-    </script>
-    
-    <!-- Helper functions for script dependencies -->
-    <script>
-    // Wait for core scripts to be loaded
-    function waitForSupabaseClient(callback) {
-        if (window.supabaseClient) {
-            callback();
-        } else {
-            window.addEventListener('supabaseClientInitialized', callback);
-        }
-    }
-    
-    // Listen for Supabase client initialization
-    window.addEventListener('supabaseClientInitialized', function(e) {
-        console.log('✅ Supabase client initialized event received in login.html');
-    });
-    </script>
-    
-    <script>
-        // Debug function to log localStorage and sessionStorage
-        function debugAuthState() {
-            console.log('🔍 Auth State Debug:');
-            console.log('localStorage.auth_token:', localStorage.getItem('auth_token') ? '***' : 'null');
-            console.log('localStorage.auth_user:', localStorage.getItem('auth_user') ? JSON.parse(localStorage.getItem('auth_user')).email : 'null');
-            console.log('sessionStorage.justLoggedIn:', sessionStorage.getItem('justLoggedIn'));
-            console.log('window.currentUser:', window.currentUser ? window.currentUser.email : 'null');
-            console.log('window.signInWithEmail:', typeof window.signInWithEmail === 'function' ? '✅ Available' : '❌ Missing');
-            
-            // Verify all required functions are available
-            const requiredFunctions = [
-                'signInWithEmail',
-                'signOut',
-                'getCurrentUser',
-                'updateAuthUI',
-                'initializeAuth'
-            ];
-            
-            console.log('\n🔌 Available Auth Functions:');
-            requiredFunctions.forEach(fn => {
-                console.log(`- ${fn}:`, typeof window[fn] === 'function' ? '✅' : '❌');
-            });
-        }
-
-        // Simple login handler
-        async function handleLogin(e) {
-            e.preventDefault();
-            
-            const emailInput = document.getElementById('email');
-            const passwordInput = document.getElementById('password');
-            const errorElement = document.getElementById('loginError');
-            const submitBtn = document.querySelector('#loginForm button[type="submit"]');
-            
-            // Debug current state
-            console.log('🔄 Starting login process...');
-            debugAuthState();
-            
-            // Get and trim values
-            const email = emailInput.value.trim();
-            const password = passwordInput.value;
-            
-            // Clear previous errors
-            errorElement.textContent = '';
-            errorElement.style.display = 'none';
-            emailInput.classList.remove('error');
-            passwordInput.classList.remove('error');
-            
-            // Validate inputs
-            let hasError = false;
-            if (!email) {
-                emailInput.classList.add('error');
-                hasError = true;
-            }
-            if (!password) {
-                passwordInput.classList.add('error');
-                hasError = true;
-            }
-            
-            if (hasError) {
-                errorElement.textContent = 'Please fill in all required fields';
-                errorElement.style.display = 'block';
-                return;
-            }
-            
-            // Show loading state
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner"></span> Signing in...';
-            
-            try {
-                console.log('🔑 Attempting to sign in with:', email);
-                
-                // Debug: Check if signInWithEmail exists
-                console.log('🔍 signInWithEmail exists:', typeof window.signInWithEmail === 'function');
-                
-                // Clear any existing auth data
-                localStorage.removeItem('auth_user');
-                localStorage.removeItem('auth_token');
-                sessionStorage.removeItem('justLoggedIn');
-                
-                console.log('🔄 Calling signInWithEmail...');
-                const result = await window.signInWithEmail(email, password);
-                
-                if (result.error) {
-                    throw new Error(result.error);
-                }
-                
-                if (!result.user || !result.session) {
-                    throw new Error('Invalid response from authentication service');
-                }
-                
-                // Store the justLoggedIn flag
-                sessionStorage.setItem('justLoggedIn', 'true');
-                
-                // Show success state
-                submitBtn.innerHTML = '✓ Success! Redirecting...';
-                submitBtn.classList.add('success');
-                
-                // Add a small delay to ensure storage is written
-                await new Promise(resolve => setTimeout(resolve, 200));
-                
-                // Redirect to map page
-                window.location.href = 'map.html?t=' + Date.now();
-                
-            } catch (error) {
-                console.error('❌ Login error:', error);
-                errorElement.textContent = error.message || 'Login failed. Please check your credentials and try again.';
-                errorElement.style.display = 'block';
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Sign In';
-                
-                // Add visual feedback for invalid login
-                emailInput.classList.add('error');
-                passwordInput.classList.add('error');
-                
-                // Debug on error
-                debugAuthState();
-            }
-        }
-
-        // Initialize form and auth
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🚀 DOM Content Loaded - Initializing login page');
-            
-            // Debug auth state
-            debugAuthState();
-            
-            const loginForm = document.getElementById('loginForm');
-            if (!loginForm) {
-                console.error('❌ Login form not found');
-                return;
-            }
-            
-            console.log('✅ Login form found, adding submit handler');
-            
-            // Remove any existing event listeners
-            const newForm = loginForm.cloneNode(true);
-            loginForm.parentNode.replaceChild(newForm, loginForm);
-            
-            // Add new submit handler
-            newForm.addEventListener('submit', handleLogin);
-            
-            // Check if we're already logged in - only redirect if we're not coming from a redirect
-            if (!window.location.search.includes('from=map')) {
-                try {
-                    console.log('🔍 Checking for existing session...');
-                    const { user, error } = window.getCurrentUser ? await window.getCurrentUser() : { user: null, error: 'getCurrentUser not available' };
-                    
-                    if (user) {
-                        console.log('ℹ️ User already logged in, checking redirect...');
-                        // Only redirect if we have a valid session and we're not in a redirect loop
-                        const hasValidSession = await new Promise(resolve => {
-                            if (window.TrashDrop && window.TrashDrop.auth) {
-                                window.TrashDrop.auth.getSession().then(({ data: { session } }) => {
-                                    resolve(!!session);
-                                }).catch(() => resolve(false));
-                            } else {
-                                resolve(false);
-                            }
-                        });
-                        
-                        if (hasValidSession) {
-                            console.log('✅ Valid session found, redirecting to map');
-                            window.location.href = 'map.html';
-                            return;
-                        } else {
-                            console.log('⚠️ User object exists but session is invalid, showing login form');
-                        }
-                    } else if (error) {
-                        console.warn('⚠️ Error checking auth state:', error);
-                    }
-                } catch (e) {
-                    console.error('❌ Error during auth check:', e);
-                }
-            }
-            
-            // Auto-login for testing (only in development)
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                if (window.location.search.includes('autologin=1')) {
-                    console.log('🔐 Auto-login enabled for testing');
-                    document.getElementById('email').value = 'test@example.com';
-                    document.getElementById('password').value = 'password';
-                    // Small delay to ensure form is ready
-                    setTimeout(() => document.querySelector('button[type="submit"]').click(), 100);
-                }
-            }
-            
-            console.log('✅ Login page initialization complete');
-        });
-    </script>
-    
-    <!-- Configuration Script - Must load first without ES module import -->
-    <script>
-        // Track loaded scripts to avoid duplicates
-        window.loadedScripts = window.loadedScripts || {};
-        
-        // Function to load scripts in sequence
-        function loadScript(src, onLoad, onError) {
-            // Skip if already loaded
-            if (window.loadedScripts[src]) {
-                console.log('Script already loaded:', src);
-                if (onLoad) onLoad();
-                return;
-            }
-            
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = function() {
-                console.log('✅ Loaded script:', src);
-                window.loadedScripts[src] = true;
-                if (onLoad) onLoad();
-            };
-            script.onerror = function(e) {
-                console.error('❌ Error loading script:', src, e);
-                if (onError) onError(e);
-            };
-            document.head.appendChild(script);
-        }
-        
-        // Load config.js first (sets window.CONFIG directly)
-        loadScript('./src/js/config.js', function() {
-            // Ensure we wait for the next tick after config loads
-            setTimeout(function() {
-                // Verify CONFIG is available
-                if (!window.CONFIG) {
-                    console.error('❌ CONFIG not available after loading config.js');
-                    return;
-                }
-                
-                console.log('✅ CONFIG loaded successfully', window.CONFIG ? 'CONFIG object exists' : 'CONFIG missing');
-                
-                // For Supabase configuration - explicitly set with URL and key properties
-                window.SUPABASE_CONFIG = {
-                    url: window.CONFIG.supabase.url || '',
-                    key: window.CONFIG.supabase.key || ''
-                };
-                
-                // Debug info (without showing sensitive data)
-                console.log('✅ SUPABASE_CONFIG set with URL available:', !!window.SUPABASE_CONFIG.url);
-                
-                // Dispatch configLoaded event
-                console.log('🔔 Dispatching configLoaded event');
-                window.dispatchEvent(new CustomEvent('configLoaded', { detail: { CONFIG: window.CONFIG } }));
-                
-                // Script loading moved to a single sequence below
-                console.log('✅ Config loaded, script loading will begin');
-                // Dispatch configLoaded event to trigger the single loading sequence
-                // Do not load scripts here to avoid duplication
-            }, 0);
-        });
-        // Fire configLoaded event at the appropriate time
-        // (Now done inside the loadScript callback chain)
-    </script>
-    
-    <!-- Improved script loader with dependency tracking -->
-    <script>
-    // Global flag to track initialization state
-    window.initState = window.initState || {};
-    
-    // Wait for config to be loaded with explicit check for SUPABASE_CONFIG
-    function waitForConfig(callback) {
-        if (window.CONFIG && window.SUPABASE_CONFIG) {
-            callback();
-        } else {
-            window.addEventListener('configLoaded', callback);
-        }
-    }
-    
-    // Better script loader with dependency tracking
-    function loadScript(src, onLoad) {
-        // Skip if already loaded
-        if (window.initState[src]) {
-            console.log(`Script ${src} already loaded, skipping`);
-            if (onLoad) onLoad();
-            return;
-        }
-        
-        console.log(`Loading script: ${src}`);
-        const script = document.createElement('script');
-        script.src = src;
-        script.onload = function() {
-            console.log(`Script loaded successfully: ${src}`);
-            window.initState[src] = true;
-            if (onLoad) onLoad();
-        };
-        script.onerror = function(e) {
-            console.error(`Error loading script ${src}:`, e);
-        };
-        document.head.appendChild(script);
-    }
-    
-    // Start loading sequence when config is available
-    waitForConfig(function() {
-        console.log('CONFIG is available, loading dependent scripts');
-        
-        // Step 1: Load Supabase library first
-        loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', function() {
-            // Verify Supabase loaded correctly
-            if (!window.supabase) {
-                console.error('Supabase library failed to load properly');
-            } else {
-                console.log('Supabase library loaded and available globally as "supabase"');
-            }
-            
-            // Step 2: Load supabase client with verification
-            loadScript('./src/js/supabase-client.js', function() {
-                // Verify client initialized
-                setTimeout(function() {
-                    if (window.supabaseClient) {
-                        console.log('Supabase client initialized successfully');
-                    } else {
-                        console.error('Supabase client failed to initialize');
-                    }
-                    
-                    // Step 3: Load auth.js
-                    loadScript('./src/js/auth.js');
-                }, 100);
-            });
-        });
-    });
-    </script>
-    <script>
-        // Initialize auth after the script is loaded
-        if (typeof initializeAuth === 'function') {
-            initializeAuth();
-        }
-        
-        // Debug Supabase initialization
-        document.addEventListener('DOMContentLoaded', function() {
-            // Only show debug panel in development environments
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                const debugDiv = document.createElement('div');
-                debugDiv.id = 'supabase-debug-panel';
-                debugDiv.style.position = 'fixed';
-                debugDiv.style.bottom = '10px';
-                debugDiv.style.right = '10px';
-                debugDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-                debugDiv.style.color = 'white';
-                debugDiv.style.padding = '15px';
-                debugDiv.style.borderRadius = '5px';
-                debugDiv.style.zIndex = '9999';
-                debugDiv.style.maxWidth = '350px';
-                debugDiv.style.maxHeight = '300px';
-                debugDiv.style.overflow = 'auto';
-                debugDiv.style.fontSize = '12px';
-                debugDiv.style.fontFamily = 'monospace';
-                debugDiv.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)';
-                
-                // Initial check
-                updateDebugPanel();
-                
-                // Add to DOM
-                document.body.appendChild(debugDiv);
-                
-                // Listen for Supabase initialization
-                window.addEventListener('supabaseInitialized', function() {
-                    updateDebugPanel('Supabase client initialized! 🎉');
-                });
-                
-                // Re-check status periodically
-                const intervalId = setInterval(updateDebugPanel, 1000);
-                
-                // Stop checking after 10 seconds to avoid performance impact
-                setTimeout(() => {
-                    clearInterval(intervalId);
-                    updateDebugPanel('Final status check - monitoring stopped');
-                }, 10000);
-                
-                // Helper function to update debug panel
-                function updateDebugPanel(message) {
-                    const panel = document.getElementById('supabase-debug-panel');
-                    if (!panel) return;
-                    
-                    let html = `<h3 style="margin:0 0 8px 0;">Supabase Status | ${new Date().toLocaleTimeString()}</h3>`;
-                    
-                    if (message) {
-                        html += `<p style="color:yellow;margin:5px 0;">${message}</p>`;
-                    }
-                    
-                    // Configuration status
-                    html += '<div style="margin-top:10px;">';
-                    html += '<h4 style="margin:5px 0;">Configuration:</h4>';
-                    
-                    if (window.CONFIG) {
-                        html += '<p style="color:green;margin:2px 0;">✅ CONFIG object loaded</p>';
-                    } else {
-                        html += '<p style="color:red;margin:2px 0;">❌ CONFIG object missing</p>';
-                    }
-                    
-                    if (window.SUPABASE_CONFIG) {
-                        html += '<p style="color:green;margin:2px 0;">✅ SUPABASE_CONFIG object set</p>';
-                        if (window.SUPABASE_CONFIG.url) {
-                            html += '<p style="color:green;margin:2px 0;padding-left:10px;">• URL provided</p>';
-                        } else {
-                            html += '<p style="color:red;margin:2px 0;padding-left:10px;">• URL missing</p>';
-                        }
-                        if (window.SUPABASE_CONFIG.key) {
-                            html += '<p style="color:green;margin:2px 0;padding-left:10px;">• API key provided</p>';
-                        } else {
-                            html += '<p style="color:red;margin:2px 0;padding-left:10px;">• API key missing</p>';
-                        }
-                    } else {
-                        html += '<p style="color:red;margin:2px 0;">❌ SUPABASE_CONFIG missing</p>';
-                    }
-                    html += '</div>';
-                    
-                    // Library status
-                    html += '<div style="margin-top:10px;">';
-                    html += '<h4 style="margin:5px 0;">Libraries:</h4>';
-                    
-                    if (window.supabase) {
-                        html += '<p style="color:green;margin:2px 0;">✅ Supabase library loaded</p>';
-                    } else {
-                        html += '<p style="color:red;margin:2px 0;">❌ Supabase library missing</p>';
-                    }
-                    
-                    if (window.supabaseClient) {
-                        html += '<p style="color:green;margin:2px 0;">✅ supabaseClient initialized</p>';
-                        
-                        // Check auth subsystem
-                        if (window.supabaseClient.auth) {
-                            html += '<p style="color:green;margin:2px 0;padding-left:10px;">• Auth module available</p>';
-                            
-                            // Check key auth methods
-                            const authMethods = ['signInWithPassword', 'getSession'];
-                            authMethods.forEach(method => {
-                                if (typeof window.supabaseClient.auth[method] === 'function') {
-                                    html += `<p style="color:green;margin:2px 0;padding-left:20px;">• ${method}() available</p>`;
-                                } else {
-                                    html += `<p style="color:red;margin:2px 0;padding-left:20px;">• ${method}() missing</p>`;
-                                }
-                            });
-                        } else {
-                            html += '<p style="color:red;margin:2px 0;padding-left:10px;">• Auth module missing</p>';
-                        }
-                    } else {
-                        html += '<p style="color:red;margin:2px 0;">❌ supabaseClient not initialized</p>';
-                    }
-                    html += '</div>';
-                    
-                    // Auth functions
-                    html += '<div style="margin-top:10px;">';
-                    html += '<h4 style="margin:5px 0;">Authentication:</h4>';
-                    
-                    if (window.signInWithEmail && typeof window.signInWithEmail === 'function') {
-                        html += '<p style="color:green;margin:2px 0;">✅ signInWithEmail() available</p>';
-                    } else {
-                        html += '<p style="color:red;margin:2px 0;">❌ signInWithEmail() missing</p>';
-                    }
-                    
-                    html += '</div>';
-                    
-                    // Toggle button
-                    html += `<button onclick="this.parentNode.style.height = this.parentNode.style.height === '30px' ? '300px' : '30px'" 
-                            style="margin-top:10px;background:#444;border:none;color:white;padding:3px 8px;cursor:pointer;width:100%;">
-                            Toggle Panel
-                            </button>`;
-                    
-                    panel.innerHTML = html;
-                }
-            }
-        });
-
-            // Standalone debug information for Supabase in the DOM
-            if (window.supabase) {
-                debugDiv.innerHTML += '<p style="color:green">✅ Supabase library is loaded</p>';
-            } else {
-                debugDiv.innerHTML += '<p style="color:red">❌ Supabase library is missing</p>';
-            }
-            
-            // Check for Supabase client initialization
-            if (window.supabaseClient) {
-                debugDiv.innerHTML += '<p style="color:green">✅ Supabase client is initialized</p>';
-            } else {
-                debugDiv.innerHTML += '<p style="color:red">❌ Supabase client is not initialized</p>';
-            }
-            
-            // Add to page
-            document.querySelector('.login-container').appendChild(debugDiv);
-        });
-    </script>
-    
-    <!-- Authentication error handling -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Create fallback auth handler for AuthSessionMissingError
-            window.getCurrentUserFallback = function() {
-                console.log('Using fallback authentication handler');
-                return {
-                    id: 'demo-user-id',
-                    email: 'demo@example.com',
-                    user_metadata: {
-                        full_name: 'Demo User'
-                    }
-                };
-            };
-            
-            // Patch Supabase auth to handle missing session error
-            if (window.supabaseClient && window.supabaseClient.auth) {
-                const originalGetUser = window.supabaseClient.auth.getUser;
-                window.supabaseClient.auth.getUser = async function() {
-                    try {
-                        return await originalGetUser.apply(this, arguments);
-                    } catch (error) {
-                        console.warn('Auth session missing, using fallback:', error);
-                        return { data: { user: window.getCurrentUserFallback() } };
-                    }
-                };
-            }
-        });
-    </script>
 </body>
 </html>

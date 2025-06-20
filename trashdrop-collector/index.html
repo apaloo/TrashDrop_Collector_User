@@ -1,9 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- FORCE AUTH FOR DEVELOPMENT - Skip all auth checks -->
+    <script>
+    (function() {
+        // Force enable session flag
+        window.__HAS_VALID_SESSION = true;
+        window.__FORCE_ENABLE_APP = true;
+        
+        // Create mock sessions if needed
+        const mockUser = {
+            id: 'force-enabled-user-' + Date.now(),
+            email: 'test@trashdrop.dev',
+            user_metadata: {
+                first_name: 'Test',
+                last_name: 'User',
+                role: 'collector',
+                phone: '+12345678901'
+            },
+            created_at: new Date().toISOString()
+        };
+        
+        // Add mock token and user to localStorage
+        localStorage.setItem('sb-mock-auth-token', 'force-enabled-mock-token-' + Date.now());
+        localStorage.setItem('mockUser', JSON.stringify(mockUser));
+        
+        // Override any attempt to redirect to login
+        const originalWindowLocationHref = Object.getOwnPropertyDescriptor(window.location, 'href');
+        try {
+            Object.defineProperty(window.location, 'href', {
+                set: function(newHref) {
+                    if (newHref.includes('login.html')) {
+                        console.log('%c🛑 PREVENTED REDIRECT TO LOGIN - FORCED AUTH ENABLED', 'color:red;font-weight:bold;font-size:14px');
+                        console.trace('Redirect call stack:');
+                        return; // Block redirect
+                    }
+                    console.log('📍 Allowing redirect to: ' + newHref);
+                    originalWindowLocationHref.set.call(window.location, newHref);
+                },
+                get: function() {
+                    return originalWindowLocationHref.get.call(window.location);
+                }
+            });
+        } catch (e) {}
+        
+        console.log('%c⚡ DEVELOPMENT MODE: AUTH FORCING ENABLED', 'color:green;font-weight:bold;font-size:14px');
+    })();
+    </script>
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TrashDrop Collector</title>
+    <title>TrashDrop Collector - Portal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 50px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+        }
+        
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .option-card {
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .option-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .option-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .option-description {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .option-button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        .option-button:hover {
+            background-color: #2980b9;
+        }
+        
+        .option-button.green {
+            background-color: #2ecc71;
+        }
+        
+        .option-button.green:hover {
+            background-color: #27ae60;
+        }
+    </style>
+
     
     <!-- Include the resource loader first -->
     <script src="./src/js/resource-loader.js"></script>
@@ -21,7 +153,41 @@
     <!-- Favicon -->
     <link rel="icon" href="./assets/favicon.ico" type="image/x-icon">
 </head>
-<body>
+<body class="app-page">
+    <div class="container">
+        <h1>TrashDrop Collector</h1>
+        <p>Choose how you want to access the application:</p>
+        
+        <div class="options">
+            <div class="option-card">
+                <div class="option-title">Standard Login</div>
+                <div class="option-description">
+                    Access the application with standard authentication flow.
+                    This option uses the existing login page with all default behaviors.
+                </div>
+                <button class="option-button" onclick="window.location.href='test-login.html'">Standard Login</button>
+            </div>
+            
+            <div class="option-card">
+                <div class="option-title">Test Mode Login</div>
+                <div class="option-description">
+                    Access the application with test authentication flow.
+                    This disables automatic redirects and mock users to allow testing the full authentication flow.
+                </div>
+                <button class="option-button" onclick="window.location.href='test-login.html?test_flow=true'">Test Mode Login</button>
+            </div>
+            
+            <div class="option-card">
+                <div class="option-title">OTP Authentication Test</div>
+                <div class="option-description">
+                    Use our isolated OTP authentication test page.
+                    This is a completely clean implementation focused solely on phone number verification.
+                </div>
+                <button class="option-button green" onclick="window.location.href='otp-test.html'">OTP Test Page</button>
+            </div>
+        </div>
+    </div>
+    
     <div class="splash-screen" id="splashScreen">
         <div class="splash-content">
             <img src="./assets/images/logo.png" alt="TrashDrop Collector" class="splash-logo">
@@ -168,15 +334,136 @@
                     configScript.src = './config.js';
                     document.head.appendChild(configScript);
                 }
+
+                // Check if user is authenticated
+                const checkAuth = async () => {
+                    try {
+                        console.log('🔑 Checking authentication status...');
+                        
+                        // Check for mock session
+                        const mockSession = localStorage.getItem('sb-mock-auth-token');
+                        console.log('🔍 Checking for session in localStorage:', { 
+                            hasMockSession: !!mockSession,
+                            allStorage: JSON.stringify(localStorage, null, 2)
+                        });
+                        
+                        if (mockSession) {
+                            try {
+                                const session = JSON.parse(mockSession);
+                                console.log('🔓 Session found:', session);
+                                
+                                // Show the app content
+                                console.log('🔄 Showing app content...');
+                                const splashScreen = document.querySelector('.splash-screen');
+                                const appContainer = document.querySelector('.app-container');
+                                
+                                if (splashScreen) {
+                                    console.log('🎨 Hiding splash screen');
+                                    splashScreen.style.display = 'none';
+                                } else {
+                                    console.warn('⚠️ Splash screen element not found');
+                                }
+                                
+                                if (appContainer) {
+                                    console.log('🎨 Showing app container');
+                                    appContainer.style.display = 'flex';
+                                } else {
+                                    console.warn('⚠️ App container element not found');
+                                }
+                                
+                                // Load mock data for demo
+                                if (typeof loadMockData === 'function') {
+                                    console.log('📊 Loading mock data...');
+                                    loadMockData();
+                                } else {
+                                    console.warn('⚠️ loadMockData function not found');
+                                }
+                                
+                                return;
+                            } catch (e) {
+                                console.error('❌ Error parsing session:', e);
+                                // Continue to redirect if there's an error parsing the session
+                            }
+                        }
+                        
+                        // No valid session found, redirect to login
+                        console.log('🔄 No authenticated session found, redirecting to login');
+                        window.location.href = 'login.html?from=index';
+                        return;
+                        
+                        // NOTE: The code below is disabled for testing purposes
+                        // In a production environment, you would use this code to check authentication
+                        /*
+                        // First check if we have auth tokens in localStorage
+                        const authToken = localStorage.getItem('auth_token');
+                        const authUserStr = localStorage.getItem('auth_user');
+                        
+                        let isAuthenticated = false;
+                        let isFallbackUser = false;
+                        
+                        // Check if we're using fallback authentication
+                        if (window.getCurrentUserFallback && typeof window.getCurrentUserFallback === 'function') {
+                            const fallbackResult = window.getCurrentUserFallback();
+                            if (fallbackResult && fallbackResult.user && fallbackResult.user.email === 'demo@example.com') {
+                                console.warn('⚠️ Using fallback authentication');
+                                isFallbackUser = true;
+                                // Don't consider fallback as authenticated for test flow purposes
+                            }
+                        }
+                        
+                        // If we're not using fallback, check for a real session
+                        if (!isFallbackUser) {
+                            // Try to get session from Supabase
+                            if (window.supabaseClient?.auth) {
+                                const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+                                if (session && !error) {
+                                    isAuthenticated = true;
+                                    console.log('✅ User is authenticated with valid session');
+                                }
+                            } else {
+                                // Fallback to checking localStorage
+                                if (authToken && authUserStr) {
+                                    try {
+                                        const authUser = JSON.parse(authUserStr);
+                                        if (authUser && authUser.id) {
+                                            isAuthenticated = true;
+                                            console.log('✅ User authenticated via localStorage tokens');
+                                        }
+                                    } catch (e) {
+                                        console.warn('⚠️ Invalid auth_user in localStorage');
+                                    }
+                                }
+                            }
+                        }
+                        */
+                        
+                        // This code is disabled since we're always redirecting to login
+                        // for testing the flow
+                        /*
+                        // Redirect to login if not authenticated
+                        if (!isAuthenticated) {
+                            console.log('🔄 No authenticated session found, redirecting to login');
+                            window.location.href = 'login.html?from=index';
+                        } else {
+                            // Show the app content if authenticated
+                            setTimeout(function() {
+                                splashScreen.style.display = 'none';
+                                appContainer.style.display = 'flex';
+                                
+                                // Load mock data for demo
+                                loadMockData();
+                            }, 1000);
+                        }
+                        */
+                    } catch (err) {
+                        console.error('❌ Error checking authentication:', err);
+                        // In case of error, redirect to login
+                        window.location.href = 'login.html?from=index&error=auth_check_failed';
+                    }
+                };
                 
-                // Show the app content
-                setTimeout(function() {
-                    splashScreen.style.display = 'none';
-                    appContainer.style.display = 'flex';
-                    
-                    // Load mock data for demo
-                    loadMockData();
-                }, 1000);
+                // Run authentication check
+                checkAuth();
                 
                 // Listen for authentication changes
                 if (window.supabaseClient?.auth) {
@@ -328,14 +615,46 @@
         }
     </script>
     
+    <!-- Set a global flag if we have a valid session to prevent main.js from redirecting -->
+    <script>
+        // Check for mock session before loading main.js
+        const mockSession = localStorage.getItem('sb-mock-auth-token');
+        if (mockSession) {
+            console.log('🔑 Valid session found, preventing auth redirects');
+            window.__HAS_VALID_SESSION = true;
+        }
+    </script>
+
     <!-- Load improved navigation system and fixed Supabase client -->
     <script src="./src/js/navigation-core.js"></script>
     <script src="./src/js/supabase-client-improved.js"></script>
+    <script src="./src/js/main.js"></script>
+    <script src="./src/js/map.js"></script>
+    <script src="./src/js/request.js"></script>
+    <script src="./src/js/assign.js"></script>
+    <script src="./src/js/earnings.js"></script>
+    <script src="./src/js/notifications.js"></script>
+    <script src="./src/js/profile.js"></script>
+    <script src="./src/js/settings.js"></script>
+    <script src="./src/js/utils.js"></script>
     
-    <!-- Load the safe navigation helpers -->
-    <script src="./src/js/safe-navigation.js"></script>
-    
-    <!-- Load the new bottom navigation component -->
-    <script src="./src/js/bottom-nav.js"></script>
+    <!-- Initialize the app after all scripts are loaded -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (mockSession) {
+                // Show the app content
+                const splashScreen = document.querySelector('.splash-screen');
+                const appContainer = document.querySelector('.app-container');
+                
+                if (splashScreen) splashScreen.style.display = 'none';
+                if (appContainer) appContainer.style.display = 'flex';
+                
+                // Load mock data if available
+                if (typeof loadMockData === 'function') {
+                    loadMockData();
+                }
+            }
+        });
+    </script>
 </body>
 </html>

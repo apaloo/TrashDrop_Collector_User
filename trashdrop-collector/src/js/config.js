@@ -109,13 +109,36 @@ const locationDefaults = {
 // Get Supabase credentials from environment with fallbacks
 // These are kept as local variables and only exposed via CONFIG and SUPABASE_CONFIG
 // Use let instead of const to avoid redeclaration errors if the script runs multiple times
-let _supabaseUrl = getEnv('SUPABASE_URL', isDevelopment ? 
-  'http://localhost:3000' : 
-  ''); // Empty fallback in production forces error if missing
 
-let _supabaseKey = getEnv('SUPABASE_KEY', isDevelopment ? 
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZXlhdnB4cWNsb3Vwb2xidnloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU0OTY4OTYsImV4cCI6MjA2MTA3Mjg5Nn0.5rxsiRuLHCpeJZ5TqoIA5X4UwoAAuxIpNu_reafwwbQ' : 
-  ''); // Empty fallback in production forces error if missing
+// Check URL parameters for Supabase configuration (allows sharing links with credentials)
+function getUrlParam(name) {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get(name);
+}
+
+// Production Supabase instance
+const PROD_SUPABASE_URL = 'https://npfpealzcpljpqiyyuut.supabase.co';
+
+// First try URL params, then localStorage, then env vars, and finally fallbacks
+let _supabaseUrl = 
+  getUrlParam('supabaseUrl') || 
+  localStorage.getItem('supabase_url') || 
+  getEnv('SUPABASE_URL', PROD_SUPABASE_URL);
+
+// Make sure the URL is properly formatted
+if (_supabaseUrl && _supabaseUrl.includes('localhost:3000') && !isDevelopment) {
+  console.warn('⚠️ Fixing incorrect Supabase URL format that contains localhost');
+  _supabaseUrl = PROD_SUPABASE_URL;
+}
+
+// Handle anonymous key in the same priority order
+let _supabaseKey = 
+  getUrlParam('supabaseKey') || 
+  localStorage.getItem('supabase_key') || 
+  getEnv('SUPABASE_KEY', 
+    // Default anonymous key for development
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wZnBlYWx6Y3BsanBxaXl5dXV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MjAwMDAwMDAwMH0.qZSzcZA-5-ht9k-mWJIEIP5xyS1Wz-jLQK4RvMe24Mg'
+  );
 
 // Ensure SUPABASE_CONFIG is available globally for compatibility with various app components
 window.SUPABASE_CONFIG = {

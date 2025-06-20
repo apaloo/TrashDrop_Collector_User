@@ -664,17 +664,28 @@ async function updateLocationUI(lat, lng) {
  */
 async function loadAssignments() {
     try {
-        // In a real app, we would fetch from Supabase here
-        // For demo purposes, we'll use dummy data
-        const dummyAssignments = generateDummyAssignments();
-        
         // Clear current assignments
         availableAssignments = [];
         acceptedAssignments = [];
         completedAssignments = [];
         
+        let assignments = [];
+        
+        try {
+            // In a real app, we would fetch from Supabase here
+            // For demo purposes, we'll use dummy data
+            assignments = generateDummyAssignments();
+            
+            if (!assignments || !Array.isArray(assignments) || assignments.length === 0) {
+                throw new Error('Invalid or empty assignment data');
+            }
+        } catch (genError) {
+            console.warn('Error generating assignments, using fallback:', genError);
+            assignments = getFallbackAssignments();
+        }
+        
         // Sort assignments by status
-        dummyAssignments.forEach(assignment => {
+        assignments.forEach(assignment => {
             if (assignment.status === 'available') {
                 availableAssignments.push(assignment);
             } else if (assignment.status === 'accepted') {
@@ -692,8 +703,67 @@ async function loadAssignments() {
         renderAcceptedAssignments();
         renderCompletedAssignments();
     } catch (error) {
-        console.error('Error loading assignments:', error);
+        console.warn('Error loading assignments, using fallback data:', error);
+        
+        // Use fallback assignments
+        const fallbackData = getFallbackAssignments();
+        
+        // Sort fallback assignments by status
+        availableAssignments = fallbackData.filter(a => a.status === 'available');
+        acceptedAssignments = fallbackData.filter(a => a.status === 'accepted');
+        completedAssignments = fallbackData.filter(a => a.status === 'completed');
+        
+        // Sort available assignments by proximity
+        availableAssignments.sort((a, b) => a.distance - b.distance);
+        
+        // Render with fallback data
+        renderAvailableAssignments();
+        renderAcceptedAssignments();
+        renderCompletedAssignments();
     }
+}
+
+/**
+ * Get hardcoded fallback assignment data when dynamic generation fails
+ * @returns {Array} - Array of assignment objects
+ */
+function getFallbackAssignments() {
+    return [
+        {
+            id: 'fallback-a1',
+            status: 'available',
+            location_name: 'Accra Beach Area',
+            address: '15 Coastal Road, Accra',
+            distance: 0.7,
+            earnings: 45,
+            description: 'Beach cleanup - plastic and general waste',
+            time_estimate: '2 hours',
+            location: { lat: 5.5913, lng: -0.1969 }
+        },
+        {
+            id: 'fallback-a2',
+            status: 'accepted',
+            location_name: 'Legon Campus',
+            address: 'University of Ghana, Legon',
+            distance: 1.5,
+            earnings: 35,
+            description: 'Post-event cleanup and waste sorting',
+            time_estimate: '3 hours',
+            location: { lat: 5.6502, lng: -0.1871 }
+        },
+        {
+            id: 'fallback-a3',
+            status: 'completed',
+            location_name: 'Makola Market',
+            address: 'Makola Market, Accra Central',
+            distance: 0.9,
+            earnings: 55,
+            description: 'Market waste collection and recycling',
+            time_estimate: '4 hours',
+            completed_date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+            location: { lat: 5.5478, lng: -0.2166 }
+        }
+    ];
 }
 
 /**

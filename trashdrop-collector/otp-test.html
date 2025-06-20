@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrashDrop OTP Authentication Test</title>
+    
+    <!-- Clear ALL storage to ensure clean state -->
+    <script>
+        // Start with a clean slate - MANDATORY for reliable auth testing
+        localStorage.clear();
+        sessionStorage.clear();
+        console.log('🧹 All storage cleared for clean authentication testing');
+    </script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .auth-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-top: 40px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            color: #34495e;
+            margin-bottom: 20px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .step {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-left: 3px solid #3498db;
+            margin-bottom: 10px;
+        }
+        
+        .verification-code {
+            letter-spacing: 5px;
+            font-size: 20px;
+        }
+        
+        .debug-panel {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #2c3e50;
+            color: white;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .status-indicator {
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: inline-block;
+        }
+        
+        .status-pending {
+            background-color: #f39c12;
+            color: white;
+        }
+        
+        .status-success {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .status-error {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        pre {
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TrashDrop OTP Authentication Test</h1>
+        
+        <div class="auth-card">
+            <h2>Phone Number Authentication</h2>
+            
+            <div id="loading-indicator">Loading authentication...</div>
+            
+            <div id="auth-form" class="hidden">
+                <div style="padding: 10px; background-color: #f8f9fa; border-left: 4px solid #4285f4; margin-bottom: 15px;">
+                    <strong>Test Mode Instructions:</strong>
+                    <ul>
+                        <li>Use test phone number: <code>+12345678901</code></li>
+                        <li>Verification code: <code>123456</code></li>
+                        <li>Any other phone/code combination will simulate an error</li>
+                    </ul>
+                </div>
+                
+                <div class="input-group">
+                    <label for="phoneNumber">Phone Number</label>
+                    <input type="tel" id="phoneNumber" placeholder="+1 (555) 555-5555" value="+12345678901" />
+                    <div id="phone-error" style="color: #e74c3c; margin-top: 5px;"></div>
+                </div>
+                
+                <button id="send-otp-btn">Send Verification Code</button>
+                
+                <div id="verification-section" class="hidden">
+                    <div class="step">
+                        <p>A verification code has been sent to your phone. Enter it below:</p>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="verification-code">Verification Code</label>
+                        <input type="text" id="verification-code" placeholder="123456" class="verification-code" maxlength="6" />
+                        <div id="verification-error" style="color: #e74c3c; margin-top: 5px;"></div>
+                    </div>
+                    
+                    <button id="verify-otp-btn">Verify</button>
+                </div>
+            </div>
+            
+            <div id="status-container"></div>
+            
+            <div id="user-info" class="debug-panel hidden">
+                <h3>Authentication Successful</h3>
+                <pre id="user-data"></pre>
+                <button id="go-to-app-btn">Continue to App</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Load only minimal required scripts, directly in sequence -->
+    <script>
+        // Load required scripts in sequence
+        async function loadScripts() {
+            try {
+                // Helper function to load a script
+                async function loadScript(src) {
+                    return new Promise((resolve, reject) => {
+                        console.log('📥 Loading:', src);
+                        const script = document.createElement('script');
+                        script.src = src;
+                        script.onload = () => {
+                            console.log('✅ Loaded:', src);
+                            resolve();
+                        };
+                        script.onerror = (err) => {
+                            console.error('❌ Error loading:', src, err);
+                            reject(err);
+                        };
+                        document.head.appendChild(script);
+                    });
+                }
+                
+                // 1. Load config first
+                await loadScript('./src/js/config.js');
+                
+                // Verify CONFIG is available
+                if (!window.CONFIG || !window.CONFIG.supabase) {
+                    console.error('❌ Missing CONFIG or CONFIG.supabase');
+                    window.CONFIG = window.CONFIG || {};
+                    window.CONFIG.supabase = window.CONFIG.supabase || {
+                        url: 'https://your-supabase-url.supabase.co',
+                        key: 'your-supabase-anon-key'
+                    };
+                }
+                
+                // Setup a proper Supabase URL
+                const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                if (!window.CONFIG.supabase.url || 
+                    window.CONFIG.supabase.url.includes('localhost:3000') || 
+                    window.CONFIG.supabase.url === 'https://your-supabase-url.supabase.co') {
+                    console.warn('⚠️ Using development mode with mock Supabase authentication');
+                    
+                    // Create mock Supabase methods for development/testing
+                    window.useMockSupabase = true;
+                    
+                    // Still set a URL so the real client doesn't break completely
+                    window.CONFIG.supabase.url = 'https://xyzsupabase.supabase.co';
+                    window.CONFIG.supabase.key = 'mock-key-for-development-only';
+                }
+                
+                // 2. Load Supabase directly (we don't need the app's supabase client wrapper)
+                await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js');
+                
+                if (!window.supabase) {
+                    throw new Error('Supabase library failed to load correctly');
+                }
+                
+                // 3. Create our own Supabase client instance - real or mock
+                console.log('🔌 Creating Supabase client directly');
+                
+                if (window.useMockSupabase) {
+                    console.log('⚠️ Using mock Supabase client for offline testing');
+                    
+                    // Create a mock Supabase client with the required OTP methods
+                    window.supabaseClient = {
+                        auth: {
+                            // Mock signInWithOtp that always succeeds
+                            signInWithOtp: async function(options) {
+                                console.log('✅ MOCK: Sending OTP to', options.phone);
+                                // Simulate network delay
+                                await new Promise(resolve => setTimeout(resolve, 800));
+                                return { data: {}, error: null };
+                            },
+                            
+                            // Mock verifyOtp that always succeeds with test number +12345678901
+                            verifyOtp: async function(options) {
+                                console.log('✅ MOCK: Verifying OTP', options.token, 'for', options.phone);
+                                // Simulate network delay
+                                await new Promise(resolve => setTimeout(resolve, 800));
+                                
+                                // Simulate successful verification for test number or code 123456
+                                if (options.phone === '+12345678901' || options.token === '123456') {
+                                    return {
+                                        data: {
+                                            user: {
+                                                id: 'test-user-id-123',
+                                                phone: options.phone,
+                                                user_metadata: { name: 'Test User' }
+                                            },
+                                            session: {
+                                                access_token: 'mock-token-' + Date.now(),
+                                                expires_at: Date.now() + 3600000,
+                                                refresh_token: 'mock-refresh-token'
+                                            }
+                                        },
+                                        error: null
+                                    };
+                                } else {
+                                    // For any other phone number, simulate an error
+                                    return {
+                                        data: null,
+                                        error: { message: 'Invalid verification code' }
+                                    };
+                                }
+                            },
+                            
+                            // Add other auth methods as needed
+                            getUser: async function() {
+                                return {
+                                    data: {
+                                        user: {
+                                            id: 'test-user-id-123',
+                                            phone: '+12345678901',
+                                            user_metadata: { name: 'Test User' }
+                                        }
+                                    },
+                                    error: null
+                                };
+                            }
+                        }
+                    };
+                } else {
+                    // Create real client
+                    window.supabaseClient = window.supabase.createClient(
+                        window.CONFIG.supabase.url,
+                        window.CONFIG.supabase.key,
+                        {
+                            auth: {
+                                autoRefreshToken: true,
+                                persistSession: false // No auto-login during testing
+                            }
+                        }
+                    );
+                }
+                
+                console.log('🔥 All resources loaded successfully!');
+                document.getElementById('loading-indicator').style.display = 'none';
+                document.getElementById('auth-form').classList.remove('hidden');
+                
+                // Initialize the UI event handlers
+                initializeOtpAuthentication();
+            } catch (error) {
+                console.error('❌ Error loading resources:', error);
+                document.getElementById('loading-indicator').innerHTML = 
+                    `<div class="status-error">Error loading resources: ${error.message}</div>`;
+            }
+        }
+        
+        // Initialize OTP Authentication UI and handlers
+        function initializeOtpAuthentication() {
+            const statusContainer = document.getElementById('status-container');
+            const phoneInput = document.getElementById('phoneNumber');
+            const sendOtpBtn = document.getElementById('send-otp-btn');
+            const verificationSection = document.getElementById('verification-section');
+            const verificationInput = document.getElementById('verification-code');
+            const verifyOtpBtn = document.getElementById('verify-otp-btn');
+            const userInfo = document.getElementById('user-info');
+            const userData = document.getElementById('user-data');
+            const goToAppBtn = document.getElementById('go-to-app-btn');
+            const phoneError = document.getElementById('phone-error');
+            const verificationError = document.getElementById('verification-error');
+            
+            // Show status message
+            function showStatus(message, type = 'pending') {
+                statusContainer.innerHTML = `<div class="status-indicator status-${type}">${message}</div>`;
+            }
+            
+            // Validate phone number (basic validation)
+            function validatePhone(phone) {
+                // Allow international format or add + if not present
+                if (!phone.startsWith('+')) {
+                    return '+' + phone.replace(/\D/g, '');
+                }
+                return phone.replace(/\s/g, '');
+            }
+            
+            // Send OTP handler
+            sendOtpBtn.addEventListener('click', async () => {
+                try {
+                    phoneError.textContent = '';
+                    
+                    const rawPhone = phoneInput.value.trim();
+                    if (!rawPhone) {
+                        phoneError.textContent = 'Please enter a phone number';
+                        return;
+                    }
+                    
+                    const phoneNumber = validatePhone(rawPhone);
+                    phoneInput.value = phoneNumber; // update with formatted number
+                    
+                    showStatus('Sending verification code...');
+                    sendOtpBtn.disabled = true;
+                    
+                    // Send OTP via Supabase
+                    const { error } = await window.supabaseClient.auth.signInWithOtp({
+                        phone: phoneNumber
+                    });
+                    
+                    if (error) throw error;
+                    
+                    // Show verification section
+                    verificationSection.classList.remove('hidden');
+                    showStatus('Verification code sent!', 'success');
+                    verificationInput.focus();
+                } catch (error) {
+                    console.error('Error sending OTP:', error);
+                    showStatus(`Error: ${error.message}`, 'error');
+                    sendOtpBtn.disabled = false;
+                }
+            });
+            
+            // Verify OTP handler
+            verifyOtpBtn.addEventListener('click', async () => {
+                try {
+                    verificationError.textContent = '';
+                    
+                    const phoneNumber = phoneInput.value.trim();
+                    const verificationCode = verificationInput.value.trim();
+                    
+                    if (!verificationCode) {
+                        verificationError.textContent = 'Please enter the verification code';
+                        return;
+                    }
+                    
+                    showStatus('Verifying code...');
+                    verifyOtpBtn.disabled = true;
+                    
+                    // Verify OTP
+                    const { data, error } = await window.supabaseClient.auth.verifyOtp({
+                        phone: phoneNumber,
+                        token: verificationCode,
+                        type: 'sms'
+                    });
+                    
+                    if (error) throw error;
+                    
+                    // SUCCESS: User authenticated
+                    showStatus('Authentication successful!', 'success');
+                    
+                    // Show user info
+                    userData.textContent = JSON.stringify(data, null, 2);
+                    userInfo.classList.remove('hidden');
+                } catch (error) {
+                    console.error('Error verifying OTP:', error);
+                    showStatus(`Verification failed: ${error.message}`, 'error');
+                    verifyOtpBtn.disabled = false;
+                    verificationInput.focus();
+                }
+            });
+            
+            // Continue to app button
+            goToAppBtn.addEventListener('click', () => {
+                window.location.href = 'map.html';
+            });
+            
+            // Enter key for verification input
+            verificationInput.addEventListener('keyup', (event) => {
+                if (event.key === 'Enter') {
+                    verifyOtpBtn.click();
+                }
+            });
+            
+            // Enter key for phone input
+            phoneInput.addEventListener('keyup', (event) => {
+                if (event.key === 'Enter') {
+                    sendOtpBtn.click();
+                }
+            });
+        }
+        
+        // Start loading scripts when page loads
+        document.addEventListener('DOMContentLoaded', loadScripts);
+    </script>
+</body>
+</html>
