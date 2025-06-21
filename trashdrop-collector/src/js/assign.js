@@ -16,9 +16,10 @@ let isGeofencingEnabled = false;
 // DOM Elements
 let tabButtons;
 let tabContents;
-let availableAssignmentsElement;
-let acceptedAssignmentsElement;
-let completedAssignmentsElement;
+// Using 'var' instead of 'let' to avoid block-scoped redeclaration issues
+var availableAssignmentsElement;
+var acceptedAssignmentsElement;
+var completedAssignmentsElement;
 let assignmentModal;
 let markCompleteModal;
 let disposeModal;
@@ -29,7 +30,8 @@ let submitCompleteBtn;
 // Camera elements and variables
 let cameraContainer;
 let cameraFeed;
-let captureCanvas;
+// Using var for captureCanvas to ensure it's not redeclared
+var captureCanvas;
 let takePictureBtn;
 let cancelCaptureBtn;
 let currentPhotoId = null;
@@ -120,8 +122,9 @@ async function initAssignPage() {
     
     // DOM Elements
     const tabs = document.getElementById('assignmentTabs');
-    tabButtons = document.querySelectorAll('.tab-button');
+    tabButtons = document.querySelectorAll('.tab');
     tabContents = document.querySelectorAll('.tab-content');
+    // Using the already declared global variables instead of redeclaring
     availableAssignmentsElement = document.getElementById('availableAssignments');
     acceptedAssignmentsElement = document.getElementById('acceptedAssignments');
     completedAssignmentsElement = document.getElementById('completedAssignments');
@@ -501,22 +504,62 @@ function setupLocationElements() {
  */
 function initLocationMap() {
     try {
-        // Default center (San Francisco)
-        const defaultCenter = CONFIG.map.locations.cities.sanFrancisco;
+        // First, check if Leaflet is available
+        if (typeof L === 'undefined') {
+            console.log('Leaflet not yet available, waiting for it to load...');
+            // Set up an event listener for when Leaflet is loaded
+            const mapContainer = document.getElementById('locationMap');
+            if (mapContainer) {
+                mapContainer.innerHTML = `
+                    <div class="map-loading">
+                        <p>Loading map...</p>
+                    </div>
+                `;
+            }
+            
+            // Wait for the leafletLoaded event
+            window.addEventListener('leafletLoaded', function leafletLoadHandler() {
+                // Remove the event listener to avoid multiple calls
+                window.removeEventListener('leafletLoaded', leafletLoadHandler);
+                // Call initLocationMap again once Leaflet is loaded
+                setTimeout(() => initLocationMap(), 100);
+            });
+            return; // Exit function for now, will be called again when Leaflet loads
+        }
+        
+        // Default center (San Francisco or fallback)
+        const defaultCenter = (CONFIG && CONFIG.map && CONFIG.map.locations && CONFIG.map.locations.cities && CONFIG.map.locations.cities.sanFrancisco) ? 
+            CONFIG.map.locations.cities.sanFrancisco : 
+            { lat: 37.7749, lng: -122.4194 }; // Fallback coordinates for San Francisco
         
         // Create a new map if it doesn't exist
         if (!locationMap) {
             // Clear previous map instance if exists
             const mapContainer = document.getElementById('locationMap');
+            if (!mapContainer) {
+                console.warn('Map container not found');
+                return;
+            }
             mapContainer.innerHTML = '';
             
             // Create the map with Leaflet
             locationMap = L.map('locationMap').setView([defaultCenter.lat, defaultCenter.lng], 15);
             
-            // Add OpenStreetMap tile layer
-            L.tileLayer(CONFIG.map.tileUrl, {
-                attribution: CONFIG.staticData.attributions.openStreetMap,
-                maxZoom: CONFIG.map.maxZoom
+            // Add OpenStreetMap tile layer with fallback URL if CONFIG is not available
+            const tileUrl = (CONFIG && CONFIG.map && CONFIG.map.tileUrl) ? 
+                CONFIG.map.tileUrl : 
+                'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+            
+            const attribution = (CONFIG && CONFIG.staticData && CONFIG.staticData.attributions && CONFIG.staticData.attributions.openStreetMap) ? 
+                CONFIG.staticData.attributions.openStreetMap : 
+                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+            
+            const maxZoom = (CONFIG && CONFIG.map && CONFIG.map.maxZoom) ? 
+                CONFIG.map.maxZoom : 19;
+            
+            L.tileLayer(tileUrl, {
+                attribution: attribution,
+                maxZoom: maxZoom
             }).addTo(locationMap);
             
             // Create a marker and add it to the map
@@ -538,7 +581,7 @@ function initLocationMap() {
                 updateLocationUI(lat, lng);
                 
                 // Re-check requirements
-                checkPhotoRequirement();
+                checkRequirements();
             });
             
             // Add a click event to the map to allow users to place the marker manually
@@ -556,23 +599,29 @@ function initLocationMap() {
                 updateLocationUI(lat, lng);
                 
                 // Re-check requirements
-                checkPhotoRequirement();
+                checkRequirements();
             });
         }
         
         // Try to capture current location after a short delay to ensure map is visible
         setTimeout(() => {
-            captureCurrentLocation();
+            try {
+                captureCurrentLocation();
+            } catch (locError) {
+                console.warn('Error capturing location:', locError);
+            }
         }, 500);
     } catch (error) {
         console.error('Error initializing map:', error);
         const mapContainer = document.getElementById('locationMap');
-        mapContainer.innerHTML = `
-            <div class="map-error">
-                <span class="material-icons">error</span>
-                <p>Unable to load map. Please ensure you have an internet connection.</p>
-            </div>
-        `;
+        if (mapContainer) {
+            mapContainer.innerHTML = `
+                <div class="map-error">
+                    <span class="material-icons">error</span>
+                    <p>Unable to load map. Please ensure you have an internet connection.</p>
+                </div>
+            `;
+        }
     }
 }
 
@@ -1142,10 +1191,15 @@ function viewAssignmentDetails(assignmentId) {
  * @param {Number} assignmentId - ID of the assignment to accept
  */
 function acceptAssignment(assignmentId) {
-    const assignment = availableAssignments.find(a => a.id === assignmentId);
+    // Ensure assignmentId is properly converted to the correct type
+    // Assignments may use numeric or string IDs
+    const numericId = parseInt(assignmentId, 10);
+    const assignment = availableAssignments.find(a => a.id === assignmentId || a.id === numericId);
     
     if (!assignment) {
-        console.error('Assignment not found');
+        console.warn(`Assignment not found with ID: ${assignmentId}`);
+        // Try to reload assignments if we can't find it
+        loadAssignments();
         return;
     }
     

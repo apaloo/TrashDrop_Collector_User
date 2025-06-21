@@ -40,23 +40,31 @@
     <!-- Core initialization loader - should be loaded first -->
     <script src="./src/js/init-loader.js"></script>
     
-    <!-- Dynamic resource loading - replaced hardcoded CDN links -->
-    <script type="module">
-        import { loadResources } from './src/js/resource-loader.js';
-        
+    <!-- Dynamic resource loading - using global ResourceLoader object -->
+    <script>
         // Wait for core initialization before loading additional resources
         window.addEventListener('coreInitialized', () => {
-            // Load required resources
-            window.resourceLoadPromise = loadResources({
-                loadSupabase: true,
-                loadFonts: true
-            }).then(() => {
-                console.log('✅ Base resources loaded successfully');
-                // Dispatch an event when resources are loaded
-                window.dispatchEvent(new CustomEvent('baseResourcesLoaded'));
-            }).catch(error => {
-                console.error('❌ Failed to load resources:', error);
-            });
+            // Wait for ResourceLoader to be available
+            function checkResourceLoader() {
+                if (window.ResourceLoader && window.ResourceLoader.loadResources) {
+                    // Load required resources
+                    window.resourceLoadPromise = window.ResourceLoader.loadResources({
+                        loadSupabase: true,
+                        loadFonts: true
+                    }).then(() => {
+                        console.log('✅ Base resources loaded successfully');
+                        // Dispatch an event when resources are loaded
+                        window.dispatchEvent(new CustomEvent('baseResourcesLoaded'));
+                    }).catch(error => {
+                        console.error('❌ Failed to load resources:', error);
+                    });
+                } else {
+                    // Retry after a short delay if not available yet
+                    setTimeout(checkResourceLoader, 100);
+                }
+            }
+            
+            checkResourceLoader();
         });
     </script>
     
